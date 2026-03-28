@@ -294,6 +294,37 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Outgoing hit: you deal damage — triumphant gold */
+.game-log__entry--hit_outgoing {
+  color: var(--color-gold-bright);
+}
+
+/* Outgoing miss: you miss or get blocked — dimmed */
+.game-log__entry--miss_outgoing {
+  color: var(--color-ink-faint);
+}
+
+/* Incoming hit: you take damage — blood red alert */
+.game-log__entry--hit_incoming {
+  color: var(--color-blood-bright);
+}
+
+/* Incoming miss: enemy misses / you parry — cool steel (you're winning) */
+.game-log__entry--miss_incoming {
+  color: var(--color-steel-bright);
+}
+
+/* Combat neutral: stalemate, circling — muted */
+.game-log__entry--combat_neutral {
+  color: var(--color-ink-muted);
+}
+
+/* Tempo gained/spent — leaf green for tactical edge */
+.game-log__entry--combat_tempo {
+  color: var(--color-leaf);
+}
+
+/* Legacy compat */
 .game-log__entry--combat {
   color: var(--color-gold);
 }

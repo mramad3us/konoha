@@ -2,7 +2,7 @@ import type { GameAction } from '../types/actions.ts';
 import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
-import { resolveMelee } from './combat.ts';
+
 import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST } from '../core/constants.ts';
 
 /** Map dx,dy to a facing direction */
@@ -55,17 +55,15 @@ export function executeTurn(action: GameAction, world: World): boolean {
         renderable.spriteId = `char_${gender}_${directionToCardinal(facing)}`;
       }
 
-      // Check for blocking entity (combat target)
+      // Check for blocking entity — no bump-to-attack, use combat keys instead
       const blockingEntity = world.getBlockingEntityAt(newX, newY);
       if (blockingEntity !== null && blockingEntity !== playerId) {
-        const defenderHealth = world.healths.get(blockingEntity);
-        if (defenderHealth) {
-          // Combat!
-          resolveMelee(world, playerId, blockingEntity);
+        const name = world.names.get(blockingEntity);
+        const desc = name ? `${name.article ? name.article + ' ' : ''}${name.display}` : 'something';
+        const hasHealth = world.healths.has(blockingEntity);
+        if (hasHealth) {
+          world.log(`You face ${desc}. Use attack keys (a/z/e) to engage.`, 'info');
         } else {
-          // Blocked by something with no health
-          const name = world.names.get(blockingEntity);
-          const desc = name ? `${name.article ? name.article + ' ' : ''}${name.display}` : 'something';
           world.log(`Blocked by ${desc}.`, 'info');
         }
       } else if (!world.tileMap.isWalkable(newX, newY)) {

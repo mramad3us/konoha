@@ -120,13 +120,17 @@ export function processCombatMove(
     ? resolveCombat(playerMove, npcMove, playerId, targetId, eng.tempoA, eng.tempoB, playerTaijutsu, targetTaijutsu, playerPhy, targetPhy)
     : resolveCombat(npcMove, playerMove, targetId, playerId, eng.tempoB, eng.tempoA, targetTaijutsu, playerTaijutsu, targetPhy, playerPhy);
 
-  // Apply tempo changes
-  if (isPlayerA) {
-    eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + outcome.tempoChange.attacker));
-    eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + outcome.tempoChange.defender));
+  // Apply tempo changes — map by entity ID, not A/B position
+  // outcome.attackerId/defenderId tell us WHO is in each role
+  const tempoForAttacker = outcome.tempoChange.attacker;
+  const tempoForDefender = outcome.tempoChange.defender;
+
+  if (outcome.attackerId === eng.entityA) {
+    eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tempoForAttacker));
+    eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + tempoForDefender));
   } else {
-    eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + outcome.tempoChange.attacker));
-    eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + outcome.tempoChange.defender));
+    eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + tempoForAttacker));
+    eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tempoForDefender));
   }
 
   // Apply damage
@@ -145,12 +149,43 @@ export function processCombatMove(
     }
   }
 
-  // Generate and log flavor text
+  // Generate and log flavor text with directional categories
   const attackerName = world.names.get(outcome.attackerId)?.display ?? 'Unknown';
   const defenderName = world.names.get(outcome.defenderId)?.display ?? 'Unknown';
   const flavor = generateCombatFlavor(outcome, attackerName, defenderName, playerTaijutsu, targetTaijutsu);
 
-  const logCategory = outcome.damage > 0 ? 'damage' : 'combat';
+  const playerIsAttacker = outcome.attackerId === playerId;
+  const playerIsDefender = outcome.defenderId === playerId;
+
+  let logCategory: import('../types/actions.ts').LogCategory;
+  switch (outcome.type) {
+    case 'perfect_parry':
+      logCategory = playerIsDefender ? 'miss_incoming' : 'miss_outgoing';
+      break;
+    case 'tempo_save':
+      logCategory = playerIsDefender ? 'combat_tempo' : 'combat_tempo';
+      break;
+    case 'imperfect_block':
+    case 'clean_hit':
+    case 'clash_tempo_win':
+    case 'clash_rng':
+      if (outcome.damage > 0) {
+        logCategory = playerIsAttacker ? 'hit_outgoing' : 'hit_incoming';
+      } else {
+        logCategory = playerIsAttacker ? 'miss_outgoing' : 'miss_incoming';
+      }
+      break;
+    case 'clash_stalemate':
+    case 'circling':
+      logCategory = 'combat_neutral';
+      break;
+    case 'missed':
+      logCategory = playerIsAttacker ? 'miss_outgoing' : 'miss_incoming';
+      break;
+    default:
+      logCategory = 'combat_neutral';
+  }
+
   world.log(flavor, logCategory);
 
   // Improve taijutsu skill from combat practice
