@@ -1,49 +1,24 @@
 import type { SpriteRegistration } from '../sprites/manifest.ts';
+import { rasterizePattern, rasterizeWithOutline } from '../sprites/pixelPatterns.ts';
 
 /**
- * Preloads SVG strings into OffscreenCanvas objects for fast canvas drawImage() calls.
- * Each SVG is rasterized once at its target pixel dimensions.
+ * Preloads pixel-pattern sprites into OffscreenCanvas objects
+ * for fast canvas drawImage() calls.
+ *
+ * Patterns are rasterized via fillRect — each pattern pixel becomes
+ * a block of screen pixels. Zero anti-aliasing, pure crisp edges.
  */
 class SpriteCache {
   private cache = new Map<string, OffscreenCanvas>();
 
   /** Preload all sprites from the manifest */
   async preload(registrations: SpriteRegistration[]): Promise<void> {
-    const promises = registrations.map(reg => this.loadSprite(reg));
-    await Promise.all(promises);
-  }
-
-  private loadSprite(reg: SpriteRegistration): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const blob = new Blob([reg.svg], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-
-      img.onload = () => {
-        const canvas = new OffscreenCanvas(reg.width, reg.height);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          URL.revokeObjectURL(url);
-          reject(new Error(`Failed to get 2D context for sprite ${reg.id}`));
-          return;
-        }
-
-        // Disable image smoothing for crisp pixel art
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, reg.width, reg.height);
-
-        this.cache.set(reg.id, canvas);
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error(`Failed to load sprite: ${reg.id}`));
-      };
-
-      img.src = url;
-    });
+    for (const reg of registrations) {
+      const canvas = reg.outline
+        ? rasterizeWithOutline(reg.pattern, reg.displayWidth, reg.displayHeight)
+        : rasterizePattern(reg.pattern, reg.displayWidth, reg.displayHeight);
+      this.cache.set(reg.id, canvas);
+    }
   }
 
   /** Get a preloaded sprite canvas */
