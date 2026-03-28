@@ -1,0 +1,157 @@
+/* ── Landing Screen ── */
+.screen--landing {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(178,34,52,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(42,42,42,0.4) 0%, transparent 50%),
+    var(--color-bg-deep);
+  justify-content: center;
+  gap: 0;
+}
+
+/* ── Ambient particles ── */
+.landing__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.landing__particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--color-blood);
+  opacity: 0;
+  animation: particleDrift linear infinite;
+}
+
+@keyframes particleDrift {
+  0%   { opacity: 0; transform: translateY(100vh) translateX(0) scale(0.5); }
+  10%  { opacity: 0.3; }
+  90%  { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-20px) translateX(30px) scale(1); }
+}
+
+/* ── Logo Area ── */
+.landing__logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+}
+
+.landing__symbol {
+  width: 80px;
+  height: 80px;
+  color: var(--color-blood);
+  image-rendering: pixelated;
+  opacity: 0;
+  animation: logoReveal 1s 0.3s var(--ease-out-expo) forwards;
+}
+
+@keyframes logoReveal {
+  0%   { opacity: 0; transform: scale(0.8); filter: blur(4px); }
+  60%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+.landing__title {
+  font-family: var(--font-pixel);
+  font-size: 28px;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  opacity: 0;
+  animation: titleReveal 0.8s 0.6s var(--ease-out-expo) forwards;
+}
+
+@keyframes titleReveal {
+  0%   { opacity: 0; letter-spacing: 0.6em; }
+  100% { opacity: 1; letter-spacing: 0.3em; }
+}
+
+.landing__subtitle {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-blood);
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  opacity: 0;
+  animation: subtitleReveal 0.6s 1s var(--ease-out-expo) forwards;
+}
+
+@keyframes subtitleReveal {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 0.8; transform: translateY(0); }
+}
+
+/* ── Separator ── */
+.landing__separator {
+  width: 200px;
+  height: 16px;
+  color: var(--color-blood);
+  image-rendering: pixelated;
+  margin-bottom: var(--space-6);
+  opacity: 0;
+  animation: staggerIn 0.4s 1.2s var(--ease-out-expo) forwards;
+}
+
+/* ── Menu ── */
+.landing__menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* ── Decorative kunai on sides ── */
+.landing__deco-left,
+.landing__deco-right {
+  position: absolute;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.landing__deco-left {
+  left: 8%;
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.landing__deco-right {
+  right: 8%;
+  transform: translateY(-50%) rotate(135deg);
+}
+
+/* ── Bottom blood drip line ── */
+.landing__blood-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-blood-dark) 20%,
+    var(--color-blood) 50%,
+    var(--color-blood-dark) 80%,
+    transparent 100%
+  );
+  opacity: 0.4;
+}
+
+/* ── Headband decoration ── */
+.landing__headband {
+  position: absolute;
+  top: var(--space-5);
+  width: 192px;
+  height: 64px;
+  image-rendering: pixelated;
+  opacity: 0.12;
+  pointer-events: none;
+}

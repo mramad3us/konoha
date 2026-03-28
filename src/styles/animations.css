@@ -1,0 +1,132 @@
+/* ── Screen transitions ── */
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#app.screen-exit > .screen {
+  animation: screenFadeOut var(--transition-slow) var(--ease-in-expo) forwards;
+}
+
+#app.screen-enter > .screen {
+  animation: screenFadeIn var(--transition-slow) var(--ease-out-expo) forwards;
+}
+
+@keyframes screenFadeOut {
+  0%   { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.98); filter: blur(4px); }
+}
+
+@keyframes screenFadeIn {
+  0%   { opacity: 0; transform: scale(1.02); filter: blur(4px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+/* ── Stagger reveal for menu items ── */
+.stagger-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: staggerIn var(--transition-normal) var(--ease-out-expo) forwards;
+}
+
+@keyframes staggerIn {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Smoke puff (for transitions, menu reveals) ── */
+@keyframes smokePuff {
+  0%   { opacity: 0.7; transform: scale(0.5) translateY(0); }
+  50%  { opacity: 0.4; transform: scale(1.2) translateY(-10px); }
+  100% { opacity: 0; transform: scale(1.8) translateY(-30px); }
+}
+
+.smoke-puff {
+  animation: smokePuff 0.8s var(--ease-out-expo) forwards;
+  pointer-events: none;
+}
+
+/* ── Kunai spin (for loading, transitions) ── */
+@keyframes kunaiSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.kunai-spin {
+  animation: kunaiSpin 1.2s linear infinite;
+}
+
+/* ── Subtle float for decorative elements ── */
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.gentle-float {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+/* ── Pulse glow for active/selected items ── */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(178,34,52,0.2); }
+  50%      { box-shadow: 0 0 20px rgba(178,34,52,0.4); }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ── Ink bleed effect for text reveals ── */
+@keyframes inkReveal {
+  0%   { clip-path: inset(0 100% 0 0); opacity: 0.5; }
+  100% { clip-path: inset(0 0 0 0); opacity: 1; }
+}
+
+.ink-reveal {
+  animation: inkReveal 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ── Shuriken throw (diagonal entry) ── */
+@keyframes shurikenThrow {
+  0%   { transform: translate(-100px, -50px) rotate(0deg); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translate(0, 0) rotate(720deg); opacity: 1; }
+}
+
+.shuriken-throw {
+  animation: shurikenThrow 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ── Pixel art specific ── */
+.pixel-sprite {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ── Scroll unroll ── */
+@keyframes scrollUnroll {
+  0%   { max-height: 0; opacity: 0; }
+  50%  { opacity: 1; }
+  100% { max-height: 600px; opacity: 1; }
+}
+
+.scroll-unroll {
+  overflow: hidden;
+  animation: scrollUnroll 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ── Blood drip accent ── */
+@keyframes bloodDrip {
+  0%   { height: 0; }
+  80%  { height: 24px; }
+  90%  { height: 28px; }
+  100% { height: 24px; }
+}
+
+/* ── Version stamp fade ── */
+@keyframes versionFade {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 0.5; transform: translateY(0); }
+}

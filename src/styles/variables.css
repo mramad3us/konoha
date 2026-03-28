@@ -1,0 +1,56 @@
+:root {
+  /* ── Palette: ink & blood ── */
+  --color-bg-deep:       #0a0a0c;
+  --color-bg:            #0f1014;
+  --color-bg-elevated:   #16171d;
+  --color-bg-surface:    #1c1d25;
+  --color-bg-hover:      #22232e;
+
+  --color-ink:           #e8e4dc;
+  --color-ink-muted:     #9e9a92;
+  --color-ink-faint:     #5a5750;
+
+  --color-blood:         #b22234;
+  --color-blood-bright:  #d4364a;
+  --color-blood-dark:    #7a1524;
+
+  --color-gold:          #c9a84c;
+  --color-gold-bright:   #e0c468;
+  --color-gold-dark:     #8a7233;
+
+  --color-steel:         #708090;
+  --color-steel-bright:  #8899a9;
+
+  --color-leaf:          #2d6e4f;
+  --color-leaf-dark:     #1a4a33;
+
+  --color-scroll:        #f5e6c8;
+  --color-scroll-dark:   #d4a76a;
+
+  /* ── Shadows ── */
+  --shadow-sm:   0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.6);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.7);
+  --shadow-glow: 0 0 20px rgba(178,34,52,0.3);
+
+  /* ── Spacing (pixel-grid aligned) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── Timing ── */
+  --transition-fast:   150ms;
+  --transition-normal: 300ms;
+  --transition-slow:   500ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-expo:  cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Pixel art rendering ── */
+  --pixel-size: 4px;
+}
