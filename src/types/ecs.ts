@@ -84,3 +84,6 @@ export interface DestructibleComponent {
   onDestroyMessage: string;
   respawnTicks: number;
 }
+
+// Re-export CharacterSheet as a component type
+export type { CharacterSheet } from './character.ts';

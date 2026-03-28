@@ -137,7 +137,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
       return false; // Stance change doesn't consume a turn
     }
 
-    case 'toggleKeybindings': {
+    case 'toggleKeybindings':
+    case 'toggleCharacterSheet': {
       return false; // Handled by UI, not turn system
     }
   }

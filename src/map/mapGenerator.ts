@@ -4,6 +4,7 @@ import { World } from '../engine/world.ts';
 import { TILE_INDEX_TO_TYPE } from '../types/tiles.ts';
 import type { TileType } from '../types/tiles.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
+import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
 import {
   TRAINING_GROUNDS_WIDTH,
   TRAINING_GROUNDS_HEIGHT,
@@ -193,6 +194,10 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     maxStamina: BASE_PLAYER_STAMINA,
   });
   world.names.set(playerId, { display: playerName, article: '' });
+  world.characterSheets.set(playerId, {
+    ...DEFAULT_SHINOBI_SHEET,
+    title: 'Academy Graduate',
+  });
 
   // ── Spawn Objects ──
   for (const spawn of OBJECT_SPAWNS) {

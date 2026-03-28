@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -23,6 +23,7 @@ export class World {
   aiControlled = new Map<EntityId, AIControlledComponent>();
   names = new Map<EntityId, NameComponent>();
   destructibles = new Map<EntityId, DestructibleComponent>();
+  characterSheets = new Map<EntityId, CharacterSheet>();
 
   // World systems data
   tileMap: TileMap;
@@ -60,6 +61,7 @@ export class World {
     this.aiControlled.delete(id);
     this.names.delete(id);
     this.destructibles.delete(id);
+    this.characterSheets.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) */
@@ -149,6 +151,7 @@ export class World {
       aiControlled: serializeMap(this.aiControlled),
       names: serializeMap(this.names),
       destructibles: serializeMap(this.destructibles),
+      characterSheets: serializeMap(this.characterSheets),
     };
   }
 
@@ -181,6 +184,9 @@ export class World {
     deserializeMap(world.aiControlled, data['aiControlled'] as Record<string, AIControlledComponent>);
     deserializeMap(world.names, data['names'] as Record<string, NameComponent>);
     deserializeMap(world.destructibles, data['destructibles'] as Record<string, DestructibleComponent>);
+    if (data['characterSheets']) {
+      deserializeMap(world.characterSheets, data['characterSheets'] as Record<string, CharacterSheet>);
+    }
 
     return world;
   }

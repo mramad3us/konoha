@@ -409,3 +409,190 @@
 .game-topbar__save-flash--visible {
   opacity: 1;
 }
+
+/* ── Character Sheet Overlay ── */
+.charsheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.charsheet-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.charsheet-panel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-bg-hover);
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  animation: dialogSlideIn var(--transition-normal) var(--ease-out-expo);
+}
+
+.charsheet-close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-3);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  padding: var(--space-1);
+  transition: color var(--transition-fast);
+}
+
+.charsheet-close:hover {
+  color: var(--color-blood);
+}
+
+.charsheet-content {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Header */
+.charsheet-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-bg-hover);
+}
+
+.charsheet-name {
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.charsheet-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.charsheet-rank {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.charsheet-sep {
+  color: var(--color-ink-faint);
+  font-size: 8px;
+}
+
+.charsheet-title {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-muted);
+  letter-spacing: 0.06em;
+}
+
+/* Section titles */
+.charsheet-section-title {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-gold-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Grid of stat rows */
+.charsheet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Individual stat/skill row */
+.charsheet-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 90px;
+  grid-template-rows: auto auto;
+  gap: 0 var(--space-2);
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.charsheet-row__label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.charsheet-row__bar {
+  height: 6px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.charsheet-row__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.4s var(--ease-out-expo);
+}
+
+.charsheet-row__value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.charsheet-row__num {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink);
+}
+
+.charsheet-row__tier {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.charsheet-row__desc {
+  grid-column: 1 / -1;
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  line-height: 1.4;
+  padding-top: 1px;
+}
+
+/* Scrollbar for character sheet */
+.charsheet-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.charsheet-panel::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+.charsheet-panel::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+}

@@ -4,6 +4,7 @@ import type { World } from '../engine/world.ts';
 import type { Camera } from '../rendering/camera.ts';
 import type { GameHud } from '../ui/gameHud.ts';
 import type { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
+import type { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
 
 export class InputSystem {
@@ -11,6 +12,7 @@ export class InputSystem {
   private camera: Camera;
   private hud: GameHud;
   private keybindingsPanel: KeybindingsPanel;
+  private characterSheet: CharacterSheetUI;
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
 
@@ -19,11 +21,13 @@ export class InputSystem {
     camera: Camera,
     hud: GameHud,
     keybindingsPanel: KeybindingsPanel,
+    characterSheet: CharacterSheetUI,
   ) {
     this.world = world;
     this.camera = camera;
     this.hud = hud;
     this.keybindingsPanel = keybindingsPanel;
+    this.characterSheet = characterSheet;
 
     this.handler = (e: KeyboardEvent) => this.handleKey(e);
     document.addEventListener('keydown', this.handler);
@@ -51,6 +55,16 @@ export class InputSystem {
     // UI-only actions
     if (action.type === 'toggleKeybindings') {
       this.keybindingsPanel.toggle();
+      return;
+    }
+
+    if (action.type === 'toggleCharacterSheet') {
+      const playerId = this.world.playerEntityId;
+      const name = this.world.names.get(playerId)?.display ?? 'Unknown';
+      const sheet = this.world.characterSheets.get(playerId);
+      if (sheet) {
+        this.characterSheet.toggle(name, sheet);
+      }
       return;
     }
 
