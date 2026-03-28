@@ -1,6 +1,28 @@
-/* ── Pixel font via system fallback + Google Fonts ── */
+/* ── Local fonts — fully offline ���─ */
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Serif+JP:wght@400;700&display=swap');
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/PressStart2P-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Noto Serif JP';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/NotoSerifJP-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Noto Serif JP';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/NotoSerifJP-Bold.woff2') format('woff2');
+}
 
 :root {
   --font-pixel: 'Press Start 2P', monospace;
