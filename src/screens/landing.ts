@@ -4,6 +4,7 @@ import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
 import { createElement, staggerReveal } from '../utils/dom.ts';
 import { createSmokePuff } from '../components/smokeEffect.ts';
+import { setActiveSaveId } from '../engine/session.ts';
 
 export async function renderLanding(container: HTMLElement): Promise<void> {
   // Check for continue save
@@ -76,9 +77,12 @@ export async function renderLanding(container: HTMLElement): Promise<void> {
       icon: KUNAI_SVG,
       hint: 'Last save',
       primary: true,
-      action: () => {
-        // Will load last save and go to game
-        console.log('[DEV] Continue game');
+      action: async () => {
+        const lastSave = await saveSystem.getLastSave();
+        if (lastSave) {
+          setActiveSaveId(lastSave.id);
+          screenManager.navigateTo('game');
+        }
       },
     });
   }

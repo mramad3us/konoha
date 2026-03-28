@@ -4,6 +4,7 @@ import { saveSystem } from '../systems/saveSystem.ts';
 import { SCROLL_SVG } from '../assets/sprites/pixelArt.ts';
 import { MENU_STAGGER_MS } from '../core/constants.ts';
 import { formatPlaytime, formatDate } from '../utils/time.ts';
+import { setActiveSaveId } from '../engine/session.ts';
 import { showConfirm } from '../components/confirmDialog.ts';
 import type { GameSave } from '../types/save.ts';
 
@@ -118,7 +119,8 @@ export async function renderLoadGame(container: HTMLElement): Promise<void> {
     const loadBtn = createElement('button', { className: 'save-card__action', text: 'Load' });
     loadBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      console.log('[DEV] Loading save:', save.id);
+      setActiveSaveId(save.id);
+      screenManager.navigateTo('game');
     });
 
     const deleteBtn = createElement('button', {
@@ -147,7 +149,8 @@ export async function renderLoadGame(container: HTMLElement): Promise<void> {
     card.appendChild(actions);
 
     card.addEventListener('click', () => {
-      console.log('[DEV] Selected save:', save.id);
+      setActiveSaveId(save.id);
+      screenManager.navigateTo('game');
     });
 
     return card;

@@ -5,6 +5,7 @@ import { KUNAI_SVG, SHURIKEN_SVG } from '../assets/sprites/pixelArt.ts';
 import { MENU_STAGGER_MS, GAME_VERSION } from '../core/constants.ts';
 import { generateSaveId } from '../utils/id.ts';
 import { createSmokePuff } from '../components/smokeEffect.ts';
+import { setActiveSaveId } from '../engine/session.ts';
 import type { GameSave } from '../types/save.ts';
 
 export async function renderNewGame(container: HTMLElement): Promise<void> {
@@ -144,9 +145,8 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
     };
 
     await saveSystem.save(newSave);
-    // For now, go back to landing. Later this will navigate to the game.
-    console.log('[DEV] New game created:', newSave.id);
-    screenManager.navigateTo('landing');
+    setActiveSaveId(newSave.id);
+    screenManager.navigateTo('game');
   });
 
   form.appendChild(startBtn);

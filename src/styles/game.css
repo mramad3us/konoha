@@ -1,0 +1,328 @@
+/* ── Game Screen Layout ── */
+.screen--game {
+  flex-direction: row;
+  justify-content: stretch;
+  align-items: stretch;
+  overflow: hidden;
+  gap: 0;
+}
+
+.game-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* ── Canvas Container ── */
+.game-canvas-container {
+  flex: 3;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+.game-canvas-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* ── HUD Panel ── */
+.game-hud {
+  flex: 0 0 280px;
+  max-width: 320px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-left: 2px solid var(--color-bg-hover);
+  overflow: hidden;
+}
+
+/* ── Resource Bars Section ── */
+.hud-resources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-bg-hover);
+}
+
+.hud-resources__title {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-1);
+}
+
+/* ── Resource Bar ── */
+.resource-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 18px;
+}
+
+.resource-bar__label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  min-width: 28px;
+  letter-spacing: 0.05em;
+}
+
+.resource-bar__track {
+  flex: 1;
+  height: 8px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.resource-bar__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.3s var(--ease-out-expo);
+}
+
+.resource-bar__fill--hp {
+  background: var(--color-blood);
+}
+
+.resource-bar__fill--chakra {
+  background: #3a6ea5;
+}
+
+.resource-bar__fill--willpower {
+  background: var(--color-gold);
+}
+
+.resource-bar__fill--stamina {
+  background: var(--color-leaf);
+}
+
+/* Damage flash animation */
+.resource-bar__fill--flash {
+  animation: barFlash 0.3s ease-out;
+}
+
+@keyframes barFlash {
+  0%   { filter: brightness(2); }
+  100% { filter: brightness(1); }
+}
+
+.resource-bar__value {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-muted);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ── Stance Indicator ── */
+.hud-stance {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-bg-hover);
+}
+
+.hud-stance__label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hud-stance__value {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hud-stance__ticks {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  margin-left: auto;
+}
+
+/* ── Game Log ── */
+.game-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-log__header {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+.game-log__entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Custom scrollbar */
+.game-log__entries::-webkit-scrollbar {
+  width: 4px;
+}
+
+.game-log__entries::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+.game-log__entries::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+}
+
+.game-log__entry {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  line-height: 1.5;
+  padding: 2px 0;
+  opacity: 0;
+  animation: logEntryIn 0.2s var(--ease-out-expo) forwards;
+}
+
+@keyframes logEntryIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.game-log__entry--combat {
+  color: var(--color-gold);
+}
+
+.game-log__entry--damage {
+  color: var(--color-blood-bright);
+}
+
+.game-log__entry--info {
+  color: var(--color-ink-muted);
+}
+
+.game-log__entry--system {
+  color: var(--color-steel);
+}
+
+.game-log__entry--movement {
+  color: var(--color-ink-faint);
+}
+
+.game-log__tick {
+  color: var(--color-ink-faint);
+  opacity: 0.5;
+  margin-right: 4px;
+}
+
+/* ── Keybindings Panel ── */
+.keybindings-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-blood-dark);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  transform: translateY(100%);
+  transition: transform var(--transition-normal) var(--ease-out-expo);
+  z-index: 10;
+}
+
+.keybindings-panel--visible {
+  transform: translateY(0);
+}
+
+.keybindings-panel__group {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.keybindings-panel__separator {
+  color: var(--color-bg-hover);
+}
+
+.keybindings-panel__key {
+  color: var(--color-gold);
+}
+
+.keybindings-panel__desc {
+  color: var(--color-ink-faint);
+}
+
+/* ── Loading overlay ── */
+.game-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background: var(--color-bg-deep);
+  z-index: 20;
+  transition: opacity 0.5s;
+}
+
+.game-loading--fade {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.game-loading__text {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.game-loading__spinner {
+  width: 24px;
+  height: 24px;
+  color: var(--color-blood);
+  image-rendering: pixelated;
+}
+
+/* ── Tick counter (dev mode) ── */
+.hud-tick {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-bg-hover);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
