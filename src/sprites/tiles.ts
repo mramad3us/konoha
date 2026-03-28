@@ -1,102 +1,118 @@
 /**
  * Isometric tile sprites — 48x24 viewBox (diamond shape).
- * Diamond vertices: (24,0) top, (48,12) right, (24,24) bottom, (0,12) left.
- * Each pixel is a 1x1 rect in the SVG coordinate system.
+ * 8-bit retro style: flat fills, minimal detail, chunky pixels.
  */
 
-/** Grass variant 1 — base green with subtle dirt flecks */
+const CLIP = `<clipPath id="iso"><polygon points="24,0 48,12 24,24 0,12"/></clipPath>`;
+const G = (inner: string) => `<g clip-path="url(#iso)">${inner}</g>`;
+
+/** Grass 1 — base green, a few darker chunks */
 export const TILE_GRASS1 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#3a7a28"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#3d8030"/>
-  <rect x="10" y="8" width="1" height="1" fill="#4a9432" opacity="0.7"/>
-  <rect x="30" y="6" width="1" height="1" fill="#4a9432" opacity="0.7"/>
-  <rect x="20" y="14" width="1" height="1" fill="#2d5a1e" opacity="0.5"/>
-  <rect x="35" y="10" width="1" height="1" fill="#4a9432" opacity="0.6"/>
-  <rect x="15" y="11" width="1" height="1" fill="#2d5a1e" opacity="0.4"/>
-  <rect x="28" y="15" width="1" height="1" fill="#6b5b3a" opacity="0.3"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#3b7d26"/>
+  <rect x="8" y="5" width="2" height="2" fill="#2f6a1e"/>
+  <rect x="28" y="4" width="2" height="2" fill="#2f6a1e"/>
+  <rect x="18" y="12" width="2" height="2" fill="#2f6a1e"/>
+  <rect x="36" y="10" width="2" height="2" fill="#2f6a1e"/>
+  <rect x="14" y="8" width="1" height="1" fill="#4a9432"/>
+  <rect x="32" y="14" width="1" height="1" fill="#4a9432"/>
+  <rect x="22" y="6" width="1" height="1" fill="#6b5b3a" opacity="0.4"/>
+  `)}
 </svg>`;
 
-/** Grass variant 2 — slightly darker, more dirt */
+/** Grass 2 — darker tone */
 export const TILE_GRASS2 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#357024"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#397828"/>
-  <rect x="8" y="7" width="1" height="1" fill="#6b5b3a" opacity="0.4"/>
-  <rect x="22" y="5" width="1" height="1" fill="#4a9432" opacity="0.6"/>
-  <rect x="36" y="11" width="1" height="1" fill="#2d5a1e" opacity="0.5"/>
-  <rect x="14" y="13" width="1" height="1" fill="#6b5b3a" opacity="0.3"/>
-  <rect x="32" y="8" width="1" height="1" fill="#4a9432" opacity="0.5"/>
-  <rect x="18" y="10" width="2" height="1" fill="#6b5b3a" opacity="0.25"/>
-  <rect x="26" y="16" width="1" height="1" fill="#2d5a1e" opacity="0.4"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#336e20"/>
+  <rect x="12" y="4" width="2" height="2" fill="#2a5e18"/>
+  <rect x="32" y="8" width="2" height="2" fill="#2a5e18"/>
+  <rect x="20" y="14" width="2" height="2" fill="#2a5e18"/>
+  <rect x="10" y="10" width="1" height="1" fill="#438c2e"/>
+  <rect x="38" y="12" width="1" height="1" fill="#438c2e"/>
+  <rect x="26" y="6" width="2" height="1" fill="#5a4a2a" opacity="0.4"/>
+  <rect x="16" y="16" width="1" height="1" fill="#5a4a2a" opacity="0.3"/>
+  `)}
 </svg>`;
 
-/** Grass variant 3 — lighter, more lush */
+/** Grass 3 — brighter tone */
 export const TILE_GRASS3 = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#408a30"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#449035"/>
-  <rect x="12" y="9" width="1" height="1" fill="#4a9432" opacity="0.8"/>
-  <rect x="25" y="7" width="1" height="1" fill="#56a03e" opacity="0.7"/>
-  <rect x="33" y="13" width="1" height="1" fill="#3a7a28" opacity="0.5"/>
-  <rect x="17" y="12" width="1" height="1" fill="#56a03e" opacity="0.6"/>
-  <rect x="38" y="10" width="1" height="1" fill="#3a7a28" opacity="0.4"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#428a2c"/>
+  <rect x="10" y="6" width="2" height="2" fill="#367822"/>
+  <rect x="30" y="4" width="2" height="2" fill="#367822"/>
+  <rect x="22" y="12" width="2" height="2" fill="#367822"/>
+  <rect x="16" y="9" width="1" height="1" fill="#52a03a"/>
+  <rect x="36" y="11" width="1" height="1" fill="#52a03a"/>
+  `)}
 </svg>`;
 
-/** Dirt path */
+/** Dirt path — flat brown with a couple pebbles */
 export const TILE_DIRT = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#8B7355"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#937B5D"/>
-  <rect x="10" y="8" width="1" height="1" fill="#A0896B" opacity="0.5"/>
-  <rect x="28" y="6" width="1" height="1" fill="#7A6548" opacity="0.5"/>
-  <rect x="20" y="13" width="1" height="1" fill="#A0896B" opacity="0.4"/>
-  <rect x="35" y="11" width="1" height="1" fill="#7A6548" opacity="0.3"/>
-  <rect x="16" y="10" width="2" height="1" fill="#A0896B" opacity="0.3"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#8b7355"/>
+  <rect x="10" y="5" width="2" height="2" fill="#7a6345"/>
+  <rect x="30" y="10" width="2" height="2" fill="#7a6345"/>
+  <rect x="20" y="14" width="2" height="2" fill="#7a6345"/>
+  <rect x="14" y="8" width="1" height="1" fill="#9a8365"/>
+  <rect x="36" y="12" width="1" height="1" fill="#9a8365"/>
+  <rect x="26" y="7" width="1" height="1" fill="#6a5535"/>
+  `)}
 </svg>`;
 
-/** Stone floor */
+/** Stone floor — flat grey with grid lines */
 export const TILE_STONE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#606870"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#687078"/>
-  <rect x="12" y="7" width="1" height="1" fill="#787878" opacity="0.5"/>
-  <rect x="30" y="10" width="1" height="1" fill="#585858" opacity="0.5"/>
-  <rect x="22" y="14" width="1" height="1" fill="#787878" opacity="0.4"/>
-  <!-- subtle grid lines -->
-  <line x1="24" y1="4" x2="40" y2="12" stroke="#585858" stroke-width="0.5" opacity="0.2"/>
-  <line x1="8" y1="12" x2="24" y2="20" stroke="#585858" stroke-width="0.5" opacity="0.2"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#686e76"/>
+  <rect x="16" y="1" width="1" height="22" fill="#58626a" opacity="0.5"/>
+  <rect x="32" y="1" width="1" height="22" fill="#58626a" opacity="0.5"/>
+  <rect x="1" y="8" width="46" height="1" fill="#58626a" opacity="0.4"/>
+  <rect x="1" y="16" width="46" height="1" fill="#58626a" opacity="0.4"/>
+  <rect x="10" y="5" width="1" height="1" fill="#7a8088"/>
+  <rect x="36" y="12" width="1" height="1" fill="#7a8088"/>
+  `)}
 </svg>`;
 
-/** Wooden fence */
+/** Wooden fence — simple posts and rails */
 export const TILE_FENCE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#5a4a2a"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#6b5630"/>
-  <!-- vertical posts -->
-  <rect x="10" y="4" width="2" height="12" fill="#8B6914"/>
-  <rect x="10" y="4" width="2" height="1" fill="#A0822D"/>
-  <rect x="23" y="0" width="2" height="14" fill="#8B6914"/>
-  <rect x="23" y="0" width="2" height="1" fill="#A0822D"/>
-  <rect x="36" y="4" width="2" height="12" fill="#8B6914"/>
-  <rect x="36" y="4" width="2" height="1" fill="#A0822D"/>
-  <!-- horizontal rails -->
-  <rect x="10" y="7" width="28" height="1" fill="#7A5B10"/>
-  <rect x="10" y="12" width="28" height="1" fill="#7A5B10"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#4a3a20"/>
+  <rect x="2" y="5" width="44" height="3" fill="#7a5a20"/>
+  <rect x="2" y="5" width="44" height="1" fill="#8a6a30"/>
+  <rect x="2" y="12" width="44" height="3" fill="#7a5a20"/>
+  <rect x="2" y="12" width="44" height="1" fill="#8a6a30"/>
+  <rect x="10" y="2" width="3" height="16" fill="#8B6914"/>
+  <rect x="10" y="2" width="1" height="16" fill="#9a7824"/>
+  <rect x="23" y="1" width="3" height="18" fill="#8B6914"/>
+  <rect x="23" y="1" width="1" height="18" fill="#9a7824"/>
+  <rect x="36" y="2" width="3" height="16" fill="#8B6914"/>
+  <rect x="36" y="2" width="1" height="16" fill="#9a7824"/>
+  `)}
 </svg>`;
 
-/** Water */
+/** Water — flat dark blue with chunky ripple lines */
 export const TILE_WATER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#1a3a5c"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#1e4068"/>
-  <!-- ripple highlights -->
-  <rect x="14" y="8" width="4" height="1" fill="#2a5a8c" opacity="0.6"/>
-  <rect x="28" y="11" width="3" height="1" fill="#2a5a8c" opacity="0.5"/>
-  <rect x="18" y="14" width="5" height="1" fill="#2a5a8c" opacity="0.4"/>
-  <rect x="32" y="7" width="2" height="1" fill="#3a6ea5" opacity="0.3"/>
-  <rect x="10" y="12" width="3" height="1" fill="#3a6ea5" opacity="0.3"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#1a3a5c"/>
+  <rect x="10" y="5" width="6" height="1" fill="#2a5a8c" opacity="0.6"/>
+  <rect x="28" y="9" width="5" height="1" fill="#2a5a8c" opacity="0.5"/>
+  <rect x="14" y="13" width="8" height="1" fill="#2a5a8c" opacity="0.5"/>
+  <rect x="32" y="16" width="4" height="1" fill="#2a5a8c" opacity="0.4"/>
+  <rect x="18" y="18" width="6" height="1" fill="#2a5a8c" opacity="0.3"/>
+  <rect x="14" y="5" width="1" height="1" fill="#3a6ea5" opacity="0.5"/>
+  <rect x="30" y="13" width="1" height="1" fill="#3a6ea5" opacity="0.4"/>
+  `)}
 </svg>`;
 
-/** Gate opening */
+/** Gate — flat stone threshold with side markers */
 export const TILE_GATE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24">
-  <polygon points="24,0 48,12 24,24 0,12" fill="#8B7355"/>
-  <polygon points="24,1 47,12 24,23 1,12" fill="#A0896B"/>
-  <!-- worn stone markers on sides -->
-  <rect x="6" y="8" width="3" height="4" fill="#708090" opacity="0.6"/>
-  <rect x="39" y="8" width="3" height="4" fill="#708090" opacity="0.6"/>
-  <rect x="22" y="10" width="4" height="2" fill="#c9a84c" opacity="0.3"/>
+  ${CLIP}${G(`
+  <rect width="48" height="24" fill="#8a7858"/>
+  <rect x="3" y="5" width="4" height="6" fill="#606870"/>
+  <rect x="41" y="9" width="4" height="6" fill="#606870"/>
+  <rect x="4" y="6" width="2" height="2" fill="#c9a84c" opacity="0.6"/>
+  <rect x="42" y="10" width="2" height="2" fill="#c9a84c" opacity="0.6"/>
+  <rect x="12" y="4" width="1" height="16" fill="#7a6848" opacity="0.3"/>
+  <rect x="24" y="2" width="1" height="20" fill="#7a6848" opacity="0.3"/>
+  <rect x="36" y="4" width="1" height="16" fill="#7a6848" opacity="0.3"/>
+  `)}
 </svg>`;
