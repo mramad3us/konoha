@@ -13,7 +13,6 @@ export class GameHud {
   private staminaBar: ResourceBar;
   private stanceValue: HTMLElement;
   private stanceTicks: HTMLElement;
-  private tickCounter: HTMLElement;
   private gameLog: GameLog;
 
   constructor() {
@@ -52,9 +51,6 @@ export class GameHud {
     this.gameLog = new GameLog();
     this.element.appendChild(this.gameLog.element);
 
-    // ── Tick counter ──
-    this.tickCounter = createElement('div', { className: 'hud-tick', text: 'Tick: 0' });
-    this.element.appendChild(this.tickCounter);
   }
 
   /** Update all HUD elements from world state */
@@ -85,7 +81,6 @@ export class GameHud {
       this.stanceTicks.textContent = `${STANCE_TICK_COST[playerCtrl.movementStance]} ticks/move`;
     }
 
-    this.tickCounter.textContent = `Tick: ${world.currentTick}`;
     this.gameLog.update(world.gameLog);
   }
 

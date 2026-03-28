@@ -9,9 +9,89 @@
 
 .game-layout {
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   position: relative;
+}
+
+.game-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Top Bar ── */
+.game-topbar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  min-height: 32px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-bg-hover);
+  padding: 0 var(--space-3);
+  z-index: 15;
+}
+
+.game-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.game-topbar__zone {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.game-topbar__tick {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  letter-spacing: 0.05em;
+}
+
+.game-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.game-topbar__btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.game-topbar__btn:hover {
+  color: var(--color-ink-muted);
+  border-color: var(--color-bg-hover);
+}
+
+.game-topbar__btn--exit:hover {
+  color: var(--color-blood);
+  border-color: var(--color-blood-dark);
+}
+
+.game-topbar__sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-bg-hover);
+  margin: 0 var(--space-1);
 }
 
 /* ── Canvas Container ── */
@@ -316,13 +396,16 @@
   image-rendering: pixelated;
 }
 
-/* ── Tick counter (dev mode) ── */
-.hud-tick {
+/* ── Save flash notification ── */
+.game-topbar__save-flash {
   font-family: var(--font-pixel);
   font-size: 7px;
-  color: var(--color-ink-faint);
-  padding: var(--space-2) var(--space-4);
-  border-top: 1px solid var(--color-bg-hover);
-  text-align: center;
+  color: var(--color-leaf);
   letter-spacing: 0.05em;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.game-topbar__save-flash--visible {
+  opacity: 1;
 }

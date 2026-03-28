@@ -57,21 +57,74 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Build layout ──
   const layout = createElement('div', { className: 'game-layout' });
 
+  // ── Top bar ──
+  const topbar = createElement('div', { className: 'game-topbar' });
+
+  const topbarLeft = createElement('div', { className: 'game-topbar__left' });
+  const zoneLabel = createElement('span', { className: 'game-topbar__zone', text: 'Training Grounds' });
+  const tickLabel = createElement('span', { className: 'game-topbar__tick', text: `T:${world.currentTick}` });
+  const saveFlash = createElement('span', { className: 'game-topbar__save-flash', text: 'Saved' });
+  topbarLeft.appendChild(zoneLabel);
+  topbarLeft.appendChild(tickLabel);
+  topbarLeft.appendChild(saveFlash);
+  topbar.appendChild(topbarLeft);
+
+  const topbarRight = createElement('div', { className: 'game-topbar__right' });
+
+  const settingsBtn = createElement('button', { className: 'game-topbar__btn', text: 'Settings' });
+  settingsBtn.addEventListener('click', () => screenManager.navigateTo('settings'));
+
+  const saveBtn = createElement('button', { className: 'game-topbar__btn', text: 'Save' });
+  saveBtn.addEventListener('click', async () => {
+    if (saveId) {
+      const save = await saveSystem.load(saveId);
+      if (save) {
+        save.data = world.serialize();
+        await saveSystem.save(save);
+        saveFlash.classList.add('game-topbar__save-flash--visible');
+        setTimeout(() => saveFlash.classList.remove('game-topbar__save-flash--visible'), 1500);
+      }
+    }
+  });
+
+  const exitBtn = createElement('button', { className: 'game-topbar__btn game-topbar__btn--exit', text: 'Exit' });
+  exitBtn.addEventListener('click', () => screenManager.navigateTo('landing'));
+
+  topbarRight.appendChild(settingsBtn);
+  topbarRight.appendChild(createElement('div', { className: 'game-topbar__sep' }));
+  topbarRight.appendChild(saveBtn);
+  topbarRight.appendChild(createElement('div', { className: 'game-topbar__sep' }));
+  topbarRight.appendChild(exitBtn);
+  topbar.appendChild(topbarRight);
+
+  layout.appendChild(topbar);
+
+  // ── Game body (canvas + HUD) ──
+  const gameBody = createElement('div', { className: 'game-body' });
+
   // Canvas container
   const canvasContainer = createElement('div', { className: 'game-canvas-container' });
   const canvas = createElement('canvas', {});
   canvasContainer.appendChild(canvas);
-  layout.appendChild(canvasContainer);
+  gameBody.appendChild(canvasContainer);
 
   // HUD
   const hud = new GameHud();
-  layout.appendChild(hud.element);
+  gameBody.appendChild(hud.element);
 
+  layout.appendChild(gameBody);
   container.appendChild(layout);
 
   // Keybindings panel (inside canvas container for positioning)
   const keybindingsPanel = new KeybindingsPanel();
   canvasContainer.appendChild(keybindingsPanel.element);
+
+  // Update tick label on each HUD update
+  const origFullRender = hud.fullRender.bind(hud);
+  hud.fullRender = (w: World) => {
+    origFullRender(w);
+    tickLabel.textContent = `T:${w.currentTick}`;
+  };
 
   // ── Initialize rendering ──
   const camera = new Camera();
