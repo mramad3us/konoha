@@ -28,19 +28,21 @@ const SHINOBI_PAL: Record<string, [number, number, number]> = {
 };
 
 const KUNOICHI_PAL: Record<string, [number, number, number]> = {
-  o: [26, 26, 46],
-  O: [34, 34, 58],
-  s: [212, 165, 116],
-  h: [42, 26, 62],     // dark purple hair
-  b: [178, 34, 52],    // red headband
-  m: [112, 128, 144],
-  M: [136, 153, 169],
-  e: [255, 255, 255],
-  p: [42, 26, 62],     // matches hair
-  w: [224, 216, 200],
-  g: [178, 34, 52],    // red belt
-  G: [212, 54, 74],    // belt highlight
-  S: [20, 20, 36],
+  o: [190, 80, 110],   // pink dress base
+  O: [210, 100, 130],  // pink dress light
+  s: [212, 165, 116],  // skin
+  h: [220, 130, 160],  // pink hair
+  H: [240, 160, 185],  // hair highlight
+  b: [190, 80, 110],   // headband (matches dress)
+  m: [112, 128, 144],  // metal plate
+  M: [136, 153, 169],  // metal highlight
+  e: [255, 255, 255],  // eye white
+  p: [60, 100, 180],   // blue pupil
+  w: [224, 216, 200],  // hand wraps
+  g: [160, 60, 90],    // belt/sash dark
+  G: [190, 80, 110],   // belt highlight
+  S: [150, 55, 80],    // shadow/dress dark
+  d: [170, 70, 100],   // dress mid-dark (skirt folds)
 };
 
 // ── SHINOBI SPRITES ──
@@ -143,98 +145,98 @@ export const CHAR_SHINOBI_W: PixelPattern = {
 
 // ── KUNOICHI SPRITES ──
 
-/** Facing South */
+/** Facing South — pink combat dress, flowing hair, blue eyes */
 export const CHAR_KUNOICHI_S: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '...hhhhhhhhh....',
+    '...HhhhhhhhH....',
     '...hbbbbbbhh....',
     '...hmMmmMmhh....',
-    '..hhssssshhh....',
-    '..hsepsspesh....',
+    '..Hhssssshhh....',
+    '..hsepsspeHh....',
     '...hssssshh.....',
     '....oossoo......',
     '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
+    '..woOGggGOow....',
+    '..w.ooooooo.....',
+    '...oodSdSdoo....',
+    '..oOdSoooSdOo...',
+    '..oOdooooOdOo...',
+    '...SdS..Sdo.....',
     '....SS..SS......',
   ],
 };
 
-/** Facing North */
+/** Facing North — back view, long pink hair, dress visible */
 export const CHAR_KUNOICHI_N: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '...hhhhhhhhh....',
-    '..hhhhhhhhhh....',
-    '..hhhhhhhhhh....',
-    '..hhhhhhhhhh....',
-    '..bbhhhhhbbb....',
-    '..hhhhhhhhhh....',
+    '...HhhhhhhhH....',
+    '..HhhhhhhhhHh...',
+    '..hhhhhhhhhhh...',
+    '..hhhhhhhhhhh...',
+    '..bbhhhhhbbhh...',
+    '..hhhhhhhhhhh...',
     '....oossoo......',
     '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
+    '..woOGggGOow....',
+    '..w.ooooooo.....',
+    '...oodSdSdoo....',
+    '..oOdSoooSdOo...',
+    '..oOdooooOdOo...',
+    '...SdS..Sdo.....',
     '....SS..SS......',
   ],
 };
 
-/** Facing East */
+/** Facing East — side view, hair trails behind, dress flare */
 export const CHAR_KUNOICHI_E: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
+    '....Hhhhh.......',
     '....hhhhhh......',
-    '....hhhhhhh.....',
     '....bbbmMhh.....',
-    '...hhsssshhh....',
-    '....hssepshh....',
+    '...hhssssHhh....',
+    '....hssepHhh....',
     '.....sssssh.....',
     '.....oossoo.....',
-    '....oOoOoo......',
     '....oOoOoow.....',
-    '....oGggoo.w....',
-    '.....ooooow.....',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....SS.SS......',
+    '....oGggOo.w....',
+    '.....ooooo......',
+    '....odSdSdoo....',
+    '...oSdooSdOo....',
+    '...oSdooodOo....',
+    '....Sd..Sdo.....',
+    '.....S..SS......',
   ],
 };
 
-/** Facing West */
+/** Facing West — side view, hair trails behind, dress flare */
 export const CHAR_KUNOICHI_W: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
+    '.......hhhHh....',
     '......hhhhhh....',
-    '.....hhhhhhh....',
     '.....hhMmbbbb...',
-    '.....hhhssshhh..',
-    '......hhspessh..',
-    '.......hssss....',
+    '....hhHsssshh...',
+    '....hhhpessh....',
+    '.....hssssss....',
     '.....oossoo.....',
-    '......ooOoOo....',
     '.....wooOoOo....',
-    '....w.ooggGo....',
-    '.....woooooo....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......SS.SS.....',
+    '....w.oOggGo....',
+    '......ooooo.....',
+    '....oodSdSdo....',
+    '...oOdSoodSo....',
+    '...oOdooodSo....',
+    '.....odS..dS....',
+    '......SS..S.....',
   ],
 };
