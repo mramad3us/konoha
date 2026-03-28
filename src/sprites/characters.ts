@@ -146,7 +146,7 @@ export const CHAR_SHINOBI_W: PixelPattern = {
 
 // ── KUNOICHI SPRITES ──
 
-/** Facing South — crimson top, black pants, pink bob, green eyes */
+/** Facing South */
 export const CHAR_KUNOICHI_S: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
@@ -159,18 +159,18 @@ export const CHAR_KUNOICHI_S: PixelPattern = {
     '....sepsspe.....',
     '.....ssss.......',
     '....oOooOo......',
-    '....oOoOOo......',
-    '...woGggGow.....',
-    '....oSooSo......',
+    '....oOooOo......',
+    '....oOooOo......',
     '....wwwwww......',
     '....wWwwWw......',
     '....wWwwWw......',
+    '....ww..ww......',
     '....kk..kk......',
     '................',
   ],
 };
 
-/** Facing North — back view, short pink bob */
+/** Facing North */
 export const CHAR_KUNOICHI_N: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
@@ -183,18 +183,18 @@ export const CHAR_KUNOICHI_N: PixelPattern = {
     '....bbhhhbb.....',
     '.....hhhh.......',
     '....oOooOo......',
-    '....oOoOOo......',
-    '...woGggGow.....',
-    '....oSooSo......',
+    '....oOooOo......',
+    '....oOooOo......',
     '....wwwwww......',
     '....wWwwWw......',
     '....wWwwWw......',
+    '....ww..ww......',
     '....kk..kk......',
     '................',
   ],
 };
 
-/** Facing East — side view, bob hugs face */
+/** Facing East */
 export const CHAR_KUNOICHI_E: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
@@ -207,18 +207,18 @@ export const CHAR_KUNOICHI_E: PixelPattern = {
     '.....sseph......',
     '......ssss......',
     '.....oOoOo......',
-    '.....oOOoo......',
-    '.....GggOow.....',
-    '......oSoS......',
+    '.....oOoOo......',
+    '.....oOoOo......',
     '......wwww......',
     '......wWwW......',
     '......wWwW......',
+    '......ww.w......',
     '......kk.k......',
     '................',
   ],
 };
 
-/** Facing West — side view, bob hugs face */
+/** Facing West */
 export const CHAR_KUNOICHI_W: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
@@ -231,12 +231,12 @@ export const CHAR_KUNOICHI_W: PixelPattern = {
     '......hpess.....',
     '......ssss......',
     '......oOoOo.....',
-    '......ooOOo.....',
-    '.....woOggG.....',
-    '......SoSo......',
+    '......oOoOo.....',
+    '......oOoOo.....',
     '......wwww......',
     '......WwWw......',
     '......WwWw......',
+    '......w.ww......',
     '......k.kk......',
     '................',
   ],
