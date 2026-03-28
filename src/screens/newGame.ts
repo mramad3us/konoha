@@ -9,6 +9,11 @@ import { setActiveSaveId } from '../engine/session.ts';
 import type { GameSave } from '../types/save.ts';
 
 export async function renderNewGame(container: HTMLElement): Promise<void> {
+  const DEFAULT_NAMES: Record<'shinobi' | 'kunoichi', string> = {
+    shinobi: 'Hasuke',
+    kunoichi: 'Kasura',
+  };
+
   let playerName = '';
   let playerGender: 'shinobi' | 'kunoichi' = 'shinobi';
 
@@ -36,7 +41,7 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
 
   const nameInput = createElement('input', {
     className: 'name-input',
-    attrs: { type: 'text', placeholder: 'Enter your name...', maxlength: '24' },
+    attrs: { type: 'text', placeholder: DEFAULT_NAMES[playerGender], maxlength: '24' },
   });
   nameInput.style.cssText = `
     font-family: var(--font-pixel);
@@ -52,7 +57,6 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
   nameInput.addEventListener('blur', () => { nameInput.style.borderColor = 'var(--color-ink-faint)'; });
   nameInput.addEventListener('input', () => {
     playerName = (nameInput as HTMLInputElement).value.trim();
-    startBtn.disabled = playerName.length === 0;
   });
   nameRow.appendChild(nameInput);
   form.appendChild(nameRow);
@@ -101,6 +105,8 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
         (b as HTMLElement).style.borderColor = 'var(--color-bg-hover)';
       });
       btn.style.borderColor = 'var(--color-blood)';
+      // Update placeholder to match gender default name
+      (nameInput as HTMLInputElement).placeholder = DEFAULT_NAMES[value];
     });
 
     return btn;
@@ -117,7 +123,6 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
     className: 'menu-btn menu-btn--primary',
   });
   startBtn.style.cssText += 'justify-content:center;margin-top:var(--space-4);';
-  startBtn.disabled = true;
 
   const startIcon = createElement('span', { className: 'menu-btn__icon' });
   startIcon.innerHTML = KUNAI_SVG;
@@ -125,18 +130,18 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
   startBtn.appendChild(createElement('span', { className: 'menu-btn__text', text: 'Begin Journey' }));
 
   startBtn.addEventListener('click', async () => {
-    if (!playerName) return;
+    const finalName = playerName || DEFAULT_NAMES[playerGender];
 
     createSmokePuff(container, container.clientWidth / 2, container.clientHeight / 2, 10);
 
     const newSave: GameSave = {
       id: generateSaveId(),
-      slotName: `${playerName}'s Journey`,
+      slotName: `${finalName}'s Journey`,
       version: GAME_VERSION,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       playtime: 0,
-      playerName,
+      playerName: finalName,
       playerGender,
       level: 1,
       zone: 'Hidden Leaf Village',
