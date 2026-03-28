@@ -13,6 +13,7 @@ export class GameHud {
   private staminaBar: ResourceBar;
   private stanceValue: HTMLElement;
   private stanceTicks: HTMLElement;
+  private stanceEl: HTMLElement | null = null;
   private gameLog: GameLog;
 
   constructor() {
@@ -45,6 +46,7 @@ export class GameHud {
     stance.appendChild(this.stanceValue);
     this.stanceTicks = createElement('span', { className: 'hud-stance__ticks', text: '2 ticks/move' });
     stance.appendChild(this.stanceTicks);
+    this.stanceEl = stance;
     this.element.appendChild(stance);
 
     // ── Game Log ──
@@ -82,6 +84,15 @@ export class GameHud {
     }
 
     this.gameLog.update(world.gameLog);
+  }
+
+  /** Insert an element after the stance indicator (for tempo beads etc.) */
+  insertAfterStance(el: HTMLElement): void {
+    if (this.stanceEl && this.stanceEl.nextSibling) {
+      this.element.insertBefore(el, this.stanceEl.nextSibling);
+    } else {
+      this.element.appendChild(el);
+    }
   }
 
   /** Full re-render (for save loads) */

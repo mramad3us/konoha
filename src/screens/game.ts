@@ -8,6 +8,7 @@ import { GameHud } from '../ui/gameHud.ts';
 import { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import { InputSystem } from '../systems/inputSystem.ts';
 import { CharacterSheetUI } from '../ui/characterSheet.ts';
+import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
 import { computeFOV } from '../engine/fov.ts';
@@ -160,7 +161,11 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const characterSheet = new CharacterSheetUI();
   container.appendChild(characterSheet.element);
 
-  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet);
+  // Tempo beads (in the HUD, after stance indicator)
+  const tempoBeads = new TempoBeadsUI();
+  hud.insertAfterStance(tempoBeads.element);
+
+  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, tempoBeads);
 
   // ── Render Loop ──
   let rafId = 0;

@@ -25,6 +25,10 @@ export class KeybindingsPanel {
         { keys: '4', descs: 'Crawl' },
       ],
       [
+        { keys: 'a/z/e', descs: 'Attack' },
+        { keys: 'q/s/d', descs: 'Defend' },
+      ],
+      [
         { keys: '.', descs: 'Wait' },
         { keys: 'c', descs: 'Character' },
         { keys: '?', descs: 'Keys' },

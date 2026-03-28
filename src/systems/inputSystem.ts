@@ -1,10 +1,13 @@
 import { resolveAction, GAME_KEYS } from '../engine/actionResolver.ts';
 import { executeTurn } from '../engine/turnSystem.ts';
+import { processCombatMove, getPlayerTempo, clearStaleEngagements } from '../engine/combatSystem.ts';
+import { isCombatKey } from '../types/combat.ts';
 import type { World } from '../engine/world.ts';
 import type { Camera } from '../rendering/camera.ts';
 import type { GameHud } from '../ui/gameHud.ts';
 import type { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import type { CharacterSheetUI } from '../ui/characterSheet.ts';
+import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
 
 export class InputSystem {
@@ -13,6 +16,7 @@ export class InputSystem {
   private hud: GameHud;
   private keybindingsPanel: KeybindingsPanel;
   private characterSheet: CharacterSheetUI;
+  private tempoBeads: TempoBeadsUI;
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
 
@@ -22,12 +26,14 @@ export class InputSystem {
     hud: GameHud,
     keybindingsPanel: KeybindingsPanel,
     characterSheet: CharacterSheetUI,
+    tempoBeads: TempoBeadsUI,
   ) {
     this.world = world;
     this.camera = camera;
     this.hud = hud;
     this.keybindingsPanel = keybindingsPanel;
     this.characterSheet = characterSheet;
+    this.tempoBeads = tempoBeads;
 
     this.handler = (e: KeyboardEvent) => this.handleKey(e);
     document.addEventListener('keydown', this.handler);
@@ -39,8 +45,8 @@ export class InputSystem {
 
     const key = e.key;
 
-    // Prevent default for game keys
-    if (GAME_KEYS.has(key)) {
+    // Prevent default for game keys and combat keys
+    if (GAME_KEYS.has(key) || isCombatKey(key)) {
       e.preventDefault();
     }
 
@@ -48,6 +54,16 @@ export class InputSystem {
     const now = Date.now();
     if (now - this.lastInputTime < INPUT_DEBOUNCE_MS) return;
     this.lastInputTime = now;
+
+    // ── Combat keys (a/z/e/q/s/d) ──
+    if (isCombatKey(key)) {
+      const turnConsumed = processCombatMove(this.world, key);
+      if (turnConsumed) {
+        this.hud.update(this.world);
+        this.tempoBeads.update(getPlayerTempo(this.world));
+      }
+      return;
+    }
 
     const action = resolveAction(key);
     if (!action) return;
@@ -77,10 +93,14 @@ export class InputSystem {
       if (playerPos) {
         this.camera.setTarget(playerPos.x, playerPos.y);
       }
+
+      // Clear engagements if player moved away
+      clearStaleEngagements(this.world);
     }
 
-    // Update HUD
+    // Update HUD + tempo
     this.hud.update(this.world);
+    this.tempoBeads.update(getPlayerTempo(this.world));
   }
 
   /** Update world reference (for save loads) */
