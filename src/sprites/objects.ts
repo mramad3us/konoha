@@ -1,14 +1,11 @@
 /**
  * Object sprites — 16×16 pixel patterns rendered on top of tiles.
- * Training dummy, trees, rocks, wooden posts.
+ * Training dummy, trees (bushy!), bushes, rocks, vegetation.
  */
 
 import type { PixelPattern } from './pixelPatterns.ts';
 
 // ── TRAINING DUMMY ──
-// w = wood, W = wood highlight, k = dark wood, s = straw, S = straw dark
-// r = red target, R = red bright, b = headband, m = metal plate
-
 const DUMMY_PAL: Record<string, [number, number, number]> = {
   w: [139, 105, 20],   // wood
   W: [160, 130, 45],   // wood highlight
@@ -44,83 +41,287 @@ export const OBJ_DUMMY: PixelPattern = {
   ],
 };
 
-// ── SMALL TREE ──
-// t = trunk, T = trunk highlight, c = canopy dark, C = canopy mid, l = leaf highlight
-
-const TREE_SM_PAL: Record<string, [number, number, number]> = {
-  t: [107, 76, 30],    // trunk
-  T: [122, 90, 42],    // trunk highlight
+// ── TREE PALETTES ──
+const TREE_PAL: Record<string, [number, number, number]> = {
+  t: [90, 60, 20],     // trunk dark
+  T: [115, 82, 34],    // trunk highlight
+  r: [72, 48, 16],     // root
+  d: [16, 48, 33],     // deepest canopy shadow
   c: [26, 74, 51],     // canopy dark
   C: [45, 110, 79],    // canopy mid
   l: [64, 144, 94],    // leaf highlight
+  L: [80, 165, 110],   // leaf bright
 };
 
+/** Small tree — bushy round canopy, short trunk */
 export const OBJ_TREE_SMALL: PixelPattern = {
   width: 16, height: 16,
-  palette: TREE_SM_PAL,
+  palette: TREE_PAL,
   pixels: [
     '................',
+    '.....cClc.......',
+    '....cCLlCc......',
+    '...cClCCLcCc....',
+    '..cCLcClcLCCc...',
+    '..cClCCLCclCc...',
+    '..cCCclcCLCCc...',
+    '...cCLCClcCc....',
+    '....ccCcCcc.....',
+    '......tTt.......',
+    '......tTt.......',
+    '......tTt.......',
+    '.....rtTtr......',
     '................',
-    '......cCc.......',
-    '.....cCClCc.....',
-    '....cClCCcCc....',
-    '...cCCcClcCCc...',
-    '...cClcCCcClc...',
-    '....cCCClCCc....',
-    '.....cCcCc......',
-    '......tTt.......',
-    '......tTt.......',
-    '......tTt.......',
-    '......tTt.......',
-    '......tTt.......',
-    '.....ttTt.......',
+    '................',
     '................',
   ],
 };
 
-// ── LARGE TREE ──
-const TREE_LG_PAL: Record<string, [number, number, number]> = {
-  t: [90, 60, 20],
-  T: [107, 76, 30],
-  c: [22, 61, 42],
-  C: [45, 110, 79],
-  l: [64, 144, 94],
-  d: [16, 48, 33],     // deepest shadow
-};
-
+/** Large tree — big bushy canopy overhanging, thick trunk */
 export const OBJ_TREE_LARGE: PixelPattern = {
   width: 16, height: 16,
-  palette: TREE_LG_PAL,
+  palette: TREE_PAL,
   pixels: [
-    '.....dCCd.......',
-    '....dCClCCd.....',
-    '...dCClCcCCd....',
-    '..dCCcClcCCCd...',
-    '..dClCCcCClCd...',
-    '.dCCcClCcCCCCd..',
-    '.dClCCcCClcCCd..',
-    '..dCCcClcCCCd...',
-    '...dCClCcCCd....',
-    '....dCCCCd......',
-    '......tTt.......',
+    '....dcClcd......',
+    '...dCLlCCLcd....',
+    '..dClCCLcClCd...',
+    '.dCLcClcCLCCCd..',
+    '.dCclCCLCclCCd..',
+    'dCCLcClcCLcClCd.',
+    'dClCCLCCclCCLCd.',
+    '.dCCclcCLCclCd..',
+    '..dCCLCClCCCd...',
+    '...ddcCcCcdd....',
+    '.....tTTTt......',
     '.....tTTTt......',
     '......tTt.......',
     '......tTt.......',
-    '.....ttTtt......',
+    '....rrTTTrr.....',
     '................',
   ],
 };
 
-// ── ROCK ──
-const ROCK_PAL: Record<string, [number, number, number]> = {
-  d: [80, 80, 80],     // dark
-  b: [96, 96, 96],     // base
-  l: [120, 120, 120],  // light
-  h: [140, 140, 140],  // highlight
-  s: [64, 64, 64],     // shadow
+/** Willow-style tree — drooping branches, Konoha flavor */
+export const OBJ_TREE_WILLOW: PixelPattern = {
+  width: 16, height: 16,
+  palette: TREE_PAL,
+  pixels: [
+    '......cCc.......',
+    '.....cCLCc......',
+    '....cClCclc.....',
+    '...cCCLCCLc.....',
+    '..ccClcClclcc...',
+    '.c.cCLCCLc.c...',
+    '.c..cclccl..c...',
+    '.c...cCCc...c...',
+    '..c..tTTt..c....',
+    '..c..tTTt..c....',
+    '...c.tTt..c.....',
+    '....ctTtc.......',
+    '.....tTt........',
+    '.....tTt........',
+    '....rtTtr.......',
+    '................',
+  ],
 };
 
-export const OBJ_ROCK: PixelPattern = {
+// ── BUSHES ──
+const BUSH_PAL: Record<string, [number, number, number]> = {
+  d: [22, 61, 42],     // dark
+  b: [38, 95, 65],     // base
+  l: [58, 130, 88],    // light
+  L: [75, 155, 105],   // highlight
+  f: [178, 50, 60],    // flower/berry red
+  y: [200, 180, 60],   // flower yellow
+};
+
+/** Low bush */
+export const OBJ_BUSH_SMALL: PixelPattern = {
+  width: 16, height: 16,
+  palette: BUSH_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....dblbd......',
+    '....dblLlbd.....',
+    '...dbLblbLbd....',
+    '...dblLlbLbd....',
+    '....dbbbbbd.....',
+    '.....ddddd......',
+    '................',
+    '................',
+  ],
+};
+
+/** Medium bush with berries */
+export const OBJ_BUSH_BERRY: PixelPattern = {
+  width: 16, height: 16,
+  palette: BUSH_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '......dbd.......',
+    '.....dblbd......',
+    '....dbLflbd.....',
+    '...dblLblLbd....',
+    '...dbfblbfbd....',
+    '..dblLblbLlbd...',
+    '..dbLbfblLbbd...',
+    '...dbbbbbbbd....',
+    '....ddddddd.....',
+    '................',
+    '................',
+  ],
+};
+
+/** Tall bush / hedge */
+export const OBJ_BUSH_TALL: PixelPattern = {
+  width: 16, height: 16,
+  palette: BUSH_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '.....dbld.......',
+    '....dblLbd......',
+    '...dblLblbd.....',
+    '...dbLblLbd.....',
+    '..dblLblbLbd....',
+    '..dbLblLblbd....',
+    '..dblLbLblbd....',
+    '..dbLblblLbd....',
+    '...dblLblbd.....',
+    '...dbbbbbbd.....',
+    '....ddddddd.....',
+    '................',
+    '................',
+  ],
+};
+
+/** Flowering bush */
+export const OBJ_BUSH_FLOWER: PixelPattern = {
+  width: 16, height: 16,
+  palette: BUSH_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....dybd.......',
+    '....dblybld.....',
+    '...dbylblLbd....',
+    '...dblLybLbd....',
+    '..dbyLblbyLbd...',
+    '..dblLybLblbd...',
+    '...dbbbbbbbd....',
+    '....ddddddd.....',
+    '................',
+    '................',
+  ],
+};
+
+// ── TALL GRASS / VEGETATION ──
+const GRASS_OBJ_PAL: Record<string, [number, number, number]> = {
+  d: [34, 82, 48],     // dark blade
+  b: [48, 110, 65],    // base blade
+  l: [68, 145, 85],    // light blade
+  L: [85, 168, 100],   // tip highlight
+};
+
+/** Tall grass patch */
+export const OBJ_TALL_GRASS: PixelPattern = {
+  width: 16, height: 16,
+  palette: GRASS_OBJ_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....L..L.......',
+    '....lb.lbl......',
+    '...lbl.lbL......',
+    '...bLb.bbl......',
+    '..lbl.lbLbl.....',
+    '..bbb.bbbbb.....',
+    '..ddd.ddddd.....',
+    '................',
+  ],
+};
+
+/** Reeds (near water) */
+export const OBJ_REEDS: PixelPattern = {
+  width: 16, height: 16,
+  palette: GRASS_OBJ_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '......L.L.......',
+    '.....Lb.bL......',
+    '.....lb.bl......',
+    '....lb..bl......',
+    '....lb..bl......',
+    '....b...bb......',
+    '...lb..lbl......',
+    '...bb..bbb......',
+    '...bb..bbb......',
+    '...db..ddb......',
+    '...dd..ddd......',
+    '................',
+    '................',
+  ],
+};
+
+// ── ROCKS / BOULDERS ──
+const ROCK_PAL: Record<string, [number, number, number]> = {
+  s: [56, 56, 58],     // shadow
+  d: [76, 76, 80],     // dark
+  b: [96, 96, 100],    // base
+  l: [120, 120, 124],  // light
+  h: [144, 144, 148],  // highlight
+};
+
+/** Small rock */
+export const OBJ_ROCK_SMALL: PixelPattern = {
+  width: 16, height: 16,
+  palette: ROCK_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.......hlb......',
+    '......hllbd.....',
+    '......lbbds.....',
+    '.......sss......',
+    '................',
+    '................',
+  ],
+};
+
+/** Medium rock */
+export const OBJ_ROCK_MEDIUM: PixelPattern = {
   width: 16, height: 16,
   palette: ROCK_PAL,
   pixels: [
@@ -138,6 +339,58 @@ export const OBJ_ROCK: PixelPattern = {
     '...hllbbbds.....',
     '....bbbbds......',
     '.....ssss.......',
+    '................',
+    '................',
+  ],
+};
+
+/** Large boulder */
+export const OBJ_ROCK_LARGE: PixelPattern = {
+  width: 16, height: 16,
+  palette: ROCK_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '......hhlb......',
+    '.....hhllbb.....',
+    '....hhlllbbb....',
+    '...hhllllbbbd...',
+    '...hllllbbbbd...',
+    '..hhlllbbbbds...',
+    '..hllllbbbds....',
+    '..hlllbbbbds....',
+    '...hbbbbbbds....',
+    '...dbbbbdds.....',
+    '....ssssss......',
+    '................',
+    '................',
+  ],
+};
+
+/** Mossy boulder */
+export const OBJ_ROCK_MOSSY: PixelPattern = {
+  width: 16, height: 16,
+  palette: {
+    ...ROCK_PAL,
+    m: [45, 90, 60],    // moss
+    M: [58, 110, 75],   // moss highlight
+  },
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....Mhlb.......',
+    '....Mhllbb......',
+    '...mhllbbbd.....',
+    '...Mhlllbbd.....',
+    '..mhllbbbds.....',
+    '..Mhlbbbbds.....',
+    '...hbbbbds......',
+    '....bbbds.......',
+    '.....ssss.......',
+    '................',
     '................',
     '................',
   ],

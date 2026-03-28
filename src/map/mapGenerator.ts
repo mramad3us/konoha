@@ -3,6 +3,7 @@ import { TRAINING_GROUNDS_LAYOUT } from './mapData.ts';
 import { World } from '../engine/world.ts';
 import { TILE_INDEX_TO_TYPE } from '../types/tiles.ts';
 import type { TileType } from '../types/tiles.ts';
+import { cellHash } from '../sprites/pixelPatterns.ts';
 import {
   TRAINING_GROUNDS_WIDTH,
   TRAINING_GROUNDS_HEIGHT,
@@ -18,15 +19,22 @@ import {
   TRAINING_DUMMY_HP,
 } from '../core/constants.ts';
 
+type SpawnType =
+  | 'dummy'
+  | 'tree_small' | 'tree_large' | 'tree_willow'
+  | 'bush_small' | 'bush_berry' | 'bush_tall' | 'bush_flower'
+  | 'tall_grass' | 'reeds'
+  | 'rock_small' | 'rock_medium' | 'rock_large' | 'rock_mossy';
+
 interface ObjectSpawn {
   x: number;
   y: number;
-  type: 'dummy' | 'tree_small' | 'tree_large' | 'rock';
+  type: SpawnType;
 }
 
 /** Object placements for the training grounds */
 const OBJECT_SPAWNS: ObjectSpawn[] = [
-  // Training dummy ring around the central clearing
+  // ── Training dummy ring ──
   { x: 14, y: 20, type: 'dummy' },
   { x: 14, y: 24, type: 'dummy' },
   { x: 20, y: 17, type: 'dummy' },
@@ -36,36 +44,98 @@ const OBJECT_SPAWNS: ObjectSpawn[] = [
   { x: 16, y: 22, type: 'dummy' },
   { x: 24, y: 22, type: 'dummy' },
 
-  // Tree groves — NW corner
+  // ── NW tree grove ──
   { x: 3,  y: 2,  type: 'tree_large' },
   { x: 5,  y: 3,  type: 'tree_small' },
-  { x: 2,  y: 5,  type: 'tree_small' },
+  { x: 2,  y: 5,  type: 'tree_willow' },
   { x: 6,  y: 5,  type: 'tree_large' },
   { x: 4,  y: 7,  type: 'tree_small' },
+  { x: 3,  y: 4,  type: 'bush_berry' },
+  { x: 7,  y: 6,  type: 'bush_small' },
+  { x: 5,  y: 8,  type: 'tall_grass' },
 
-  // Tree grove — SW corner
+  // ── SW tree grove ──
   { x: 3,  y: 32, type: 'tree_large' },
-  { x: 5,  y: 34, type: 'tree_small' },
+  { x: 5,  y: 34, type: 'tree_willow' },
   { x: 2,  y: 36, type: 'tree_large' },
   { x: 7,  y: 33, type: 'tree_small' },
+  { x: 4,  y: 35, type: 'bush_tall' },
+  { x: 6,  y: 36, type: 'bush_small' },
 
-  // Tree grove — SE corner
+  // ── SE tree grove ──
   { x: 33, y: 32, type: 'tree_large' },
   { x: 35, y: 34, type: 'tree_small' },
   { x: 37, y: 33, type: 'tree_large' },
-  { x: 34, y: 36, type: 'tree_small' },
+  { x: 34, y: 36, type: 'tree_willow' },
+  { x: 36, y: 35, type: 'bush_berry' },
+  { x: 32, y: 34, type: 'bush_flower' },
 
-  // Scattered trees along east side
+  // ── NE — near pond ──
+  { x: 35, y: 3,  type: 'tree_willow' },
+  { x: 37, y: 5,  type: 'tree_small' },
+  { x: 33, y: 6,  type: 'reeds' },
+  { x: 35, y: 7,  type: 'reeds' },
+  { x: 36, y: 8,  type: 'reeds' },
+
+  // ── East side scattered ──
   { x: 35, y: 10, type: 'tree_large' },
   { x: 37, y: 15, type: 'tree_small' },
+  { x: 36, y: 12, type: 'bush_small' },
+  { x: 34, y: 18, type: 'tall_grass' },
 
-  // Scattered rocks
-  { x: 8,  y: 14, type: 'rock' },
-  { x: 32, y: 8,  type: 'rock' },
-  { x: 12, y: 30, type: 'rock' },
-  { x: 30, y: 28, type: 'rock' },
-  { x: 15, y: 10, type: 'rock' },
+  // ── Bushes along paths ──
+  { x: 18, y: 14, type: 'bush_flower' },
+  { x: 22, y: 14, type: 'bush_small' },
+  { x: 10, y: 20, type: 'bush_tall' },
+  { x: 30, y: 20, type: 'bush_berry' },
+  { x: 18, y: 30, type: 'bush_small' },
+  { x: 22, y: 30, type: 'bush_flower' },
+
+  // ── Tall grass patches ──
+  { x: 8,  y: 8,  type: 'tall_grass' },
+  { x: 9,  y: 9,  type: 'tall_grass' },
+  { x: 28, y: 10, type: 'tall_grass' },
+  { x: 10, y: 25, type: 'tall_grass' },
+  { x: 30, y: 30, type: 'tall_grass' },
+
+  // ── Rocks — varied sizes ──
+  { x: 8,  y: 14, type: 'rock_medium' },
+  { x: 32, y: 8,  type: 'rock_large' },
+  { x: 12, y: 30, type: 'rock_mossy' },
+  { x: 30, y: 28, type: 'rock_small' },
+  { x: 15, y: 10, type: 'rock_medium' },
+  { x: 25, y: 6,  type: 'rock_small' },
+  { x: 6,  y: 18, type: 'rock_small' },
+  { x: 34, y: 25, type: 'rock_mossy' },
+  { x: 11, y: 4,  type: 'rock_large' },
+  { x: 28, y: 35, type: 'rock_medium' },
 ];
+
+/** Sprite ID and rendering config for each spawn type */
+const SPAWN_CONFIG: Record<SpawnType, {
+  spriteId: string;
+  offsetY: number;
+  blocksMove: boolean;
+  blocksSight: boolean;
+  displayName: string;
+  article: 'a' | 'an' | 'the' | '';
+  destructible?: boolean;
+}> = {
+  dummy:       { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true },
+  tree_small:  { spriteId: 'obj_tree_small',  offsetY: -28, blocksMove: true,  blocksSight: true,  displayName: 'tree', article: 'a' },
+  tree_large:  { spriteId: 'obj_tree_large',  offsetY: -36, blocksMove: true,  blocksSight: true,  displayName: 'large tree', article: 'a' },
+  tree_willow: { spriteId: 'obj_tree_willow', offsetY: -32, blocksMove: true,  blocksSight: true,  displayName: 'willow tree', article: 'a' },
+  bush_small:  { spriteId: 'obj_bush_small',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'bush', article: 'a' },
+  bush_berry:  { spriteId: 'obj_bush_berry',  offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'berry bush', article: 'a' },
+  bush_tall:   { spriteId: 'obj_bush_tall',   offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'tall bush', article: 'a' },
+  bush_flower: { spriteId: 'obj_bush_flower', offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'flowering bush', article: 'a' },
+  tall_grass:  { spriteId: 'obj_tall_grass',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'tall grass', article: '' },
+  reeds:       { spriteId: 'obj_reeds',       offsetY: -12, blocksMove: false, blocksSight: false, displayName: 'reeds', article: '' },
+  rock_small:  { spriteId: 'obj_rock_small',  offsetY: -4,  blocksMove: true,  blocksSight: false, displayName: 'small rock', article: 'a' },
+  rock_medium: { spriteId: 'obj_rock_medium', offsetY: -8,  blocksMove: true,  blocksSight: false, displayName: 'rock', article: 'a' },
+  rock_large:  { spriteId: 'obj_rock_large',  offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'boulder', article: 'a' },
+  rock_mossy:  { spriteId: 'obj_rock_mossy',  offsetY: -10, blocksMove: true,  blocksSight: false, displayName: 'mossy boulder', article: 'a' },
+};
 
 /**
  * Generate a fresh training grounds World with player and objects.
@@ -75,15 +145,15 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   const H = TRAINING_GROUNDS_HEIGHT;
   const tileMap = new TileMap(W, H);
 
-  // Fill tiles from layout, with random grass variant substitution
+  // Fill tiles from layout, with deterministic grass variant substitution
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const raw = TRAINING_GROUNDS_LAYOUT[y * W + x];
       let tileType: TileType;
 
       if (raw <= 2) {
-        // Randomize grass variants
-        const variant = Math.floor(Math.random() * 3);
+        // Deterministic grass variant from cell hash
+        const variant = cellHash(x, y) % 3;
         tileType = TILE_INDEX_TO_TYPE[variant];
       } else {
         tileType = TILE_INDEX_TO_TYPE[raw];
@@ -126,40 +196,22 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
 
   // ── Spawn Objects ──
   for (const spawn of OBJECT_SPAWNS) {
+    const cfg = SPAWN_CONFIG[spawn.type];
     const id = world.createEntity();
+
     world.positions.set(id, { x: spawn.x, y: spawn.y, facing: 's' });
+    world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'object', offsetY: cfg.offsetY });
+    world.blockings.set(id, { blocksMovement: cfg.blocksMove, blocksSight: cfg.blocksSight });
+    world.names.set(id, { display: cfg.displayName, article: cfg.article });
 
-    switch (spawn.type) {
-      case 'dummy':
-        world.renderables.set(id, { spriteId: 'obj_dummy', layer: 'object', offsetY: -20 });
-        world.blockings.set(id, { blocksMovement: true, blocksSight: false });
-        world.healths.set(id, { current: TRAINING_DUMMY_HP, max: TRAINING_DUMMY_HP });
-        world.combatStats.set(id, { damage: 0, accuracy: 0, evasion: 0, attackVerb: '' });
-        world.names.set(id, { display: 'training dummy', article: 'a' });
-        world.destructibles.set(id, {
-          onDestroyMessage: 'The training dummy splinters apart!',
-          respawnTicks: 50,
-        });
-        world.aiControlled.set(id, { behavior: 'static' });
-        break;
-
-      case 'tree_small':
-        world.renderables.set(id, { spriteId: 'obj_tree_small', layer: 'object', offsetY: -28 });
-        world.blockings.set(id, { blocksMovement: true, blocksSight: true });
-        world.names.set(id, { display: 'small tree', article: 'a' });
-        break;
-
-      case 'tree_large':
-        world.renderables.set(id, { spriteId: 'obj_tree_large', layer: 'object', offsetY: -40 });
-        world.blockings.set(id, { blocksMovement: true, blocksSight: true });
-        world.names.set(id, { display: 'large tree', article: 'a' });
-        break;
-
-      case 'rock':
-        world.renderables.set(id, { spriteId: 'obj_rock', layer: 'object', offsetY: -6 });
-        world.blockings.set(id, { blocksMovement: true, blocksSight: false });
-        world.names.set(id, { display: 'rock', article: 'a' });
-        break;
+    if (cfg.destructible) {
+      world.healths.set(id, { current: TRAINING_DUMMY_HP, max: TRAINING_DUMMY_HP });
+      world.combatStats.set(id, { damage: 0, accuracy: 0, evasion: 0, attackVerb: '' });
+      world.destructibles.set(id, {
+        onDestroyMessage: `The ${cfg.displayName} splinters apart!`,
+        respawnTicks: 50,
+      });
+      world.aiControlled.set(id, { behavior: 'static' });
     }
   }
 
