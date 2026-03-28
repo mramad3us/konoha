@@ -27,7 +27,7 @@ export const PIXEL_SCALE = 4;
 
 // ── Game Engine ──
 export const TILE_WIDTH = 48;
-export const TILE_HEIGHT = 24;
+export const TILE_HEIGHT = 32;
 
 export const TRAINING_GROUNDS_WIDTH = 40;
 export const TRAINING_GROUNDS_HEIGHT = 40;
