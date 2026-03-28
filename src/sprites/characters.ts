@@ -30,7 +30,6 @@ const SHINOBI_PAL: Record<string, [number, number, number]> = {
 const KUNOICHI_PAL: Record<string, [number, number, number]> = {
   o: [130, 30, 45],    // crimson top
   O: [155, 40, 58],    // crimson highlight
-  t: [200, 220, 210],  // light trim/piping
   s: [212, 165, 116],  // skin
   h: [230, 150, 170],  // pink hair
   H: [245, 180, 195],  // hair highlight
@@ -39,12 +38,12 @@ const KUNOICHI_PAL: Record<string, [number, number, number]> = {
   M: [136, 153, 169],  // metal highlight
   e: [255, 255, 255],  // eye white
   p: [40, 140, 80],    // green pupil
-  w: [230, 225, 218],  // white pants / hand wraps
-  W: [210, 205, 198],  // pants shadow
-  g: [110, 25, 38],    // sash/belt dark
-  G: [130, 30, 45],    // belt highlight
-  S: [100, 20, 32],    // top shadow/dark
-  k: [30, 30, 40],     // sandals
+  w: [26, 26, 36],     // black pants/wraps
+  W: [36, 36, 48],     // pants highlight
+  g: [110, 25, 38],    // sash dark
+  G: [130, 30, 45],    // sash highlight
+  S: [100, 20, 32],    // top shadow
+  k: [20, 20, 28],     // sandals
 };
 
 // ── SHINOBI SPRITES ──
@@ -147,98 +146,98 @@ export const CHAR_SHINOBI_W: PixelPattern = {
 
 // ── KUNOICHI SPRITES ──
 
-/** Facing South — crimson qipao top, white pants, pink hair, green eyes */
+/** Facing South — crimson top, black pants, pink bob, green eyes */
 export const CHAR_KUNOICHI_S: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '...Hhhhhhh......',
-    '...hbbbbbbhH....',
-    '...hmMmmMmhh....',
-    '..Hhssssshhh....',
-    '..hsepsspesh....',
-    '....ssssss......',
-    '...toOooOot.....',
-    '...toOoOOot.....',
-    '..wtoGggGotw....',
-    '..w.oSooSo......',
+    '.....hHHh.......',
+    '....hbbbbh......',
+    '....hmMmMh......',
+    '....hssssh......',
+    '....sepsspe.....',
+    '.....ssss.......',
+    '....oOooOo......',
+    '....oOoOOo......',
+    '...woGggGow.....',
+    '....oSooSo......',
     '....wwwwww......',
     '....wWwwWw......',
     '....wWwwWw......',
     '....kk..kk......',
-    '....kk..kk......',
+    '................',
   ],
 };
 
-/** Facing North — back view, long pink hair over crimson top */
+/** Facing North — back view, short pink bob */
 export const CHAR_KUNOICHI_N: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '...Hhhhhhh......',
-    '..HhhhhhhhH.....',
-    '..hhhhhhhhh.....',
-    '..hhhhhhhhh.....',
-    '..bbhhhhhbbh....',
-    '...hhhhhhhhh....',
-    '...toOooOot.....',
-    '...toOoOOot.....',
-    '..wtoGggGotw....',
-    '..w.oSooSo......',
+    '.....hHHh.......',
+    '....hhhhhh......',
+    '....hhhhhh......',
+    '....hhhhhh......',
+    '....bbhhhbb.....',
+    '.....hhhh.......',
+    '....oOooOo......',
+    '....oOoOOo......',
+    '...woGggGow.....',
+    '....oSooSo......',
     '....wwwwww......',
     '....wWwwWw......',
     '....wWwwWw......',
     '....kk..kk......',
-    '....kk..kk......',
+    '................',
   ],
 };
 
-/** Facing East — side view, hair trails, qipao flap visible */
+/** Facing East — side view, bob hugs face */
 export const CHAR_KUNOICHI_E: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '....Hhhhh.......',
-    '....hhhhhH......',
-    '....bbbmMhh.....',
-    '...hhssssHh.....',
-    '....hssepsh.....',
-    '.....sssss......',
-    '....toOoOot.....',
-    '....toOOoot.....',
-    '....tGggOow.....',
-    '.....oSoSo......',
-    '.....wwwww......',
-    '.....wWwWw......',
-    '.....wWwWw......',
-    '.....kk.kk.....',
-    '.....kk.kk.....',
+    '.....hHHh.......',
+    '.....hhhhh......',
+    '.....bbmMh......',
+    '.....ssssh......',
+    '.....sseph......',
+    '......ssss......',
+    '.....oOoOo......',
+    '.....oOOoo......',
+    '.....GggOow.....',
+    '......oSoS......',
+    '......wwww......',
+    '......wWwW......',
+    '......wWwW......',
+    '......kk.k......',
+    '................',
   ],
 };
 
-/** Facing West — side view, hair trails, qipao flap visible */
+/** Facing West — side view, bob hugs face */
 export const CHAR_KUNOICHI_W: PixelPattern = {
   width: 16, height: 16,
   palette: KUNOICHI_PAL,
   pixels: [
     '................',
-    '.......hhhHh....',
-    '......Hhhhhhh...',
-    '.....hhMmbbbb...',
-    '.....hHsssshh...',
-    '.....hspessh....',
-    '......sssss.....',
-    '.....toOoOot....',
-    '.....tooOOot....',
-    '.....woOggGt....',
-    '......oSoSo.....',
-    '.......wwwww....',
-    '.......wWwWw....',
-    '.......wWwWw....',
-    '......kk.kk.....',
-    '......kk.kk.....',
+    '.......hHHh.....',
+    '.......hhhhh....',
+    '......hMmbb.....',
+    '......hssss.....',
+    '......hpess.....',
+    '......ssss......',
+    '......oOoOo.....',
+    '......ooOOo.....',
+    '.....woOggG.....',
+    '......SoSo......',
+    '......wwww......',
+    '......WwWw......',
+    '......WwWw......',
+    '......k.kk......',
+    '................',
   ],
 };
