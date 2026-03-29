@@ -24,6 +24,13 @@ export async function loadVolumeSettings(): Promise<void> {
     currentSettings = { ...DEFAULT_SETTINGS };
   }
   loaded = true;
+  console.log('[AUDIO DEBUG] Volume settings loaded:', {
+    master: currentSettings.masterVolume,
+    music: currentSettings.musicVolume,
+    sfx: currentSettings.sfxVolume,
+    effectiveSfx: currentSettings.sfxVolume * currentSettings.masterVolume,
+    effectiveMusic: currentSettings.musicVolume * currentSettings.masterVolume,
+  });
 }
 
 /** Get effective master volume (0-1) */

@@ -7,13 +7,11 @@
  */
 
 import { getSfxVolume } from './volumeManager.ts';
+import { getAudioContext, isAudioUnlocked } from './audioContext.ts';
 
-let ctx: AudioContext | null = null;
-
-function getCtx(): AudioContext {
-  if (!ctx) ctx = new AudioContext();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+function getCtx(): AudioContext | null {
+  if (!isAudioUnlocked()) return null;
+  return getAudioContext();
 }
 
 /** Scale volume by SFX setting */
@@ -30,6 +28,7 @@ function noiseHit(
   filterFreq: number,
 ): void {
   const ac = getCtx();
+  if (!ac) return;
   const now = ac.currentTime;
 
   // White noise source
@@ -96,6 +95,7 @@ export function sfxBlock(): void {
 /** Miss/whiff — quiet swoosh */
 export function sfxWhiff(): void {
   const ac = getCtx();
+  if (!ac) return;
   const now = ac.currentTime;
   const duration = 0.1 + Math.random() * 0.04;
 
@@ -126,6 +126,7 @@ export function sfxWhiff(): void {
 /** Critical hit — cinematic multi-layered impact */
 export function sfxCritical(): void {
   const ac = getCtx();
+  if (!ac) return;
   const now = ac.currentTime;
 
   // Layer 1: Sharp initial crack (high freq noise transient)
@@ -190,6 +191,7 @@ export function sfxCritical(): void {
 /** Tempo gain — short ascending chime */
 export function sfxTempoGain(): void {
   const ac = getCtx();
+  if (!ac) return;
   const now = ac.currentTime;
 
   const osc = ac.createOscillator();
@@ -209,6 +211,7 @@ export function sfxTempoGain(): void {
 /** Tempo spend — short descending tone */
 export function sfxTempoSpend(): void {
   const ac = getCtx();
+  if (!ac) return;
   const now = ac.currentTime;
 
   const osc = ac.createOscillator();

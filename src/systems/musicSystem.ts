@@ -10,16 +10,14 @@
  */
 
 import { getMusicVolume } from './volumeManager.ts';
-
-let ctx: AudioContext | null = null;
+import { getAudioContext, isAudioUnlocked } from './audioContext.ts';
 let isPlaying = false;
 let masterGain: GainNode | null = null;
 let loopTimers: number[] = [];
 
-function getCtx(): AudioContext {
-  if (!ctx) ctx = new AudioContext();
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+function getCtx(): AudioContext | null {
+  if (!isAudioUnlocked()) return null;
+  return getAudioContext();
 }
 
 // ── JAPANESE PENTATONIC MINOR (In Sen scale in D) ──
@@ -178,9 +176,9 @@ function playFlute(ac: AudioContext, time: number, freq: number, duration: numbe
 // ── MELODY PATTERNS ──
 // Each number is a scale degree (0-4), -1 = rest
 
-const MELODY_A = [0, -1, 3, 4, -1, 3, 1, 0];
-const MELODY_B = [3, 4, 3, 1, 0, -1, 1, -1];
-const FLUTE_A = [4, -1, -1, 3, -1, -1, 1, 0];
+const MELODY_A = [0, -1, 3, 4, -1, 3, 1, -1];
+const MELODY_B = [3, 4, 3, 1, 0, -1, -1, -1];
+const FLUTE_A = [4, -1, -1, 3, -1, -1, 1, -1];
 
 // ── MAIN LOOP SCHEDULER ──
 
@@ -235,18 +233,19 @@ function scheduleLoop(ac: AudioContext): void {
     scheduleBar(bar * barLen, bar);
   }
 
-  // Start drone
+  // Start drone (will be stopped at end of loop)
   const droneOscs = startDrone(ac, startTime);
 
-  // Schedule next loop
+  // Schedule drone fade-out near end of loop
+  const fadeStart = startTime + loopLen - 1.0;
+  for (const osc of droneOscs) {
+    try { osc.stop(fadeStart + 1.5); } catch { /* */ }
+  }
+
+  // Schedule next loop — no overlap, exact boundary
   const timer = window.setTimeout(() => {
-    // Stop old drone
-    const now = ac.currentTime;
-    for (const osc of droneOscs) {
-      try { osc.stop(now + 0.5); } catch { /* already stopped */ }
-    }
     if (isPlaying) scheduleLoop(ac);
-  }, loopLen * 1000 - 200); // slight overlap for seamless looping
+  }, loopLen * 1000);
 
   loopTimers.push(timer);
 }
@@ -256,9 +255,12 @@ function scheduleLoop(ac: AudioContext): void {
 export function startMenuMusic(): void {
   if (isPlaying) return;
   const ac = getCtx();
+  if (!ac) return;
 
   masterGain = ac.createGain();
-  masterGain.gain.value = getMusicVolume() * 0.6;
+  const musicVol = getMusicVolume() * 0.6;
+  masterGain.gain.value = musicVol;
+  console.log('[AUDIO DEBUG] Music starting, volume:', musicVol, 'context state:', ac.state);
   masterGain.connect(ac.destination);
 
   isPlaying = true;
@@ -272,7 +274,7 @@ export function stopMenuMusic(): void {
   // Fade out
   if (masterGain) {
     const ac = getCtx();
-    masterGain.gain.linearRampToValueAtTime(0, ac.currentTime + 1.0);
+    if (ac) masterGain.gain.linearRampToValueAtTime(0, ac.currentTime + 1.0);
     setTimeout(() => {
       masterGain?.disconnect();
       masterGain = null;
