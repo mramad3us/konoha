@@ -14,6 +14,7 @@ import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, gene
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
 import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
+import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -176,6 +177,39 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       // Screen shake
       if (screenShakeCallback) screenShakeCallback();
     }
+  }
+
+  // ── Sound effects ──
+  switch (outcome.type) {
+    case 'clean_hit':
+    case 'clash_rng':
+    case 'clash_tempo_win':
+      if (outcome.isCritical) { sfxCritical(); }
+      else { Math.random() < 0.5 ? sfxPunchHit() : sfxKickHit(); }
+      break;
+    case 'imperfect_block':
+      sfxPunchHit(); // glancing hit still makes contact
+      break;
+    case 'perfect_parry':
+      sfxWhiff(); // attacker's strike swooshes
+      setTimeout(() => sfxBlock(), 30); // then the parry clack
+      break;
+    case 'tempo_save':
+      sfxTempoSpend();
+      sfxWhiff();
+      break;
+    case 'clash_stalemate':
+      sfxClash();
+      break;
+    case 'circling':
+    case 'missed':
+      sfxWhiff();
+      break;
+  }
+
+  // Tempo change sounds
+  if (outcome.tempoChange.defender > 0 || outcome.tempoChange.attacker > 0) {
+    sfxTempoGain();
   }
 
   // ── Log flavor text ──

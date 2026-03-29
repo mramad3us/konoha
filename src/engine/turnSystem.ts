@@ -5,6 +5,7 @@ import { computeFOV } from './fov.ts';
 
 import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
+import { sfxStep } from '../systems/audioSystem.ts';
 
 /** Advance game time and recompute FOV with night reduction */
 function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
@@ -94,6 +95,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
         // Move!
         playerPos.x = newX;
         playerPos.y = newY;
+        sfxStep();
 
         // Stamina cost for sprinting
         const staminaCost = STANCE_STAMINA_COST[playerCtrl.movementStance];
