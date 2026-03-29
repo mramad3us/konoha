@@ -94,14 +94,54 @@ export const ACCENTS_GENERIC_SHINOBI: CharacterAccents = {
   beltHighlight: [120, 100, 65],
 };
 
-/** ANBU: grey hair, porcelain mask over face */
+/** ANBU variant 1: dark grey hair, pure white mask */
 export const ACCENTS_ANBU: CharacterAccents = {
-  hair: [60, 60, 70],        // dark grey hair
-  headband: [40, 40, 50],    // dark band
-  pupil: [20, 20, 25],       // dark eye holes
-  belt: [50, 50, 60],        // dark belt
+  hair: [60, 60, 70],
+  headband: [40, 40, 50],
+  pupil: [20, 20, 25],
+  belt: [50, 50, 60],
   beltHighlight: [70, 70, 80],
-  special: [230, 225, 218],  // mask white (K slot)
+  special: [230, 225, 218],
+};
+
+/** ANBU variant 2: black hair, off-white mask */
+export const ACCENTS_ANBU_2: CharacterAccents = {
+  hair: [30, 28, 35],
+  headband: [35, 33, 40],
+  pupil: [18, 18, 22],
+  belt: [45, 45, 55],
+  beltHighlight: [65, 65, 75],
+  special: [215, 210, 200],
+};
+
+/** ANBU variant 3: silver hair, light grey mask */
+export const ACCENTS_ANBU_3: CharacterAccents = {
+  hair: [140, 140, 150],
+  headband: [50, 50, 58],
+  pupil: [25, 22, 28],
+  belt: [55, 55, 65],
+  beltHighlight: [75, 75, 85],
+  special: [190, 188, 185],
+};
+
+/** ANBU variant 4: brown hair, warm white mask */
+export const ACCENTS_ANBU_4: CharacterAccents = {
+  hair: [70, 45, 30],
+  headband: [42, 38, 45],
+  pupil: [22, 20, 18],
+  belt: [48, 48, 58],
+  beltHighlight: [68, 68, 78],
+  special: [225, 218, 205],
+};
+
+/** ANBU variant 5: dark purple hair, cool grey mask */
+export const ACCENTS_ANBU_5: CharacterAccents = {
+  hair: [50, 35, 65],
+  headband: [38, 35, 48],
+  pupil: [20, 15, 25],
+  belt: [52, 48, 62],
+  beltHighlight: [72, 68, 82],
+  special: [200, 200, 208],
 };
 
 /** Kage: white robes accent (special = hat color) */
@@ -313,12 +353,40 @@ const ANBU_BODIES: BodyOverrides = {
   ],
 };
 
-const anbu = generateCharacterSprites(ACCENTS_ANBU, ANBU_BODIES);
-export const CHAR_ANBU_S = anbu.s;
-export const CHAR_ANBU_N = anbu.n;
-export const CHAR_ANBU_E = anbu.e;
-export const CHAR_ANBU_W = anbu.w;
-export const CHAR_ANBU_PRONE = anbu.prone;
+const anbu1 = generateCharacterSprites(ACCENTS_ANBU, ANBU_BODIES);
+export const CHAR_ANBU_S = anbu1.s;
+export const CHAR_ANBU_N = anbu1.n;
+export const CHAR_ANBU_E = anbu1.e;
+export const CHAR_ANBU_W = anbu1.w;
+export const CHAR_ANBU_PRONE = anbu1.prone;
+
+const anbu2 = generateCharacterSprites(ACCENTS_ANBU_2, ANBU_BODIES);
+export const CHAR_ANBU2_S = anbu2.s;
+export const CHAR_ANBU2_N = anbu2.n;
+export const CHAR_ANBU2_E = anbu2.e;
+export const CHAR_ANBU2_W = anbu2.w;
+export const CHAR_ANBU2_PRONE = anbu2.prone;
+
+const anbu3 = generateCharacterSprites(ACCENTS_ANBU_3, ANBU_BODIES);
+export const CHAR_ANBU3_S = anbu3.s;
+export const CHAR_ANBU3_N = anbu3.n;
+export const CHAR_ANBU3_E = anbu3.e;
+export const CHAR_ANBU3_W = anbu3.w;
+export const CHAR_ANBU3_PRONE = anbu3.prone;
+
+const anbu4 = generateCharacterSprites(ACCENTS_ANBU_4, ANBU_BODIES);
+export const CHAR_ANBU4_S = anbu4.s;
+export const CHAR_ANBU4_N = anbu4.n;
+export const CHAR_ANBU4_E = anbu4.e;
+export const CHAR_ANBU4_W = anbu4.w;
+export const CHAR_ANBU4_PRONE = anbu4.prone;
+
+const anbu5 = generateCharacterSprites(ACCENTS_ANBU_5, ANBU_BODIES);
+export const CHAR_ANBU5_S = anbu5.s;
+export const CHAR_ANBU5_N = anbu5.n;
+export const CHAR_ANBU5_E = anbu5.e;
+export const CHAR_ANBU5_W = anbu5.w;
+export const CHAR_ANBU5_PRONE = anbu5.prone;
 
 const takeshi = generateCharacterSprites(ACCENTS_TAKESHI);
 export const CHAR_TAKESHI_S = takeshi.s;

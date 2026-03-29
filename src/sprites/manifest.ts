@@ -13,6 +13,10 @@ import {
   CHAR_SHINOBI_PRONE, CHAR_KUNOICHI_PRONE,
   CHAR_TAKESHI_S, CHAR_TAKESHI_N, CHAR_TAKESHI_E, CHAR_TAKESHI_W, CHAR_TAKESHI_PRONE,
   CHAR_ANBU_S, CHAR_ANBU_N, CHAR_ANBU_E, CHAR_ANBU_W, CHAR_ANBU_PRONE,
+  CHAR_ANBU2_S, CHAR_ANBU2_N, CHAR_ANBU2_E, CHAR_ANBU2_W, CHAR_ANBU2_PRONE,
+  CHAR_ANBU3_S, CHAR_ANBU3_N, CHAR_ANBU3_E, CHAR_ANBU3_W, CHAR_ANBU3_PRONE,
+  CHAR_ANBU4_S, CHAR_ANBU4_N, CHAR_ANBU4_E, CHAR_ANBU4_W, CHAR_ANBU4_PRONE,
+  CHAR_ANBU5_S, CHAR_ANBU5_N, CHAR_ANBU5_E, CHAR_ANBU5_W, CHAR_ANBU5_PRONE,
 } from './characters.ts';
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 
@@ -89,6 +93,34 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu_e', pattern: CHAR_ANBU_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu_w', pattern: CHAR_ANBU_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu_prone', pattern: CHAR_ANBU_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ANBU variant 2 (black hair, off-white mask)
+  { id: 'char_anbu2_s', pattern: CHAR_ANBU2_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_n', pattern: CHAR_ANBU2_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_e', pattern: CHAR_ANBU2_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_w', pattern: CHAR_ANBU2_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_prone', pattern: CHAR_ANBU2_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ANBU variant 3 (silver hair, light grey mask)
+  { id: 'char_anbu3_s', pattern: CHAR_ANBU3_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_n', pattern: CHAR_ANBU3_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_e', pattern: CHAR_ANBU3_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_w', pattern: CHAR_ANBU3_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_prone', pattern: CHAR_ANBU3_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ANBU variant 4 (brown hair, warm white mask)
+  { id: 'char_anbu4_s', pattern: CHAR_ANBU4_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_n', pattern: CHAR_ANBU4_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_e', pattern: CHAR_ANBU4_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_w', pattern: CHAR_ANBU4_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_prone', pattern: CHAR_ANBU4_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ANBU variant 5 (purple hair, cool grey mask)
+  { id: 'char_anbu5_s', pattern: CHAR_ANBU5_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_n', pattern: CHAR_ANBU5_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_e', pattern: CHAR_ANBU5_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_w', pattern: CHAR_ANBU5_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_prone', pattern: CHAR_ANBU5_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Prone / unconscious
   { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },
