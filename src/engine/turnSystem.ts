@@ -3,7 +3,7 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS } from '../core/constants.ts';
+import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 
 /** Advance game time and recompute FOV with night reduction */
@@ -109,11 +109,21 @@ export function executeTurn(action: GameAction, world: World): boolean {
           }
         }
 
-        // Stamina regeneration when walking/creeping/crawling
+        // Stamina regeneration when not sprinting and resting long enough
         if (playerCtrl.movementStance !== 'sprint') {
           const resources = world.resources.get(playerId);
-          if (resources && resources.stamina < resources.maxStamina) {
-            resources.stamina = Math.min(resources.maxStamina, resources.stamina + 0.5);
+          if (resources) {
+            const ticksSinceExertion = world.currentTick - resources.lastExertionTick;
+            if (ticksSinceExertion >= STAMINA_REST_TICKS && resources.stamina < resources.staminaCeiling) {
+              const regenAmount = resources.maxStamina * STAMINA_RESTORE_RATE;
+              resources.stamina = Math.min(resources.staminaCeiling, resources.stamina + regenAmount);
+            }
+          }
+        } else {
+          // Sprint marks exertion
+          const resources = world.resources.get(playerId);
+          if (resources) {
+            resources.lastExertionTick = world.currentTick;
           }
         }
       }
@@ -128,10 +138,14 @@ export function executeTurn(action: GameAction, world: World): boolean {
     case 'wait': {
       world.log('You wait and observe your surroundings.', 'info');
 
-      // Small stamina regen on wait
+      // Stamina regen on wait (not exerting)
       const resources = world.resources.get(playerId);
-      if (resources && resources.stamina < resources.maxStamina) {
-        resources.stamina = Math.min(resources.maxStamina, resources.stamina + 1);
+      if (resources) {
+        const ticksSinceExertion = world.currentTick - resources.lastExertionTick;
+        if (ticksSinceExertion >= STAMINA_REST_TICKS && resources.stamina < resources.staminaCeiling) {
+          const regenAmount = resources.maxStamina * STAMINA_RESTORE_RATE;
+          resources.stamina = Math.min(resources.staminaCeiling, resources.stamina + regenAmount);
+        }
       }
 
       advanceTurn(world, STANCE_TICK_COST[playerCtrl.movementStance], STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);

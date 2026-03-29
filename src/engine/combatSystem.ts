@@ -13,6 +13,7 @@ import { resolveCombat } from './combatResolver.ts';
 import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -241,6 +242,17 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       world.log(`${world.names.get(targetId)?.display ?? 'The enemy'} is defeated!`, 'system');
       world.destroyEntity(targetId);
       engagements.delete(engagementKey(playerId, targetId));
+    }
+  }
+
+  // ── Stamina restoration ──
+  // If player didn't attack (defended/parried), check rest-based regen
+  const res = world.resources.get(playerId);
+  if (res) {
+    const ticksSinceExertion = world.currentTick - res.lastExertionTick;
+    if (ticksSinceExertion >= STAMINA_REST_TICKS && res.stamina < res.staminaCeiling) {
+      const regenAmount = res.maxStamina * STAMINA_RESTORE_RATE;
+      res.stamina = Math.min(res.staminaCeiling, res.stamina + regenAmount);
     }
   }
 
