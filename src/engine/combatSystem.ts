@@ -161,12 +161,12 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
         targetHealth.current = Math.max(0, targetHealth.current - finalDamage);
       }
 
-      // Bleeding chance with kill intent
+      // Bleeding chance with kill intent (kunai)
       if (outcome.attackerId === playerId && world.playerKillIntent) {
         const bleedChance = 0.20 + playerTaijutsu / 200;
         if (Math.random() < bleedChance) {
           const intensity = 3 + Math.floor(Math.random() * 5); // 3-7
-          applyBleeding(world, outcome.defenderId, intensity);
+          applyBleeding(world, outcome.defenderId, intensity, true); // byWeapon = true
         }
       }
 
@@ -174,6 +174,21 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       if (targetHealth && targetHealth.current <= 0 && world.playerKillIntent) {
         const killChance = 0.20 + playerTaijutsu / 200;
         if (Math.random() < killChance) {
+          // Log kunai kill flavor BEFORE the kill (which logs its own generic text)
+          const defName = world.names.get(outcome.defenderId)?.display ?? 'the opponent';
+          const kunaiKillMsgs = [
+            `The kunai finds ${defName}'s throat. It's over in an instant.`,
+            `A final thrust of the blade. ${defName} drops, lifeless.`,
+            `The kunai sinks deep into ${defName}'s chest. They don't get up.`,
+            `${defName} falls with the kunai still buried in their side.`,
+            `A merciful strike — ${defName} feels nothing as the blade ends it.`,
+            `The killing blow is clean. ${defName} crumples without a sound.`,
+            `Steel flashes once. ${defName} is dead before they hit the ground.`,
+            `The kunai traces a red arc. ${defName}'s eyes go dark.`,
+            `One precise thrust. ${defName}'s fight — and life — is over.`,
+            `The blade does what fists could not. ${defName} falls, still.`,
+          ];
+          world.log(kunaiKillMsgs[Math.floor(Math.random() * kunaiKillMsgs.length)], 'hit_outgoing');
           killEntityDirect(world, outcome.defenderId, playerId, true);
         }
       }

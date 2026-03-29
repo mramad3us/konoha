@@ -158,8 +158,15 @@ export function killEntity(
   // Update interactable to searchable
   world.interactables.set(entityId, { interactionType: 'examine', label: 'Search' });
 
-  // Sprite stays prone (dead bodies look like unconscious ones for now)
-  // Future: add _dead sprite variant
+  // Ensure sprite is prone and non-blocking
+  const renderable = world.renderables.get(entityId);
+  if (renderable && !renderable.spriteId.endsWith('_prone')) {
+    const spriteBase = renderable.spriteId.replace(/_[snew]$/, '');
+    renderable.spriteId = `${spriteBase}_prone`;
+    renderable.offsetY = -8;
+  }
+  const blocking = world.blockings.get(entityId);
+  if (blocking) blocking.blocksMovement = false;
 
   // Flavor text
   const msg = KILL_TEXT[Math.floor(Math.random() * KILL_TEXT.length)].replace(/\{name\}/g, name);
@@ -305,11 +312,11 @@ export function tickBleeding(world: World): void {
 
 /**
  * Apply bleeding effect to an entity.
+ * @param byWeapon - true when applied by kunai/weapon (uses weapon-specific flavor)
  */
-export function applyBleeding(world: World, entityId: EntityId, intensity: number): void {
+export function applyBleeding(world: World, entityId: EntityId, intensity: number, byWeapon: boolean = false): void {
   const existing = world.bleeding.get(entityId);
   if (existing) {
-    // Refresh — reset intensity to max of existing or new
     existing.intensity = Math.max(existing.intensity, intensity);
     existing.tickApplied = world.currentTick;
   } else {
@@ -317,14 +324,42 @@ export function applyBleeding(world: World, entityId: EntityId, intensity: numbe
   }
 
   const name = world.names.get(entityId)?.display ?? 'Someone';
-  const msgs = [
-    `Blood begins to seep from ${name}'s wound.`,
-    `A cut opens on ${name} — they're bleeding.`,
-    `${name} is cut. Blood flows freely.`,
-    `The blade finds flesh — ${name} starts bleeding.`,
-  ];
-  world.log(msgs[Math.floor(Math.random() * msgs.length)], 'damage');
+  const pool = byWeapon ? BLEED_KUNAI_TEXT : BLEED_UNARMED_TEXT;
+  const msg = pool[Math.floor(Math.random() * pool.length)].replace(/\{name\}/g, name);
+  world.log(msg, 'damage');
 }
+
+const BLEED_KUNAI_TEXT = [
+  'The kunai slices deep — blood wells from {name}\'s wound.',
+  '{name}\'s flesh parts under the blade. A crimson line appears.',
+  'A quick slash opens a cut across {name}\'s arm. Blood flows.',
+  'The kunai catches {name}\'s side — a dark stain spreads across their clothing.',
+  '{name} gasps as the blade bites in. The wound bleeds freely.',
+  'Steel meets skin. {name} is cut, blood dripping from the wound.',
+  'A precise slash from the kunai draws a red line across {name}\'s torso.',
+  'The blade finds the gap in {name}\'s guard — a deep, bleeding cut.',
+  '{name} staggers as the kunai draws blood from their shoulder.',
+  'A wicked slash across the thigh — {name} leaves a trail of blood.',
+  'The kunai\'s edge opens {name}\'s forearm. Blood spatters the ground.',
+  '{name}\'s cheek splits under the blade. Blood runs down their jaw.',
+  'A backhanded slash catches {name} across the ribs. The wound weeps crimson.',
+  'The kunai sinks in and comes back red. {name} is bleeding badly.',
+  'A darting thrust scores {name}\'s hip. Dark blood soaks through.',
+  '{name} clutches their side where the kunai found flesh. Blood seeps through fingers.',
+  'The blade whispers across {name}\'s collarbone — a thin red smile opens.',
+  'A savage cut across the back of {name}\'s hand. They can barely grip.',
+  'The kunai catches {name}\'s ear. Blood streams down their neck.',
+  '{name}\'s clothing darkens as the kunai\'s work becomes apparent. They\'re bleeding.',
+  'A flick of the wrist and the kunai opens a gash on {name}\'s bicep.',
+  'The blade traces a burning line across {name}\'s abdomen. Blood follows.',
+];
+
+const BLEED_UNARMED_TEXT = [
+  'Blood begins to seep from {name}\'s wound.',
+  'A cut opens on {name} — they\'re bleeding.',
+  '{name}\'s skin splits from the impact. Blood flows.',
+  'The force of the blow breaks skin. {name} is bleeding.',
+];
 
 /**
  * Stop bleeding on an entity (Patch Up action).
