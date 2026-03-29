@@ -9,6 +9,7 @@ import { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import { InputSystem } from '../systems/inputSystem.ts';
 import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
+import { setScreenShakeCallback } from '../engine/combatSystem.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
 import { computeFOV } from '../engine/fov.ts';
@@ -120,6 +121,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // Keybindings panel (inside canvas container for positioning)
   const keybindingsPanel = new KeybindingsPanel();
   canvasContainer.appendChild(keybindingsPanel.element);
+
+  // Screen shake callback for critical hits
+  setScreenShakeCallback(() => {
+    canvasContainer.classList.add('game-canvas-container--shake');
+    canvasContainer.addEventListener('animationend', () => {
+      canvasContainer.classList.remove('game-canvas-container--shake');
+    }, { once: true });
+  });
 
   // Update tick label on each HUD update
   const origFullRender = hud.fullRender.bind(hud);

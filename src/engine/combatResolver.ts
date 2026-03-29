@@ -1,25 +1,10 @@
 /**
- * Combat resolution: simultaneous blind pick.
- * Both combatants choose a move, this resolves the outcome.
+ * Combat resolution: simultaneous blind pick with conditions.
  */
 
-import type { CombatMove, CombatOutcome, TempoState } from '../types/combat.ts';
+import type { CombatMove, CombatOutcome, TempoState, ConditionState } from '../types/combat.ts';
 import { isAttack, isDefend, MIRROR_PAIRS, calculateDamage } from '../types/combat.ts';
 
-/**
- * Resolve a combat exchange between two combatants.
- *
- * @param moveA - Move chosen by entity A
- * @param moveB - Move chosen by entity B
- * @param idA - Entity ID of A
- * @param idB - Entity ID of B
- * @param tempoA - A's current tempo state
- * @param tempoB - B's current tempo state
- * @param taijutsuA - A's combat skill (0-100)
- * @param taijutsuB - B's combat skill (0-100)
- * @param phyA - A's physical stat (0-100)
- * @param phyB - B's physical stat (0-100)
- */
 export function resolveCombat(
   moveA: CombatMove,
   moveB: CombatMove,
@@ -27,11 +12,42 @@ export function resolveCombat(
   idB: number,
   tempoA: TempoState,
   tempoB: TempoState,
+  condA: ConditionState,
+  condB: ConditionState,
   taijutsuA: number,
   taijutsuB: number,
   phyA: number,
   phyB: number,
 ): CombatOutcome {
+  const base = { isCritical: false, conditionApplied: null } as const;
+
+  // ── STUNNED: free hit for the other side ──
+  if (condA.condition === 'stunned') {
+    const damage = calculateDamage(taijutsuB, phyB);
+    return {
+      type: 'clean_hit', attackerId: idB, defenderId: idA, damage,
+      tempoChange: { attacker: 0, defender: 0 },
+      attackerMove: moveB, defenderMove: moveA, ...base,
+    };
+  }
+  if (condB.condition === 'stunned') {
+    const damage = calculateDamage(taijutsuA, phyA);
+    return {
+      type: 'clean_hit', attackerId: idA, defenderId: idB, damage,
+      tempoChange: { attacker: 0, defender: 0 },
+      attackerMove: moveA, defenderMove: moveB, ...base,
+    };
+  }
+
+  // ── DOWN: opponent acts as if they have a free bead (phantom bead) ──
+  // We create effective tempo that includes the phantom bead
+  const effTempoA: TempoState = condB.condition === 'down'
+    ? { current: tempoA.current + 1, max: tempoA.max } // A gets phantom bead vs downed B
+    : tempoA;
+  const effTempoB: TempoState = condA.condition === 'down'
+    ? { current: tempoB.current + 1, max: tempoB.max } // B gets phantom bead vs downed A
+    : tempoB;
+
   const aAttacks = isAttack(moveA);
   const bAttacks = isAttack(moveB);
   const aDefends = isDefend(moveA);
@@ -40,90 +56,73 @@ export function resolveCombat(
   // ── BOTH DEFEND ──
   if (aDefends && bDefends) {
     return {
-      type: 'circling',
-      attackerId: idA, defenderId: idB,
-      damage: 0,
+      type: 'circling', attackerId: idA, defenderId: idB, damage: 0,
       tempoChange: { attacker: 0, defender: 0 },
-      attackerMove: moveA, defenderMove: moveB,
+      attackerMove: moveA, defenderMove: moveB, ...base,
     };
   }
 
   // ── A ATTACKS, B DEFENDS ──
   if (aAttacks && bDefends) {
-    return resolveAttackVsDefend(moveA, moveB, idA, idB, tempoA, tempoB, taijutsuA, phyA);
+    return resolveAttackVsDefend(moveA, moveB, idA, idB, effTempoB, taijutsuA, phyA);
   }
 
   // ── B ATTACKS, A DEFENDS ──
   if (bAttacks && aDefends) {
-    // Flip perspective: B is attacker, A is defender
-    const result = resolveAttackVsDefend(moveB, moveA, idB, idA, tempoB, tempoA, taijutsuB, phyB);
-    return result;
+    return resolveAttackVsDefend(moveB, moveA, idB, idA, effTempoA, taijutsuB, phyB);
   }
 
   // ── BOTH ATTACK ──
   if (aAttacks && bAttacks) {
-    return resolveClash(moveA, moveB, idA, idB, tempoA, tempoB, taijutsuA, taijutsuB, phyA, phyB);
+    return resolveClash(moveA, moveB, idA, idB, effTempoA, effTempoB, taijutsuA, taijutsuB, phyA, phyB, condA, condB);
   }
 
-  // Fallback (shouldn't happen)
   return {
-    type: 'circling',
-    attackerId: idA, defenderId: idB,
-    damage: 0,
+    type: 'circling', attackerId: idA, defenderId: idB, damage: 0,
     tempoChange: { attacker: 0, defender: 0 },
-    attackerMove: moveA, defenderMove: moveB,
+    attackerMove: moveA, defenderMove: moveB, ...base,
   };
 }
 
-/** Resolve: one attacks, one defends */
 function resolveAttackVsDefend(
   attackMove: CombatMove,
   defendMove: CombatMove,
   attackerId: number,
   defenderId: number,
-  _attackerTempo: TempoState,
   defenderTempo: TempoState,
   attackerTaijutsu: number,
   attackerPhy: number,
 ): CombatOutcome {
+  const base = { isCritical: false, conditionApplied: null } as const;
   const perfectBlock = MIRROR_PAIRS[attackMove as keyof typeof MIRROR_PAIRS] === defendMove;
 
   if (perfectBlock) {
-    // Perfect parry — defender earns a tempo
     return {
-      type: 'perfect_parry',
-      attackerId, defenderId,
-      damage: 0,
+      type: 'perfect_parry', attackerId, defenderId, damage: 0,
       tempoChange: { attacker: 0, defender: 1 },
-      attackerMove: attackMove, defenderMove: defendMove,
+      attackerMove: attackMove, defenderMove: defendMove, ...base,
     };
   }
 
-  // Imperfect block — hit lands but half damage
-  const fullDamage = calculateDamage(attackerTaijutsu, attackerPhy);
-  let halfDamage = Math.max(1, Math.round(fullDamage * 0.5));
-
-  // Check if defender has tempo to auto-save
+  // Imperfect block — check tempo save first
   if (defenderTempo.current > 0) {
     return {
-      type: 'tempo_save',
-      attackerId, defenderId,
-      damage: 0,
+      type: 'tempo_save', attackerId, defenderId, damage: 0,
       tempoChange: { attacker: 0, defender: -1 },
-      attackerMove: attackMove, defenderMove: defendMove,
+      attackerMove: attackMove, defenderMove: defendMove, ...base,
     };
   }
 
+  const fullDamage = calculateDamage(attackerTaijutsu, attackerPhy);
+  const halfDamage = Math.max(1, Math.round(fullDamage * 0.5));
+
   return {
-    type: 'imperfect_block',
-    attackerId, defenderId,
-    damage: halfDamage,
+    type: 'imperfect_block', attackerId, defenderId, damage: halfDamage,
     tempoChange: { attacker: 0, defender: 0 },
-    attackerMove: attackMove, defenderMove: defendMove,
+    attackerMove: attackMove, defenderMove: defendMove, ...base,
   };
 }
 
-/** Resolve: both attack */
 function resolveClash(
   moveA: CombatMove,
   moveB: CombatMove,
@@ -135,93 +134,77 @@ function resolveClash(
   taijutsuB: number,
   phyA: number,
   phyB: number,
+  condA: ConditionState,
+  condB: ConditionState,
 ): CombatOutcome {
+  const base = { isCritical: false, conditionApplied: null } as const;
   const sameKey = moveA === moveB;
 
   if (sameKey) {
-    // Both chose the same attack
-    if (tempoA.current > 0 && tempoB.current === 0) {
-      // A has tempo advantage — A hits, spends a tempo
+    // Tempo advantage check (phantom bead from Down doesn't consume real bead)
+    const aHasAdvantage = tempoA.current > 0 && tempoB.current === 0;
+    const bHasAdvantage = tempoB.current > 0 && tempoA.current === 0;
+
+    if (aHasAdvantage) {
       const damage = calculateDamage(taijutsuA, phyA);
+      // Only spend a real bead (not phantom)
+      const tempoSpend = condB.condition === 'down' ? 0 : -1;
       return {
-        type: 'clash_tempo_win',
-        attackerId: idA, defenderId: idB,
-        damage,
-        tempoChange: { attacker: -1, defender: 0 },
-        attackerMove: moveA, defenderMove: moveB,
+        type: 'clash_tempo_win', attackerId: idA, defenderId: idB, damage,
+        tempoChange: { attacker: tempoSpend, defender: 0 },
+        attackerMove: moveA, defenderMove: moveB, ...base,
       };
     }
-
-    if (tempoB.current > 0 && tempoA.current === 0) {
-      // B has tempo advantage — B hits
+    if (bHasAdvantage) {
       const damage = calculateDamage(taijutsuB, phyB);
+      const tempoSpend = condA.condition === 'down' ? 0 : -1;
       return {
-        type: 'clash_tempo_win',
-        attackerId: idB, defenderId: idA,
-        damage,
-        tempoChange: { attacker: -1, defender: 0 },
-        attackerMove: moveB, defenderMove: moveA,
+        type: 'clash_tempo_win', attackerId: idB, defenderId: idA, damage,
+        tempoChange: { attacker: tempoSpend, defender: 0 },
+        attackerMove: moveB, defenderMove: moveA, ...base,
       };
     }
 
-    // Both have tempo or neither — stalemate
     return {
-      type: 'clash_stalemate',
-      attackerId: idA, defenderId: idB,
-      damage: 0,
+      type: 'clash_stalemate', attackerId: idA, defenderId: idB, damage: 0,
       tempoChange: { attacker: 0, defender: 0 },
-      attackerMove: moveA, defenderMove: moveB,
+      attackerMove: moveA, defenderMove: moveB, ...base,
     };
   }
 
-  // Different attack keys — RNG weighted by skill
+  // Different attacks — RNG weighted by skill
   const totalSkill = taijutsuA + taijutsuB;
   const aChance = totalSkill > 0 ? taijutsuA / totalSkill : 0.5;
-  const roll = Math.random();
 
-  if (roll < aChance) {
-    // A wins the exchange
+  if (Math.random() < aChance) {
     const damage = calculateDamage(taijutsuA, phyA);
-
-    // Check if B has tempo to auto-save
     if (tempoB.current > 0) {
+      const tempoSpend = condA.condition === 'down' ? 0 : -1;
       return {
-        type: 'tempo_save',
-        attackerId: idA, defenderId: idB,
-        damage: 0,
-        tempoChange: { attacker: 0, defender: -1 },
-        attackerMove: moveA, defenderMove: moveB,
+        type: 'tempo_save', attackerId: idA, defenderId: idB, damage: 0,
+        tempoChange: { attacker: 0, defender: tempoSpend },
+        attackerMove: moveA, defenderMove: moveB, ...base,
       };
     }
-
     return {
-      type: 'clash_rng',
-      attackerId: idA, defenderId: idB,
-      damage,
+      type: 'clash_rng', attackerId: idA, defenderId: idB, damage,
       tempoChange: { attacker: 0, defender: 0 },
-      attackerMove: moveA, defenderMove: moveB,
+      attackerMove: moveA, defenderMove: moveB, ...base,
     };
   } else {
-    // B wins the exchange
     const damage = calculateDamage(taijutsuB, phyB);
-
-    // Check if A has tempo to auto-save
     if (tempoA.current > 0) {
+      const tempoSpend = condB.condition === 'down' ? 0 : -1;
       return {
-        type: 'tempo_save',
-        attackerId: idB, defenderId: idA,
-        damage: 0,
-        tempoChange: { attacker: 0, defender: -1 },
-        attackerMove: moveB, defenderMove: moveA,
+        type: 'tempo_save', attackerId: idB, defenderId: idA, damage: 0,
+        tempoChange: { attacker: 0, defender: tempoSpend },
+        attackerMove: moveB, defenderMove: moveA, ...base,
       };
     }
-
     return {
-      type: 'clash_rng',
-      attackerId: idB, defenderId: idA,
-      damage,
+      type: 'clash_rng', attackerId: idB, defenderId: idA, damage,
       tempoChange: { attacker: 0, defender: 0 },
-      attackerMove: moveB, defenderMove: moveA,
+      attackerMove: moveB, defenderMove: moveA, ...base,
     };
   }
 }

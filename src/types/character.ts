@@ -166,20 +166,28 @@ export function computeImprovement(
 // ── IMPROVEMENT RATES ──
 // How much base XP each activity grants per occurrence
 
-export const SKILL_IMPROVEMENT_RATES: Record<SkillId, number> = {
-  taijutsu: 0.3,   // per combat round / training hit
-  bukijutsu: 0.25,  // per tool use
-  ninjutsu: 0.2,   // per jutsu cast
-  genjutsu: 0.15,  // per genjutsu attempt
+/**
+ * Skill improvement rates per combat pass (2s in-game).
+ *
+ * Calibrated so that 1→10 taijutsu takes ~2 full days (86,400 passes)
+ * of constant dummy training. Sparring with equal/higher skill = 2× rate.
+ */
+export const SKILL_IMPROVEMENT_RATES = {
+  taijutsu_dummy: 0.000116,     // hitting a training dummy
+  taijutsu_spar: 0.000232,      // sparring with skill >= yours (2×)
+  bukijutsu: 0.000100,          // per tool use
+  ninjutsu: 0.000090,           // per jutsu cast
+  genjutsu: 0.000070,           // per genjutsu attempt
 } as const;
 
 export const STAT_IMPROVEMENT_RATES = {
-  phy_physical_activity: 0.08,  // running, taijutsu, etc.
-  cha_meditation: 0.15,         // high impact
-  cha_ninjutsu_use: 0.03,      // low impact
-  men_meditation: 0.05,         // very slow
-  soc_conversation: 0.02,      // very slow passive
-  soc_training: 0.12,          // special trainer, faster
+  phy_combat: 0.000040,         // physical activity (combat, running)
+  phy_training: 0.000080,       // dedicated physical training
+  cha_meditation: 0.000060,     // meditation (high impact for chakra)
+  cha_ninjutsu_use: 0.000015,   // low impact
+  men_meditation: 0.000020,     // very slow, only way
+  soc_conversation: 0.000008,   // very slow passive
+  soc_training: 0.000050,       // special trainer
 } as const;
 
 // ── DEFAULTS FOR NEW CHARACTERS ──

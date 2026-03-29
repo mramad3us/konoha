@@ -20,7 +20,7 @@ import {
 } from '../core/constants.ts';
 
 type SpawnType =
-  | 'dummy'
+  | 'dummy' | 'sparring_partner'
   | 'tree_small' | 'tree_large' | 'tree_willow'
   | 'bush_small' | 'bush_berry' | 'bush_tall' | 'bush_flower'
   | 'tall_grass' | 'reeds'
@@ -34,6 +34,9 @@ interface ObjectSpawn {
 
 /** Object placements for the training grounds */
 const OBJECT_SPAWNS: ObjectSpawn[] = [
+  // ── Sparring partner (near center) ──
+  { x: 20, y: 20, type: 'sparring_partner' },
+
   // ── Training dummy ring ──
   { x: 14, y: 20, type: 'dummy' },
   { x: 14, y: 24, type: 'dummy' },
@@ -120,8 +123,10 @@ const SPAWN_CONFIG: Record<SpawnType, {
   displayName: string;
   article: 'a' | 'an' | 'the' | '';
   destructible?: boolean;
+  sparring?: boolean;
 }> = {
-  dummy:       { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true },
+  dummy:           { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true },
+  sparring_partner:{ spriteId: 'char_shinobi_s',  offsetY: -16, blocksMove: true,  blocksSight: false, displayName: 'sparring partner', article: 'a', sparring: true },
   tree_small:  { spriteId: 'obj_tree_small',  offsetY: -28, blocksMove: true,  blocksSight: true,  displayName: 'tree', article: 'a' },
   tree_large:  { spriteId: 'obj_tree_large',  offsetY: -36, blocksMove: true,  blocksSight: true,  displayName: 'large tree', article: 'a' },
   tree_willow: { spriteId: 'obj_tree_willow', offsetY: -32, blocksMove: true,  blocksSight: true,  displayName: 'willow tree', article: 'a' },
@@ -222,6 +227,22 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         onDestroyMessage: `The ${cfg.displayName} splinters apart in a shower of wood and straw!`,
         respawnTicks: 50,
       });
+      world.aiControlled.set(id, { behavior: 'static' });
+    }
+
+    if (cfg.sparring) {
+      // Sparring partner — real combatant with HP, can be knocked down/stunned
+      world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'character', offsetY: cfg.offsetY });
+      world.healths.set(id, { current: 80, max: 80 });
+      world.combatStats.set(id, { damage: 5, accuracy: 70, evasion: 15, attackVerb: 'strike' });
+      world.characterSheets.set(id, {
+        class: 'shinobi',
+        rank: 'genin',
+        title: 'Training Partner',
+        skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2 },
+        stats: { phy: 20, cha: 10, men: 8, soc: 12 },
+      });
+      world.names.set(id, { display: 'Takeshi', article: '' });
       world.aiControlled.set(id, { behavior: 'static' });
     }
   }

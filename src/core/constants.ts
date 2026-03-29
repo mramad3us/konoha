@@ -51,6 +51,16 @@ export const TRAINING_DUMMY_HP = 25;
 // ── Combat ──
 export const MELEE_STAMINA_COST = 1;
 
+// ── Game Time ──
+export const PASS_DURATION_SECONDS = 2;   // 1 combat exchange = 2s in-game
+export const TICK_DURATION_SECONDS = 6;   // 1 movement step = 6s in-game
+export const SECONDS_PER_DAY = 86400;
+
+// ── Critical Hits ──
+export const CRIT_BASE_CHANCE = 0.05;     // 5% base chance per clean hit
+export const SCREEN_SHAKE_DURATION_MS = 300;
+export const SCREEN_SHAKE_INTENSITY = 4;  // pixels
+
 // ── Camera ──
 export const CAMERA_LERP_FACTOR = 0.15;
 

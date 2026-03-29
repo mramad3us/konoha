@@ -406,3 +406,73 @@ export function generateCombatTechnical(outcome: CombatOutcome): string {
   if (parts.length === 0) return '';
   return `(${parts.join(', ')})`;
 }
+
+// ── CRITICAL HIT FLAVOR ──
+
+const CRIT_TEMPLATES = {
+  default: [
+    'CRITICAL! The blow sends a shockwave through {defender}\'s body!',
+    'A devastating strike! {attacker} channels everything into one perfect impact!',
+    'CRITICAL HIT! {defender} feels the world tilt as the blow connects!',
+    'The strike lands with terrifying force! {attacker} finds the perfect angle!',
+    'An explosive hit! The sheer power behind {attacker}\'s technique is staggering!',
+    'CRITICAL! {attacker}\'s chakra-infused strike tears through with devastating force!',
+    'A bone-rattling impact! {defender} sees white as the blow connects perfectly!',
+    'The hit is surgical — {attacker} drives maximum force into minimum surface area!',
+  ],
+  high: [
+    'CRITICAL! A master\'s precision — {attacker} strikes the tenketsu point with lethal accuracy!',
+    'The strike resonates with killing intent. {defender} feels their body betray them!',
+    '{attacker} finds the gap between heartbeats and delivers a blow that could end wars!',
+    'A technique perfected over a thousand fights — {attacker}\'s strike is absolute!',
+  ],
+  low: [
+    'CRITICAL! Even a young shinobi can find the right spot — and {attacker} just did!',
+    'The academy taught the pressure points. {attacker} just landed one perfectly!',
+    'A lucky angle, a perfect moment — {attacker}\'s strike carries devastating force!',
+  ],
+};
+
+export function generateCritFlavor(attackerName: string, defenderName: string, attackerSkill: number, _defenderSkill: number): string {
+  const tier = attackerSkill >= 66 ? 'high' : attackerSkill < 31 ? 'low' : 'default';
+  const pool = [...CRIT_TEMPLATES[tier], ...CRIT_TEMPLATES.default];
+  const template = pool[Math.floor(Math.random() * pool.length)];
+  return template.replace(/\{attacker\}/g, attackerName).replace(/\{defender\}/g, defenderName);
+}
+
+// ── CONDITION APPLICATION FLAVOR ──
+
+import type { CombatCondition } from '../types/combat.ts';
+
+const CONDITION_TEMPLATES: Record<CombatCondition, string[]> = {
+  down: [
+    '{defender} crashes to the ground, barely catching themselves on one knee!',
+    '{defender} is sent sprawling! They scramble to recover their footing!',
+    'The impact drives {defender} to the dirt! They push themselves up, gasping!',
+    '{defender} hits the ground hard — they roll and try to rise, but they\'re off-balance!',
+    '{defender}\'s legs buckle under the force! They drop to a knee, vision swimming!',
+    '{defender} staggers and falls, catching the earth with both hands. Vulnerable!',
+    'Down! {defender} eats dirt as the blow sweeps their legs from under them!',
+    '{defender} collapses to one knee, arms trembling from the impact!',
+    'The force sends {defender} tumbling! They catch themselves, but barely!',
+    '{defender} skids across the packed earth, scrambling to get back up!',
+  ],
+  stunned: [
+    '{defender}\'s eyes go glassy — the blow rattles their brain! They can\'t move!',
+    '{defender} freezes mid-motion, body locked up from the devastating impact!',
+    'The strike hits a nerve cluster — {defender} stands paralyzed for a heartbeat!',
+    '{defender}\'s vision doubles. Their arms drop. For one terrible second, they\'re helpless!',
+    'STUNNED! {defender}\'s nervous system short-circuits from the precise impact!',
+    '{defender} goes rigid, muscles seizing from the chakra-disrupting blow!',
+    'The world spins around {defender} — they can\'t tell up from down, let alone fight!',
+    '{defender}\'s body refuses commands. The blow scrambled something important!',
+    '{defender} stands stock-still, eyes unfocused, completely open to attack!',
+    'A ringing silence fills {defender}\'s skull. The world freezes. They can\'t respond!',
+  ],
+};
+
+export function generateConditionFlavor(defenderName: string, condition: CombatCondition): string {
+  const pool = CONDITION_TEMPLATES[condition];
+  const template = pool[Math.floor(Math.random() * pool.length)];
+  return template.replace(/\{defender\}/g, defenderName);
+}

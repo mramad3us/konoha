@@ -61,6 +61,8 @@ export interface CombatOutcome {
   };
   attackerMove: CombatMove;
   defenderMove: CombatMove;
+  isCritical: boolean;
+  conditionApplied: CombatCondition | null;
 }
 
 // ── TEMPO ──
@@ -105,12 +107,39 @@ export interface CombatEngagement {
   entityB: number;
   tempoA: TempoState;
   tempoB: TempoState;
+  conditionA: ConditionState;
+  conditionB: ConditionState;
   round: number;
   /** When the player is in melee range, this is the pending NPC move (hidden) */
   pendingNpcMove: CombatMove | null;
 }
 
 // ── KEY MAPPING ──
+
+// ── CONDITIONS ──
+
+export type CombatCondition = 'down' | 'stunned';
+
+/**
+ * Down: next pass, opponent acts as if they have a free bead
+ *   (if they already have one, the clash won't consume it)
+ * Stunned: prevents action entirely, any attack is a free hit
+ */
+export interface ConditionState {
+  condition: CombatCondition | null;
+  turnsRemaining: number;
+}
+
+// ── CRITICAL HITS ──
+
+/**
+ * Calculate crit chance: 5% base + skill difference as percentage.
+ * Only on clean hits. Dummies are immune.
+ */
+export function critChance(attackerSkill: number, defenderSkill: number): number {
+  const diff = Math.max(0, attackerSkill - defenderSkill);
+  return 0.05 + diff / 100;
+}
 
 export const COMBAT_KEYS = new Set<string>(['a', 'z', 'e', 'q', 's', 'd']);
 
