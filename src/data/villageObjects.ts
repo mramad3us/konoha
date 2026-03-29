@@ -47,7 +47,7 @@ function tree(world: World, x: number, y: number): void {
 function bush(world: World, x: number, y: number): void {
   const v = cellHash(x, y) % 4;
   const sprites = ['obj_bush_small', 'obj_bush_berry', 'obj_bush_flower', 'obj_bush_small'];
-  spawn(world, { x, y, spriteId: sprites[v], layer: 'object', offsetY: -25,
+  spawn(world, { x, y, spriteId: sprites[v], layer: 'object', offsetY: -18,
     blocksMove: false, blocksSight: false, name: 'bush', article: 'a',
     description: 'A decorative bush.', category: 'terrain' });
 }
