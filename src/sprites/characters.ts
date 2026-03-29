@@ -42,7 +42,7 @@ function buildPalette(accents: CharacterAccents): Record<string, RGB> {
     o: [26, 26, 38],       // outfit dark
     O: [34, 34, 48],       // outfit mid
     S: [18, 18, 28],       // outfit shadow
-    s: accents.skinOverride ?? [212, 165, 116],    // skin (or mask)
+    s: [212, 165, 116],    // skin
     h: accents.hair,
     b: accents.headband,
     m: [112, 128, 144],    // metal plate
@@ -94,15 +94,14 @@ export const ACCENTS_GENERIC_SHINOBI: CharacterAccents = {
   beltHighlight: [120, 100, 65],
 };
 
-/** ANBU: grey hair, porcelain mask (skin replaced with white mask color) */
+/** ANBU: grey hair, porcelain mask over face */
 export const ACCENTS_ANBU: CharacterAccents = {
-  hair: [80, 80, 90],
-  headband: [40, 40, 50],
-  pupil: [30, 10, 10],       // dark red slits for mask eyes
-  belt: [60, 60, 70],
-  beltHighlight: [80, 80, 90],
-  special: [220, 215, 210],  // white mask
-  skinOverride: [225, 220, 215], // porcelain white replaces skin = mask
+  hair: [60, 60, 70],        // dark grey hair
+  headband: [40, 40, 50],    // dark band
+  pupil: [20, 20, 25],       // dark eye holes
+  belt: [50, 50, 60],        // dark belt
+  beltHighlight: [70, 70, 80],
+  special: [230, 225, 218],  // mask white (K slot)
 };
 
 /** Kage: white robes accent (special = hat color) */
@@ -255,16 +254,17 @@ export const CHAR_KUNOICHI_E = kasura.e;
 export const CHAR_KUNOICHI_W = kasura.w;
 export const CHAR_KUNOICHI_PRONE = kasura.prone;
 
-// ANBU body overrides — smooth porcelain mask, no hair visible
+// ANBU body overrides — porcelain mask sits on face, hair visible above
+// K = mask white, p = dark eye holes, h = hair above mask
 const ANBU_BODIES: BodyOverrides = {
   s: [
     '................',
-    '.....ssssss.....',
-    '....ssssssss....',
-    '....ssssssss....',
-    '....ssssssss....',
-    '....spssssps....',
-    '.....ssssss.....',
+    '....hhhhhh......',
+    '...hhhhhhhhh....',
+    '...hKKKKKKh.....',
+    '...hKpKKpKh.....',
+    '...hKKKKKKh.....',
+    '....KKssKK......',
     '....oossoo......',
     '...oOoOoOoo.....',
     '...oOoOoOoo.....',
@@ -277,12 +277,12 @@ const ANBU_BODIES: BodyOverrides = {
   ],
   n: [
     '................',
-    '.....ssssss.....',
-    '....ssssssss....',
-    '....ssssssss....',
-    '....ssssssss....',
-    '....ssssssss....',
-    '.....ssssss.....',
+    '....hhhhhh......',
+    '...hhhhhhhh.....',
+    '...hhhhhhhh.....',
+    '...hhhhhhhh.....',
+    '...bbhhhbbb.....',
+    '....hhhhhh......',
     '....oossoo......',
     '...oOoOoOoo.....',
     '...oOoOoOoo.....',
@@ -295,12 +295,12 @@ const ANBU_BODIES: BodyOverrides = {
   ],
   e: [
     '................',
-    '......sssss.....',
-    '.....ssssss.....',
-    '.....ssssss.....',
-    '.....ssssss.....',
-    '.....sssps......',
-    '......ssss......',
+    '.....hhhhh......',
+    '....hhhhhh......',
+    '....hKKKKhh.....',
+    '....hKKpKhh.....',
+    '....hKKKKs......',
+    '.....KKss.......',
     '.....oosso......',
     '....oOoOoo......',
     '....oOoOoow.....',
@@ -313,12 +313,12 @@ const ANBU_BODIES: BodyOverrides = {
   ],
   w: [
     '................',
-    '.....sssss......',
-    '.....ssssss.....',
-    '.....ssssss.....',
-    '.....ssssss.....',
-    '......spss......',
-    '......ssss......',
+    '......hhhhh.....',
+    '......hhhhhh....',
+    '.....hhKKKKh....',
+    '.....hhKpKKh....',
+    '......sKKKKh....',
+    '.......ssKK.....',
     '......ossoo.....',
     '......ooOoOo....',
     '.....wooOoOo....',
@@ -328,24 +328,6 @@ const ANBU_BODIES: BodyOverrides = {
     '......oSoSo.....',
     '......oSoSo.....',
     '......SS.SS.....',
-  ],
-  prone: [
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '.ssss...........',
-    '.sssss..........',
-    '.spsssssoooooo..',
-    '.ssssssoOoOoOo..',
-    '..sssssoOoOoOo..',
-    '......ooGggGoo..',
-    '......oSoooSo...',
-    '......oSoooSo...',
-    '.......SS.SS....',
-    '................',
-    '................',
   ],
 };
 
