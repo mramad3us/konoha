@@ -82,10 +82,8 @@ export class CharacterSheetUI {
 
     const skillsGrid = createElement('div', { className: 'charsheet-grid' });
     for (const id of ALL_SKILL_IDS) {
-      skillsGrid.appendChild(this.renderStatRow(
-        SKILL_LABELS[id],
-        sheet.skills[id],
-        SKILL_DESCRIPTIONS[id],
+      skillsGrid.appendChild(this.renderRow(
+        SKILL_LABELS[id], sheet.skills[id], SKILL_DESCRIPTIONS[id], true,
       ));
     }
     this.content.appendChild(skillsGrid);
@@ -97,44 +95,42 @@ export class CharacterSheetUI {
 
     const statsGrid = createElement('div', { className: 'charsheet-grid' });
     for (const id of ALL_STAT_IDS) {
-      statsGrid.appendChild(this.renderStatRow(
-        STAT_LABELS[id],
-        sheet.stats[id],
-        STAT_DESCRIPTIONS[id],
+      statsGrid.appendChild(this.renderRow(
+        STAT_LABELS[id], sheet.stats[id], STAT_DESCRIPTIONS[id], false,
       ));
     }
     this.content.appendChild(statsGrid);
   }
 
-  private renderStatRow(label: string, value: number, description: string): HTMLElement {
+  private renderRow(label: string, value: number, description: string, showTier: boolean): HTMLElement {
     const tier = getProficiencyTier(value);
     const row = createElement('div', { className: 'charsheet-row' });
 
-    const labelEl = createElement('div', { className: 'charsheet-row__label', text: label });
-    row.appendChild(labelEl);
+    row.appendChild(createElement('div', { className: 'charsheet-row__label', text: label }));
 
     // Bar
     const barWrap = createElement('div', { className: 'charsheet-row__bar' });
     const barFill = createElement('div', { className: 'charsheet-row__fill' });
     barFill.style.width = `${value}%`;
-    barFill.style.backgroundColor = tier.color;
+    barFill.style.backgroundColor = showTier ? tier.color : 'var(--color-ink-muted)';
     barWrap.appendChild(barFill);
     row.appendChild(barWrap);
 
-    // Value + tier
+    // Value + optional tier name
     const valueWrap = createElement('div', { className: 'charsheet-row__value' });
     valueWrap.appendChild(createElement('span', {
       className: 'charsheet-row__num',
       text: String(Math.floor(value)),
     }));
-    const tierEl = createElement('span', { className: 'charsheet-row__tier', text: tier.name });
-    tierEl.style.color = tier.color;
-    valueWrap.appendChild(tierEl);
+    if (showTier) {
+      const tierEl = createElement('span', { className: 'charsheet-row__tier', text: tier.name });
+      tierEl.style.color = tier.color;
+      valueWrap.appendChild(tierEl);
+    }
     row.appendChild(valueWrap);
 
-    // Tooltip-style description
-    const desc = createElement('div', { className: 'charsheet-row__desc', text: description });
-    row.appendChild(desc);
+    // Description
+    row.appendChild(createElement('div', { className: 'charsheet-row__desc', text: description }));
 
     return row;
   }

@@ -5,16 +5,13 @@ import { TILE_INDEX_TO_TYPE } from '../types/tiles.ts';
 import type { TileType } from '../types/tiles.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
+import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina } from '../engine/derivedStats.ts';
 import {
   GAME_START_HOUR,
   TRAINING_GROUNDS_WIDTH,
   TRAINING_GROUNDS_HEIGHT,
   PLAYER_START_X,
   PLAYER_START_Y,
-  BASE_PLAYER_HP,
-  BASE_PLAYER_CHAKRA,
-  BASE_PLAYER_WILLPOWER,
-  BASE_PLAYER_STAMINA,
   BASE_PLAYER_DAMAGE,
   BASE_PLAYER_ACCURACY,
   BASE_PLAYER_EVASION,
@@ -200,7 +197,27 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     offsetY: -16,
   });
   world.blockings.set(playerId, { blocksMovement: true, blocksSight: false });
-  world.healths.set(playerId, { current: BASE_PLAYER_HP, max: BASE_PLAYER_HP });
+
+  // Character sheet FIRST — resources derive from stats
+  const playerSheet = devMode
+    ? {
+        class: 'shinobi' as const,
+        rank: 'jounin' as const,
+        title: 'Elite Shinobi',
+        skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70 },
+        stats: { phy: 70, cha: 70, men: 70, soc: 70 },
+        learnedJutsus: ['substitution'],
+      }
+    : { ...DEFAULT_SHINOBI_SHEET, title: 'Academy Graduate' };
+  world.characterSheets.set(playerId, playerSheet);
+
+  // Derive max resources from stats
+  const maxHp = computeMaxHp(playerSheet.stats);
+  const maxChakra = computeMaxChakra(playerSheet.stats);
+  const maxWillpower = computeMaxWillpower(playerSheet.stats);
+  const maxStamina = computeMaxStamina(playerSheet.stats);
+
+  world.healths.set(playerId, { current: maxHp, max: maxHp });
   world.combatStats.set(playerId, {
     damage: BASE_PLAYER_DAMAGE,
     accuracy: BASE_PLAYER_ACCURACY,
@@ -209,31 +226,16 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   });
   world.playerControlled.set(playerId, { movementStance: 'walk' });
   world.resources.set(playerId, {
-    chakra: BASE_PLAYER_CHAKRA,
-    maxChakra: BASE_PLAYER_CHAKRA,
-    willpower: BASE_PLAYER_WILLPOWER,
-    maxWillpower: BASE_PLAYER_WILLPOWER,
-    stamina: BASE_PLAYER_STAMINA,
-    maxStamina: BASE_PLAYER_STAMINA,
-    staminaCeiling: BASE_PLAYER_STAMINA,
+    chakra: maxChakra,
+    maxChakra,
+    willpower: maxWillpower,
+    maxWillpower,
+    stamina: maxStamina,
+    maxStamina,
+    staminaCeiling: maxStamina,
     lastExertionTick: 0,
   });
   world.names.set(playerId, { display: playerName, article: '' });
-  if (devMode) {
-    world.characterSheets.set(playerId, {
-      class: 'shinobi',
-      rank: 'jounin',
-      title: 'Elite Shinobi',
-      skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70 },
-      stats: { phy: 70, cha: 70, men: 70, soc: 70 },
-      learnedJutsus: ['substitution'],
-    });
-  } else {
-    world.characterSheets.set(playerId, {
-      ...DEFAULT_SHINOBI_SHEET,
-      title: 'Academy Graduate',
-    });
-  }
 
   // ── Spawn Objects ──
   for (const spawn of OBJECT_SPAWNS) {
@@ -272,16 +274,18 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     }
 
     if (cfg.sparring) {
-      // Sparring partner — real combatant with HP, can be knocked down/stunned
+      // Sparring partner — real combatant, stats scale HP
+      const sparStats = { phy: 20, cha: 10, men: 8, soc: 12 };
+      const sparHp = computeMaxHp(sparStats);
       world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'character', offsetY: cfg.offsetY });
-      world.healths.set(id, { current: 80, max: 80 });
+      world.healths.set(id, { current: sparHp, max: sparHp });
       world.combatStats.set(id, { damage: 5, accuracy: 70, evasion: 15, attackVerb: 'strike' });
       world.characterSheets.set(id, {
         class: 'shinobi',
         rank: 'genin',
         title: 'Training Partner',
         skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2 },
-        stats: { phy: 20, cha: 10, men: 8, soc: 12 },
+        stats: sparStats,
         learnedJutsus: [],
       });
       world.names.set(id, { display: 'Takeshi', article: '' });

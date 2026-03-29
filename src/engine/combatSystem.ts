@@ -284,9 +284,27 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     }
   } else {
     const targetHealth = world.healths.get(targetId);
-    if (targetHealth && targetHealth.current <= 0) {
-      world.log(`${world.names.get(targetId)?.display ?? 'The enemy'} is defeated!`, 'system');
-      world.destroyEntity(targetId);
+    if (targetHealth && targetHealth.current <= 0 && !world.unconscious.has(targetId)) {
+      // Fall unconscious — entity persists, can be interacted with later
+      const targetName = world.names.get(targetId)?.display ?? 'The enemy';
+      world.unconscious.set(targetId, { reason: 'hp', tickFallen: world.currentTick });
+
+      // Switch to prone sprite
+      const renderable = world.renderables.get(targetId);
+      if (renderable) {
+        const spriteBase = renderable.spriteId.replace(/_[snew]$/, '');
+        renderable.spriteId = `${spriteBase}_prone`;
+        renderable.offsetY = -4; // lower to ground
+      }
+
+      // No longer blocks movement (can walk over unconscious bodies)
+      const blocking = world.blockings.get(targetId);
+      if (blocking) blocking.blocksMovement = false;
+
+      // Make interactable (for future kill/abduct)
+      world.interactables.set(targetId, { interactionType: 'examine', label: 'Examine' });
+
+      world.log(`${targetName} collapses to the ground, unconscious!`, 'system');
       engagements.delete(engagementKey(playerId, targetId));
     }
   }

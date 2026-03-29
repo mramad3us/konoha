@@ -36,11 +36,15 @@ export const PLAYER_START_Y = 37;
 
 export const FOV_RADIUS = 10;
 
-// ── Player Base Stats ──
-export const BASE_PLAYER_HP = 100;
-export const BASE_PLAYER_CHAKRA = 50;
-export const BASE_PLAYER_WILLPOWER = 30;
-export const BASE_PLAYER_STAMINA = 40;
+// ── Player Base Stats (actual max = base + stat * scaling) ──
+export const BASE_PLAYER_HP = 50;
+export const HP_PHY_SCALING = 2;           // maxHP = 50 + PHY * 2
+export const BASE_PLAYER_CHAKRA = 20;
+export const CHAKRA_CHA_SCALING = 1.5;     // maxChakra = 20 + CHA * 1.5
+export const BASE_PLAYER_WILLPOWER = 10;
+export const WILLPOWER_MEN_SCALING = 1;    // maxWillpower = 10 + MEN * 1
+export const BASE_PLAYER_STAMINA = 20;
+export const STAMINA_PHY_SCALING = 0.8;    // maxStamina = 20 + PHY * 0.8
 export const BASE_PLAYER_DAMAGE = 5;
 export const BASE_PLAYER_ACCURACY = 85;
 export const BASE_PLAYER_EVASION = 15;
@@ -70,7 +74,7 @@ export const STAMINA_RESTORE_RATE = 0.02; // fraction of max per tick when resti
 export const STAMINA_REST_TICKS = 3;      // consecutive non-exerting passes before regen
 export const STAMINA_FATIGUE_DRAIN = 0.1; // ceiling drop per exertion
 export const STAMINA_FATIGUE_FLOOR = 0.3; // min ceiling as fraction of max
-export const STAMINA_PHY_SCALING = 0.5;   // extra max stamina per PHY point
+// STAMINA_PHY_SCALING defined above in base stats section
 
 // ── Respawn ──
 export const RESPAWN_FADE_MS = 800;
