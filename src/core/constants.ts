@@ -99,8 +99,8 @@ export const CAMERA_LERP_FACTOR = 0.15;
 export const AUTO_SAVE_INTERVAL_TURNS = 20;
 
 // ── Game Log ──
-export const MAX_LOG_ENTRIES = 200;
-export const VISIBLE_LOG_ENTRIES = 15;
+export const MAX_LOG_ENTRIES = 50;
+export const VISIBLE_LOG_ENTRIES = 50;
 
 // ── Layout ──
 export const GAME_CANVAS_WIDTH_PERCENT = 75;
