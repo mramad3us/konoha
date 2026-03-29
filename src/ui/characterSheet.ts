@@ -7,6 +7,12 @@ import {
   ALL_SKILL_IDS, ALL_STAT_IDS,
   SHINOBI_RANK_LABELS,
 } from '../types/character.ts';
+import type { MissionRank } from '../engine/missions.ts';
+
+export interface MissionRecord {
+  completed: Record<MissionRank, number>;
+  totalCompleted: number;
+}
 
 
 /**
@@ -39,8 +45,8 @@ export class CharacterSheetUI {
 
   get visible(): boolean { return this._visible; }
 
-  show(name: string, sheet: CharacterSheet): void {
-    this.render(name, sheet);
+  show(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
+    this.render(name, sheet, missions);
     this._visible = true;
     this.element.classList.add('charsheet-overlay--visible');
   }
@@ -50,12 +56,12 @@ export class CharacterSheetUI {
     this.element.classList.remove('charsheet-overlay--visible');
   }
 
-  toggle(name: string, sheet: CharacterSheet): void {
+  toggle(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
     if (this._visible) this.hide();
-    else this.show(name, sheet);
+    else this.show(name, sheet, missions);
   }
 
-  private render(name: string, sheet: CharacterSheet): void {
+  private render(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
     this.content.innerHTML = '';
 
     // ── Header ──
@@ -74,6 +80,14 @@ export class CharacterSheetUI {
     }));
     header.appendChild(meta);
     this.content.appendChild(header);
+
+    // ── Mission Record ──
+    if (missions) {
+      this.content.appendChild(
+        createElement('div', { className: 'charsheet-section-title', text: '// Mission Record' })
+      );
+      this.content.appendChild(this.renderMissionRecord(missions));
+    }
 
     // ── Skills section ──
     this.content.appendChild(
@@ -133,5 +147,55 @@ export class CharacterSheetUI {
     row.appendChild(createElement('div', { className: 'charsheet-row__desc', text: description }));
 
     return row;
+  }
+
+  private renderMissionRecord(missions: MissionRecord): HTMLElement {
+    const wrap = createElement('div', { className: 'charsheet-missions' });
+
+    const RANK_COLORS: Record<MissionRank, string> = {
+      D: '#6b9e6b',
+      C: '#7a9ec2',
+      B: '#c49a6c',
+      A: '#c26b6b',
+    };
+
+    const ranks: MissionRank[] = ['D', 'C', 'B', 'A'];
+    for (const rank of ranks) {
+      const count = missions.completed[rank];
+      const entry = createElement('div', { className: 'charsheet-mission-entry' });
+
+      const badge = createElement('span', {
+        className: `charsheet-mission-rank charsheet-mission-rank--${rank}`,
+        text: rank,
+      });
+      badge.style.color = RANK_COLORS[rank];
+      entry.appendChild(badge);
+
+      entry.appendChild(createElement('span', {
+        className: 'charsheet-mission-label',
+        text: '-Rank',
+      }));
+
+      entry.appendChild(createElement('span', {
+        className: 'charsheet-mission-count',
+        text: String(count),
+      }));
+
+      wrap.appendChild(entry);
+    }
+
+    // Total
+    const totalEntry = createElement('div', { className: 'charsheet-mission-entry charsheet-mission-total' });
+    totalEntry.appendChild(createElement('span', {
+      className: 'charsheet-mission-label',
+      text: 'Total',
+    }));
+    totalEntry.appendChild(createElement('span', {
+      className: 'charsheet-mission-count',
+      text: String(missions.totalCompleted),
+    }));
+    wrap.appendChild(totalEntry);
+
+    return wrap;
   }
 }

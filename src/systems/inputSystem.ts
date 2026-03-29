@@ -132,7 +132,11 @@ export class InputSystem {
       const name = this.world.names.get(playerId)?.display ?? 'Unknown';
       const sheet = this.world.characterSheets.get(playerId);
       if (sheet) {
-        this.characterSheet.toggle(name, sheet);
+        const missionRecord = {
+          completed: this.world.missionLog.completed,
+          totalCompleted: this.world.missionLog.totalCompleted,
+        };
+        this.characterSheet.toggle(name, sheet, missionRecord);
       }
       return;
     }

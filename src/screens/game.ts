@@ -32,6 +32,7 @@ import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
+import { reshuffleWanderingNpcs, tickDuskTransition, tickDawnTransition } from '../engine/npcLifecycleSystem.ts';
 
 export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Loading overlay ──
@@ -245,6 +246,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     const hp = world.healths.get(world.playerEntityId);
     if (hp) hp.current = Math.min(hp.max, hp.current + Math.floor(hp.max * 0.5));
     world.log('You sleep soundly and wake feeling refreshed.', 'system');
+    // Process day/night transitions that may have occurred during sleep
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+    reshuffleWanderingNpcs(world);
     hud.fullRender(world);
     timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
     canvasContainer.classList.remove('game-canvas-container--blackout');
@@ -350,6 +355,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }
 
     world.currentTick += 1;
+    // Process day/night transitions that may have occurred during meditation
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+    reshuffleWanderingNpcs(world);
     hud.fullRender(world);
     timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
     canvasContainer.classList.remove('game-canvas-container--blackout');

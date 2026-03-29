@@ -4,7 +4,7 @@ export type EntityId = number;
 export type Direction = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 export type RenderLayer = 'floor' | 'object' | 'character' | 'effect';
 export type MovementStance = 'sprint' | 'walk' | 'creep' | 'crawl';
-export type AIBehavior = 'static' | 'patrol' | 'chase';
+export type AIBehavior = 'static' | 'wander' | 'patrol' | 'chase' | 'flee' | 'return_to_anchor' | 'despawning';
 
 /** Direction vectors for grid movement */
 export const DIRECTION_VECTORS: Record<Direction, { dx: number; dy: number }> = {
@@ -84,6 +84,31 @@ export interface AIControlledComponent {
   behavior: AIBehavior;
 }
 
+// ── NPC Movement & Lifecycle ──
+
+export type NpcCategory = 'fixed' | 'wandering' | 'immovable';
+
+export interface AnchorComponent {
+  anchorX: number;
+  anchorY: number;
+  wanderRadius: number;        // max tiles from anchor (3-4 for wanderers, 0 for fixed)
+  lastMoveTick: number;        // tick of last idle wander step
+  moveIntervalTicks: number;   // ticks between wander steps (3-4)
+  spritePrefix: string;        // sprite prefix for facing updates during movement
+}
+
+export interface NpcLifecycleComponent {
+  category: NpcCategory;
+  isNinja: boolean;            // uses disappearance ninjutsu vs walking away at dusk
+  despawnAtNight: boolean;     // whether this NPC disappears at night
+}
+
+export interface AggroComponent {
+  targetId: EntityId | null;
+  state: 'idle' | 'aggro' | 'fleeing' | 'returning';
+  fleeHpThreshold: number;    // fraction of max HP to trigger flee (0.25)
+}
+
 export interface NameComponent {
   display: string;
   article: 'a' | 'an' | 'the' | '';
@@ -120,6 +145,8 @@ export interface InteractableComponent {
 
 export interface DoorComponent {
   isOpen: boolean;
+  lockedAtNight: boolean;      // whether this door locks at dusk
+  isLocked: boolean;           // current lock state
 }
 
 export interface LightSourceComponent {

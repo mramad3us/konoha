@@ -5,12 +5,13 @@
 
 import type { World } from '../engine/world.ts';
 import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
+import type { NpcCategory } from '../types/ecs.ts';
 import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
-import { TG_OFFSET_X, TG_OFFSET_Y } from '../core/constants.ts';
+import { TG_OFFSET_X, TG_OFFSET_Y, NPC_WANDER_RADIUS, NPC_WANDER_INTERVAL_MIN, NPC_WANDER_INTERVAL_MAX } from '../core/constants.ts';
 import {
   ACCENTS_HOKAGE, ACCENTS_CHUNIN_1, ACCENTS_CHUNIN_2,
   ACCENTS_JONIN_1, ACCENTS_JONIN_2, ACCENTS_JONIN_3,
@@ -21,7 +22,7 @@ import {
   ALL_MALE_CIVILIAN_ACCENTS, ALL_FEMALE_CIVILIAN_ACCENTS,
 } from './npcAccents.ts';
 
-interface NpcDef {
+export interface NpcDef {
   x: number;
   y: number;
   name: string;
@@ -36,6 +37,8 @@ interface NpcDef {
   cooldownTicks: number;
   devOnly?: boolean;
   female?: boolean;
+  category?: NpcCategory;       // defaults to 'fixed'
+  despawnAtNight?: boolean;      // defaults to true for 'wandering', false otherwise
 }
 
 /** Counter for unique NPC sprite prefixes */
@@ -59,10 +62,33 @@ function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
     ? (def.female ? FEMALE_CIVILIAN_BODIES : CIVILIAN_BODIES)
     : undefined;
   const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents, bodyOverride);
+
+  const category = def.category ?? 'fixed';
+  const isNinja = def.charClass === 'shinobi';
+
+  // Randomize spawn position for wandering NPCs
+  let spawnX = def.x;
+  let spawnY = def.y;
+  if (category === 'wandering') {
+    const radius = NPC_WANDER_RADIUS;
+    // Try a few random offsets, fall back to exact position
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const ox = Math.floor(Math.random() * (radius * 2 + 1)) - radius;
+      const oy = Math.floor(Math.random() * (radius * 2 + 1)) - radius;
+      const tx = def.x + ox;
+      const ty = def.y + oy;
+      if (world.tileMap.isWalkable(tx, ty) && !world.isBlockedByEntity(tx, ty)) {
+        spawnX = tx;
+        spawnY = ty;
+        break;
+      }
+    }
+  }
+
   const id = world.createEntity();
   const hp = computeMaxHp(def.stats);
 
-  world.setPosition(id, { x: def.x, y: def.y, facing: 's' });
+  world.setPosition(id, { x: spawnX, y: spawnY, facing: 's' });
   world.renderables.set(id, { spriteId: `${actualPrefix}_s`, layer: 'character', offsetY: -16 });
   world.blockings.set(id, { blocksMovement: true, blocksSight: false });
   world.healths.set(id, { current: hp, max: hp });
@@ -81,14 +107,38 @@ function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
     learnedJutsus: [],
   });
   world.names.set(id, { display: def.name, article: '' });
-  world.aiControlled.set(id, { behavior: 'static' });
+  world.aiControlled.set(id, { behavior: category === 'wandering' ? 'wander' : 'static' });
   world.objectSheets.set(id, { description: def.description, category: 'npc' });
   world.proximityDialogue.set(id, {
     lines: def.dialogue,
     lastSpokeTick: -100,
     cooldownTicks: def.cooldownTicks,
   });
+
+  // Anchor & lifecycle for all NPCs
+  const wanderInterval = NPC_WANDER_INTERVAL_MIN + Math.floor(Math.random() * (NPC_WANDER_INTERVAL_MAX - NPC_WANDER_INTERVAL_MIN + 1));
+  world.anchors.set(id, {
+    anchorX: def.x,
+    anchorY: def.y,
+    wanderRadius: category === 'wandering' ? NPC_WANDER_RADIUS : 0,
+    lastMoveTick: world.currentTick,
+    moveIntervalTicks: wanderInterval,
+    spritePrefix: actualPrefix,
+  });
+  world.npcLifecycles.set(id, {
+    category,
+    isNinja,
+    despawnAtNight: def.despawnAtNight ?? (category === 'wandering'),
+  });
+  world.aggros.set(id, {
+    targetId: null,
+    state: 'idle',
+    fleeHpThreshold: isNinja ? 0.20 : 0.40,
+  });
 }
+
+/** Re-export for lifecycle system to respawn despawned NPCs */
+export { registerNpcAccentSprites };
 
 // ── DIALOGUE POOLS ──
 
@@ -270,7 +320,8 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 55, cha: 90, men: 85, soc: 90 },
     description: 'The Third Hokage, Lord Hirotaka. His kind eyes belie decades of combat experience.',
     dialogue: HOKAGE_DIALOGUE, cooldownTicks: 25,
-  }); // Uses generic shinobi sprite for now — TODO: dynamic sprite gen
+    category: 'fixed',
+  });
 
   // ── Mission Desk Chunin ──
   spawnNpc(world, {
@@ -280,6 +331,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 25, cha: 20, men: 20, soc: 40 },
     description: 'A chunin staffing the mission desk. They process assignments for all ranks.',
     dialogue: MISSION_DESK_DIALOGUE, cooldownTicks: 15,
+    category: 'fixed',
   });
 
   // ── Gate Guards ──
@@ -290,6 +342,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 35, cha: 18, men: 15, soc: 20 },
     description: 'One of the village gate guards. Perpetually bored but always vigilant.',
     dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
+    category: 'fixed',
   });
 
   spawnNpc(world, {
@@ -299,6 +352,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 32, cha: 20, men: 18, soc: 22 },
     description: 'The other gate guard. More talkative than his partner.',
     dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
+    category: 'fixed',
   });
 
   // ── Academy Instructor ──
@@ -309,6 +363,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 35, cha: 40, men: 35, soc: 50 },
     description: 'The academy instructor. A scar runs across his nose — proof of real combat experience.',
     dialogue: ACADEMY_INSTRUCTOR_DIALOGUE, cooldownTicks: 20,
+    category: 'fixed',
   });
 
   // ── Academy Students ──
@@ -327,6 +382,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 8 + i, cha: 5, men: 4, soc: 8 },
       description: 'A young academy student, eager to learn the ways of the shinobi.',
       dialogue: STUDENT_DIALOGUE, cooldownTicks: 12,
+      category: 'wandering',
     });
   }
 
@@ -339,6 +395,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     description: 'A silver-haired jonin with a calm demeanor. Rumored to know over a thousand jutsu.',
     dialogue: { idle: ['Hmm? Oh, don\'t mind me. Just thinking.', 'The village is quiet today. That\'s usually when things happen.', 'You\'ve got potential. Keep training.'] },
     cooldownTicks: 25,
+    category: 'wandering',
   });
 
   spawnNpc(world, {
@@ -349,6 +406,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     description: 'A jonin specializing in genjutsu. Her red eyes are said to see through any illusion.',
     dialogue: { idle: ['Reality is more fragile than you think.', 'Genjutsu is the art of truth and lies.', 'Don\'t trust everything you see.'] },
     cooldownTicks: 25,
+    category: 'wandering',
   });
 
   // ── Shopkeepers ──
@@ -367,6 +425,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 12, cha: 8, men: 10, soc: 45 },
       description: shopDefs[i].desc,
       dialogue: SHOPKEEPER_DIALOGUE, cooldownTicks: 15,
+      category: 'fixed',
     });
   }
 
@@ -378,6 +437,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 50, men: 45, soc: 35 },
     description: 'The head medic of Konoha Hospital. Stern but caring.',
     dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
+    category: 'fixed',
   });
 
   spawnNpc(world, {
@@ -387,6 +447,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 18, cha: 35, men: 30, soc: 30 },
     description: 'A medical ninja assisting at the hospital. Quick hands, steady nerves.',
     dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
+    category: 'fixed',
   });
 
   // ── Ramen Chef ──
@@ -397,6 +458,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 5, men: 15, soc: 55 },
     description: 'The legendary ramen chef of Konoha Kitchen. His noodles are the stuff of myth.',
     dialogue: CHEF_DIALOGUE, cooldownTicks: 12,
+    category: 'fixed',
   });
 
   // ── Innkeeper ──
@@ -407,6 +469,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 15, cha: 3, men: 12, soc: 50 },
     description: 'The innkeeper of Konoha\'s only inn. A quiet man who keeps clean rooms and asks no questions.',
     dialogue: INNKEEPER_DIALOGUE, cooldownTicks: 15,
+    category: 'fixed',
   });
 
   // ── Villagers (30+ civilians with varied looks) ──
@@ -478,6 +541,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       description: d.desc,
       dialogue: VILLAGER_DIALOGUE, cooldownTicks: 25,
       female: d.female,
+      category: 'wandering',
     });
   }
 
@@ -502,6 +566,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
         'Fate is absolute. But effort shapes its edges.',
       ], night: ['Even at night, these eyes see clearly.'] },
       cooldownTicks: 30,
+      category: 'wandering',
     });
   }
 
@@ -527,6 +592,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
         'Our police force keeps this village safe.',
       ], night: ['The Uchiha never sleep soundly. We\'re always watching.'] },
       cooldownTicks: 30,
+      category: 'wandering',
     });
   }
 
@@ -538,6 +604,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 10, men: 8, soc: 12 },
     description: 'A fellow genin from the academy. He trains here daily, always looking for a match.',
     dialogue: TAKESHI_DIALOGUE, cooldownTicks: 15,
+    category: 'fixed',
   }, 'char_takeshi');
 
   // ── ANBU (dev mode) ──

@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -34,6 +34,9 @@ export class World {
   bleeding = new Map<EntityId, BleedingComponent>();
   proximityDialogue = new Map<EntityId, ProximityDialogueComponent>();
   doors = new Map<EntityId, DoorComponent>();
+  anchors = new Map<EntityId, AnchorComponent>();
+  npcLifecycles = new Map<EntityId, NpcLifecycleComponent>();
+  aggros = new Map<EntityId, AggroComponent>();
 
   // Combat intent
   playerKillIntent = false;
@@ -45,6 +48,12 @@ export class World {
   // Mission system
   missionBoard: MissionBoard = createMissionBoard(1);
   missionLog: MissionLog = createMissionLog();
+
+  // NPC lifecycle tracking
+  lastDuskDayProcessed = -1;
+  lastDawnDayProcessed = -1;
+  /** NPC definitions despawned at dusk, to be respawned at dawn */
+  despawnedNpcDefs: Array<{ anchorX: number; anchorY: number; npcIndex: number }> = [];
 
   // World systems data
   tileMap: TileMap;
@@ -151,6 +160,9 @@ export class World {
     this.bleeding.delete(id);
     this.proximityDialogue.delete(id);
     this.doors.delete(id);
+    this.anchors.delete(id);
+    this.npcLifecycles.delete(id);
+    this.aggros.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -248,11 +260,17 @@ export class World {
       bleeding: serializeMap(this.bleeding),
       proximityDialogue: serializeMap(this.proximityDialogue),
       doors: serializeMap(this.doors),
+      anchors: serializeMap(this.anchors),
+      npcLifecycles: serializeMap(this.npcLifecycles),
+      aggros: serializeMap(this.aggros),
       playerKillIntent: this.playerKillIntent,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
       meditationLastDay: this.meditationLastDay,
       meditationSessionsToday: this.meditationSessionsToday,
+      lastDuskDayProcessed: this.lastDuskDayProcessed,
+      lastDawnDayProcessed: this.lastDawnDayProcessed,
+      despawnedNpcDefs: this.despawnedNpcDefs,
     };
   }
 
@@ -313,6 +331,15 @@ export class World {
     if (data['doors']) {
       deserializeMap(world.doors, data['doors'] as Record<string, DoorComponent>);
     }
+    if (data['anchors']) {
+      deserializeMap(world.anchors, data['anchors'] as Record<string, AnchorComponent>);
+    }
+    if (data['npcLifecycles']) {
+      deserializeMap(world.npcLifecycles, data['npcLifecycles'] as Record<string, NpcLifecycleComponent>);
+    }
+    if (data['aggros']) {
+      deserializeMap(world.aggros, data['aggros'] as Record<string, AggroComponent>);
+    }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
     }
@@ -327,6 +354,15 @@ export class World {
     }
     if (data['meditationSessionsToday'] !== undefined) {
       world.meditationSessionsToday = data['meditationSessionsToday'] as number;
+    }
+    if (data['lastDuskDayProcessed'] !== undefined) {
+      world.lastDuskDayProcessed = data['lastDuskDayProcessed'] as number;
+    }
+    if (data['lastDawnDayProcessed'] !== undefined) {
+      world.lastDawnDayProcessed = data['lastDawnDayProcessed'] as number;
+    }
+    if (data['despawnedNpcDefs']) {
+      world.despawnedNpcDefs = data['despawnedNpcDefs'] as typeof world.despawnedNpcDefs;
     }
 
     // Rebuild spatial hash from deserialized positions

@@ -72,17 +72,28 @@ export interface TempoState {
   max: number;  // = floor(taijutsuSkill / 10), min 1
 }
 
-/** Calculate max tempo slots from combat skill (taijutsu for shinobi) */
+/** Calculate max tempo slots from combat skill (taijutsu for shinobi).
+ *  First bead unlocks at skill 5, then one more every 10 points. */
 export function maxTempoSlots(combatSkill: number): number {
   if (combatSkill < 5) return 0;
-  return Math.floor(combatSkill / 10);
+  return 1 + Math.floor((combatSkill - 5) / 10);
 }
 
-/** Calculate starting tempo beads from skill difference */
+/** Calculate starting tempo beads from skill difference.
+ *  1 prefilled bead per 10 points of skill advantage.
+ *  Guaranteed 1 bead when opponent has no tempo capacity at all. */
 export function startingTempo(ownSkill: number, opponentSkill: number): number {
+  const ownMax = maxTempoSlots(ownSkill);
+  if (ownMax <= 0) return 0;
+
   const diff = ownSkill - opponentSkill;
-  if (diff <= 0) return 0;
-  return Math.floor(diff / 20);
+  const fromDiff = diff > 0 ? Math.floor(diff / 10) : 0;
+
+  // Guarantee at least 1 starting bead when opponent has no tempo capacity
+  const opponentMax = maxTempoSlots(opponentSkill);
+  const minBeads = opponentMax === 0 ? 1 : 0;
+
+  return Math.min(ownMax, Math.max(fromDiff, minBeads));
 }
 
 // ── DAMAGE ──

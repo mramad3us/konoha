@@ -744,6 +744,45 @@
   background: var(--color-bg-hover);
 }
 
+/* Mission Record */
+.charsheet-missions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 6px 0 4px;
+}
+
+.charsheet-mission-entry {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--color-ink-faded);
+}
+
+.charsheet-mission-rank {
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.charsheet-mission-count {
+  color: var(--color-ink);
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+.charsheet-mission-total {
+  border-left: 1px solid var(--color-border);
+  padding-left: 12px;
+  color: var(--color-ink);
+}
+
+.charsheet-mission-total .charsheet-mission-label {
+  color: var(--color-ink-muted);
+}
+
 /* ── Context Menu (pixel art styled) ── */
 .ctx-menu-backdrop {
   position: fixed;

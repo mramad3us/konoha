@@ -22,6 +22,28 @@ import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina 
 import { stampBuilding, stampInternalWalls, stampRoad, stampRiver, fillRect } from './buildingStamper.ts';
 import { spawnVillageNpcs } from '../data/villageNpcs.ts';
 import { spawnVillageObjects, spawnDoor } from '../data/villageObjects.ts';
+
+/** Buildings whose doors should NOT lock at night (public/essential buildings).
+ *  Format: [x, y, w, h] bounding boxes for each building. */
+const ALWAYS_OPEN_BUILDINGS: Array<[number, number, number, number]> = [
+  [55, 72, 20, 12],   // Hokage Tower
+  [58, 86, 14, 7],    // Mission Desk
+  [55, 93, 10, 6],    // Council Room
+  [56, 10, 20, 10],   // Academy
+  [56, 32, 8, 6],     // Instructor Office
+  [15, 82, 18, 12],   // Hospital
+  [15, 96, 10, 6],    // Clinic
+  [60, 115, 12, 10],  // Inn
+  [66, 147, 6, 5],    // Guard Post W
+  [88, 147, 6, 5],    // Guard Post E
+];
+
+function isAlwaysOpenDoor(x: number, y: number): boolean {
+  for (const [bx, by, bw, bh] of ALWAYS_OPEN_BUILDINGS) {
+    if (x >= bx && x < bx + bw && y >= by && y < by + bh) return true;
+  }
+  return false;
+}
 import {
   VILLAGE_WIDTH, VILLAGE_HEIGHT,
   VILLAGE_PLAYER_START_X, VILLAGE_PLAYER_START_Y,
@@ -425,7 +447,11 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       if (tileMap.getTileType(x, y) === 'door') {
-        spawnDoor(world, x, y);
+        // Determine if this door should lock at night.
+        // Doors that stay UNLOCKED: Hokage Tower, Mission Desk, Hospital, Clinic,
+        // Inn, Guard Posts, Academy, Council Room, Instructor Office.
+        const lockedAtNight = !isAlwaysOpenDoor(x, y);
+        spawnDoor(world, x, y, lockedAtNight);
       }
     }
   }

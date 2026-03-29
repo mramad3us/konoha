@@ -3,7 +3,7 @@
  * Every magic number, version string, and config value lives here.
  */
 
-export const GAME_VERSION = '0.2.1';
+export const GAME_VERSION = '0.2.2';
 export const GAME_TITLE = 'Konoha';
 export const GAME_SUBTITLE = 'Path of the Shinobi';
 
@@ -117,6 +117,18 @@ export const VISIBLE_LOG_ENTRIES = 50;
 // ── Layout ──
 export const GAME_CANVAS_WIDTH_PERCENT = 75;
 export const GAME_HUD_WIDTH_PERCENT = 25;
+
+// ── NPC Movement ──
+export const NPC_WANDER_RADIUS = 4;
+export const NPC_WANDER_INTERVAL_MIN = 3;  // min ticks between idle steps
+export const NPC_WANDER_INTERVAL_MAX = 5;  // max ticks between idle steps
+export const NPC_DESPAWN_MAX_WALK = 30;    // max tiles a civilian walks before forced despawn
+
+// ── Combat Disengagement ──
+export const DISENGAGE_STAMINA_COST = 2;
+export const DISENGAGE_CHAKRA_COST = 5;
+export const CIVILIAN_DISENGAGE_HITS = 3;
+export const NPC_FLEE_HP_THRESHOLD = 0.25;
 
 // ── Input ──
 export const INPUT_DEBOUNCE_MS = 50;

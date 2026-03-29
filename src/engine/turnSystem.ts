@@ -9,6 +9,12 @@ import { tickUnconsciousRecovery, tickBleeding } from './entityState.ts';
 import { tickProximityDialogue } from './proximityDialogue.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
 import { checkPatrolProgress } from './missions.ts';
+import { tickNpcMovement } from './npcMovementSystem.ts';
+import { tickDuskTransition, tickDawnTransition } from './npcLifecycleSystem.ts';
+import { getActiveEngagements, clearStaleEngagements } from './combatSystem.ts';
+import { calculateDamage } from '../types/combat.ts';
+import { DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS } from '../core/constants.ts';
+import type { EntityId } from '../types/ecs.ts';
 
 /** Advance game time and recompute FOV with night reduction */
 function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
@@ -24,6 +30,11 @@ function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
   tickUnconsciousRecovery(world);
   tickBleeding(world);
   tickProximityDialogue(world);
+  // NPC movement (wandering, despawn walk-off, return-to-anchor)
+  tickNpcMovement(world);
+  // Day/night lifecycle transitions
+  tickDuskTransition(world);
+  tickDawnTransition(world);
 }
 
 /** Stance to game seconds per step */
@@ -84,6 +95,71 @@ export function executeTurn(action: GameAction, world: World): boolean {
         renderable.spriteId = `char_${gender}_${directionToCardinal(facing)}`;
       }
 
+      // ── Check combat disengagement ──
+      const engagedTarget = findEngagedTarget(world, playerId);
+      if (engagedTarget !== null) {
+        const res = world.resources.get(playerId);
+        if (!res || res.stamina < DISENGAGE_STAMINA_COST) {
+          world.log('Too exhausted to disengage — you can\'t pull away.', 'info');
+          advanceTurn(world, 1, PASS_DURATION_SECONDS);
+          return true;
+        }
+
+        // Check terrain
+        if (!world.tileMap.isWalkable(newX, newY) || (world.isBlockedByEntity(newX, newY))) {
+          world.log('No room to disengage in that direction.', 'info');
+          return false;
+        }
+
+        // Pay costs
+        res.stamina = Math.max(0, res.stamina - DISENGAGE_STAMINA_COST);
+        res.chakra = Math.max(0, res.chakra - DISENGAGE_CHAKRA_COST);
+        res.lastExertionTick = world.currentTick;
+
+        // Check if player has tempo to dodge the opportunity attack
+        const engagements = getActiveEngagements();
+        const key = playerId < engagedTarget ? `${playerId}:${engagedTarget}` : `${engagedTarget}:${playerId}`;
+        const eng = engagements.get(key);
+        const playerTempo = eng ? (eng.entityA === playerId ? eng.tempoA : eng.tempoB) : null;
+        const targetName = world.names.get(engagedTarget)?.display ?? 'your opponent';
+
+        if (playerTempo && playerTempo.current > 0) {
+          // Spend tempo to dodge cleanly
+          playerTempo.current--;
+          world.log(`You use your momentum to slip past ${targetName}'s guard and disengage!`, 'combat_tempo');
+        } else {
+          // Take a free hit
+          const targetSheet = world.characterSheets.get(engagedTarget);
+          const targetTaijutsu = targetSheet?.skills.taijutsu ?? 10;
+          const targetPhy = targetSheet?.stats.phy ?? 10;
+          const damage = calculateDamage(targetTaijutsu, targetPhy);
+          const health = world.healths.get(playerId);
+          if (health) health.current = Math.max(0, health.current - damage);
+
+          const DISENGAGE_HIT_FLAVORS = [
+            `${targetName} strikes as you pull away — you take the hit but create distance.`,
+            `A blow catches you mid-retreat. ${targetName}'s fist connects, but you manage to break free.`,
+            `You feel ${targetName}'s strike land as you leap back. Painful, but you're free.`,
+            `${targetName} doesn't let you go cleanly — a parting blow rocks you as you disengage.`,
+            `The price of retreat: ${targetName} lands a solid hit as you pull away.`,
+          ];
+          world.log(DISENGAGE_HIT_FLAVORS[Math.floor(Math.random() * DISENGAGE_HIT_FLAVORS.length)], 'hit_incoming');
+        }
+
+        // Move
+        world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
+        playerPos.x = newX;
+        playerPos.y = newY;
+        sfxStep();
+
+        // Break engagement
+        clearStaleEngagements(world);
+
+        advanceTurn(world, 1, PASS_DURATION_SECONDS);
+        return true;
+      }
+
+      // ── Normal movement (no combat) ──
       // Check for blocking entity — no bump-to-attack, use combat keys instead
       const blockingEntity = world.getBlockingEntityAt(newX, newY);
       if (blockingEntity !== null && blockingEntity !== playerId) {
@@ -225,9 +301,13 @@ export function executeTurn(action: GameAction, world: World): boolean {
  * Exported so the target selector can call this after the player picks a target.
  */
 export function interactWithEntity(world: World, eid: number, _playerId?: number): boolean {
-  // Doors toggle immediately
+  // Doors toggle immediately (but check for locks)
   const door = world.doors.get(eid);
   if (door) {
+    if (door.isLocked) {
+      world.log('The door is locked.', 'info');
+      return false;
+    }
     door.isOpen = !door.isOpen;
     const renderable = world.renderables.get(eid);
     const blocking = world.blockings.get(eid);
@@ -262,4 +342,14 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
   }
 
   return false;
+}
+
+/** Check if the player is currently in an active combat engagement. Returns target ID or null. */
+function findEngagedTarget(_world: World, playerId: EntityId): EntityId | null {
+  const engagements = getActiveEngagements();
+  for (const [, eng] of engagements) {
+    if (eng.entityA === playerId) return eng.entityB;
+    if (eng.entityB === playerId) return eng.entityA;
+  }
+  return null;
 }

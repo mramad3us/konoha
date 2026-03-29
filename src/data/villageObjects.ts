@@ -119,8 +119,9 @@ function bench(world: World, x: number, y: number, name: string, desc: string): 
     description: desc, category: 'object' });
 }
 
-/** Spawn a door entity at a position */
-export function spawnDoor(world: World, x: number, y: number): void {
+/** Spawn a door entity at a position.
+ *  @param lockedAtNight — if true, door locks at dusk and unlocks at dawn (default true) */
+export function spawnDoor(world: World, x: number, y: number, lockedAtNight = true): void {
   const id = world.createEntity();
   world.setPosition(id, { x, y, facing: 's' });
   world.renderables.set(id, { spriteId: 'obj_door_closed', layer: 'object', offsetY: -12 });
@@ -128,7 +129,7 @@ export function spawnDoor(world: World, x: number, y: number): void {
   world.names.set(id, { display: 'door', article: 'a' });
   world.objectSheets.set(id, { description: 'A wooden door. Press F to open or close.', category: 'object' });
   world.interactables.set(id, { interactionType: 'door', label: 'Open' });
-  world.doors.set(id, { isOpen: false });
+  world.doors.set(id, { isOpen: false, lockedAtNight, isLocked: false });
 }
 
 export function spawnVillageObjects(world: World, devMode: boolean): void {
