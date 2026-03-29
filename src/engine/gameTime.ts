@@ -23,14 +23,18 @@ export function getDayNumber(gameTimeSeconds: number): number {
   return Math.floor(gameTimeSeconds / SECONDS_PER_DAY) + 1;
 }
 
-/** Format time as "Day X · HH:MM" */
+/** Get second of minute (0-59) */
+export function getSecond(gameTimeSeconds: number): number {
+  return Math.floor(gameTimeSeconds % 60);
+}
+
+/** Format time as "Day X · HH:MM:SS" */
 export function formatGameTime(gameTimeSeconds: number): string {
   const day = getDayNumber(gameTimeSeconds);
-  const hour = getHour(gameTimeSeconds);
-  const minute = getMinute(gameTimeSeconds);
-  const h = hour.toString().padStart(2, '0');
-  const m = minute.toString().padStart(2, '0');
-  return `Day ${day} · ${h}:${m}`;
+  const h = getHour(gameTimeSeconds).toString().padStart(2, '0');
+  const m = getMinute(gameTimeSeconds).toString().padStart(2, '0');
+  const s = getSecond(gameTimeSeconds).toString().padStart(2, '0');
+  return `Day ${day} · ${h}:${m}:${s}`;
 }
 
 /** Is it daytime? (DAWN_HOUR to DUSK_HOUR) */
