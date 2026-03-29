@@ -400,8 +400,8 @@ export function createMissionBoard(day: number, playerRank: ShinobiRank = 'genin
   const missions: Mission[] = [];
   const bestRank = getHighestAccessibleRank(playerRank, completedLog);
 
-  // Guarantee at least 3 missions at the player's best accessible rank
-  const GUARANTEED = 3;
+  // Guarantee at least 2 missions at the player's best accessible rank
+  const GUARANTEED = 2;
   for (let i = 0; i < GUARANTEED; i++) {
     const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
     missions.push(generateMissionOfRank(seed, day, bestRank));
@@ -424,11 +424,11 @@ export function refreshMissionBoard(board: MissionBoard, currentDay: number, pla
     return currentDay <= expiryDay;
   });
 
-  // Ensure at least 3 of the player's best accessible rank on the board
+  // Ensure at least 2 of the player's best accessible rank on the board
   const bestRank = getHighestAccessibleRank(playerRank, completedLog);
   const accessibleCount = board.missions.filter(m => m.rank === bestRank).length;
   let slotIdx = board.missions.length;
-  let needed = Math.max(0, 3 - accessibleCount);
+  let needed = Math.max(0, 2 - accessibleCount);
 
   while (board.missions.length < BOARD_SIZE) {
     const seed = cellHash(currentDay * 1000 + slotIdx, currentDay * 13 + slotIdx * 37);
