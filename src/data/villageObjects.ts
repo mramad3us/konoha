@@ -47,13 +47,13 @@ function tree(world: World, x: number, y: number): void {
 function bush(world: World, x: number, y: number): void {
   const v = cellHash(x, y) % 4;
   const sprites = ['obj_bush_small', 'obj_bush_berry', 'obj_bush_flower', 'obj_bush_small'];
-  spawn(world, { x, y, spriteId: sprites[v], layer: 'object', offsetY: -30,
+  spawn(world, { x, y, spriteId: sprites[v], layer: 'object', offsetY: -25,
     blocksMove: false, blocksSight: false, name: 'bush', article: 'a',
     description: 'A decorative bush.', category: 'terrain' });
 }
 
 function bed(world: World, x: number, y: number): void {
-  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -20,
+  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -14,
     blocksMove: false, blocksSight: false, name: 'bed', article: 'a',
     description: 'A comfortable futon.', category: 'object',
     interactType: 'sleep', interactLabel: 'Sleep' });
