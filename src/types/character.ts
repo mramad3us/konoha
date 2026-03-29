@@ -26,9 +26,9 @@ export type ShinobiRank =
 export const SHINOBI_RANK_LABELS: Record<ShinobiRank, string> = {
   academy_student: 'Academy Student',
   genin: 'Genin',
-  chuunin: 'Chūnin',
-  special_jounin: 'Special Jōnin',
-  jounin: 'Jōnin',
+  chuunin: 'Chunin',
+  special_jounin: 'Special Jonin',
+  jounin: 'Jonin',
   anbu: 'ANBU',
   kage: 'Kage',
 } as const;
