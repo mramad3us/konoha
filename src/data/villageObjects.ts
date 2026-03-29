@@ -81,37 +81,37 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 72, 74, 'A torch flanking the Hokage\'s seat.');
   torch(world, 60, 78, 'A torch in the lower hall.');
   torch(world, 72, 78, 'A torch in the lower hall.');
-  spawn(world, { x: 65, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 65, y: 74, spriteId: 'obj_desk', layer: 'object', offsetY: -17,
     blocksMove: true, blocksSight: false, name: 'Hokage\'s desk', article: 'the',
     description: 'The desk where the Hokage reviews missions and signs orders. Scrolls are piled high.', category: 'object' });
-  spawn(world, { x: 68, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 68, y: 74, spriteId: 'obj_desk', layer: 'object', offsetY: -17,
     blocksMove: true, blocksSight: false, name: 'war table', article: 'a',
     description: 'A large table with a map of the shinobi nations. Pins mark known threats.', category: 'object' });
-  spawn(world, { x: 62, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 62, y: 77, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'scroll shelf', article: 'a',
     description: 'Village records and sealed documents dating back generations.', category: 'object' });
-  spawn(world, { x: 70, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 70, y: 77, spriteId: 'obj_weapons_rack', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'weapons rack', article: 'a',
     description: 'Ceremonial weapons displayed on the wall. Each has a story.', category: 'object' });
 
   // --- Mission Desk (60-71, 83-87) ---
   torch(world, 62, 85, 'The mission desk is always busy.');
-  spawn(world, { x: 66, y: 84, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 66, y: 84, spriteId: 'obj_counter', layer: 'object', offsetY: -15,
     blocksMove: true, blocksSight: false, name: 'mission counter', article: 'the',
     description: 'Stacks of mission scrolls sorted by rank: D, C, B, A, S.', category: 'object' });
 
   // --- Academy (58-73, 12-19) ---
   torch(world, 60, 14, 'Academy classroom torch.');
   torch(world, 72, 14, 'Academy classroom torch.');
-  spawn(world, { x: 65, y: 16, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 65, y: 16, spriteId: 'obj_desk', layer: 'object', offsetY: -17,
     blocksMove: true, blocksSight: false, name: 'instructor\'s podium', article: 'the',
     description: 'Where the sensei lectures on jutsu theory and shinobi history.', category: 'object' });
 
   // --- Library (78-85, 12-17) ---
-  spawn(world, { x: 80, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 80, y: 14, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'bookshelf', article: 'a',
     description: 'Scrolls on jutsu theory, village history, and elemental chakra.', category: 'object' });
-  spawn(world, { x: 83, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 83, y: 14, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'scroll rack', article: 'a',
     description: 'Sealed scrolls. Some are marked classified.', category: 'object' });
   torch(world, 81, 16, 'A quiet reading lamp.', 3);
@@ -119,7 +119,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // --- Hospital (18-31, 82-91) ---
   bed(world, 22, 84); bed(world, 22, 86); bed(world, 22, 88);
   torch(world, 28, 84, 'Medical examination lamp.', 3);
-  spawn(world, { x: 28, y: 88, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 28, y: 88, spriteId: 'obj_medicine_cabinet', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'medicine cabinet', article: 'a',
     description: 'Bandages, salves, and chakra supplements organized by type.', category: 'object' });
 
@@ -219,14 +219,14 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // --- Council Room interior (60-67, 92-96) ---
   torch(world, 62, 93, 'Council room torch.');
-  spawn(world, { x: 64, y: 93, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 64, y: 93, spriteId: 'obj_desk', layer: 'object', offsetY: -17,
     blocksMove: true, blocksSight: false, name: 'council table', article: 'the',
     description: 'A round table where village elders debate policy and strategy.', category: 'object' });
 
   // --- Clinic interior (18-25, 94-98) ---
   bed(world, 20, 95);
   torch(world, 24, 96, 'Clinic examination lamp.', 3);
-  spawn(world, { x: 22, y: 95, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 22, y: 95, spriteId: 'obj_medicine_cabinet', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'herb cabinet', article: 'an',
     description: 'Dried medicinal herbs organized by ailment. The sharp scent is therapeutic.', category: 'object' });
 
@@ -241,7 +241,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // --- General Store interior (80-86, 111-115) ---
   torch(world, 82, 113, 'General store lamp.', 3);
-  spawn(world, { x: 84, y: 113, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 84, y: 113, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'supply shelf', article: 'a',
     description: 'Everything a shinobi or civilian might need: rope, oil, paper, ink.', category: 'object' });
 

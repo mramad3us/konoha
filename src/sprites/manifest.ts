@@ -8,6 +8,7 @@ import {
   OBJ_ROCK_SMALL, OBJ_ROCK_MEDIUM, OBJ_ROCK_LARGE, OBJ_ROCK_MOSSY,
   OBJ_SLEEPING_BAG, OBJ_TORCH_PILLAR,
   OBJ_DOOR_CLOSED, OBJ_DOOR_OPEN,
+  OBJ_DESK, OBJ_SHELF, OBJ_COUNTER, OBJ_WEAPONS_RACK, OBJ_MEDICINE_CABINET,
 } from './objects.ts';
 import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
@@ -76,6 +77,13 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   // Sleeping bag & torch
   { id: 'obj_sleeping_bag',  pattern: OBJ_SLEEPING_BAG,  displayWidth: 48, displayHeight: 48 },
   { id: 'obj_torch_pillar',  pattern: OBJ_TORCH_PILLAR,  displayWidth: 48, displayHeight: 48, outline: true },
+
+  // Furniture
+  { id: 'obj_desk',             pattern: OBJ_DESK,             displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_shelf',            pattern: OBJ_SHELF,            displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_counter',          pattern: OBJ_COUNTER,          displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_weapons_rack',     pattern: OBJ_WEAPONS_RACK,     displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_medicine_cabinet', pattern: OBJ_MEDICINE_CABINET, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Doors
   { id: 'obj_door_closed', pattern: OBJ_DOOR_CLOSED, displayWidth: 48, displayHeight: 48, outline: true },

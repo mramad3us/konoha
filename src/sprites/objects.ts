@@ -522,3 +522,168 @@ export const OBJ_DOOR_OPEN: PixelPattern = {
     '................',
   ],
 };
+
+// ── DESK (wooden, with items on top) ──
+const DESK_PAL: Record<string, [number, number, number]> = {
+  w: [110, 80, 45],     // wood
+  W: [130, 98, 58],     // highlight
+  d: [85, 60, 32],      // dark
+  t: [70, 50, 28],      // legs
+  s: [180, 170, 150],   // scroll/paper on top
+  i: [60, 55, 50],      // ink pot
+};
+
+export const OBJ_DESK: PixelPattern = {
+  width: 16, height: 16,
+  palette: DESK_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '.......si.......',
+    '......sWWs......',
+    '.....dWWWWd.....',
+    '....dWwWwWWd....',
+    '...dWwwwwwWd....',
+    '...dwwwwwwwd....',
+    '....ddddddd.....',
+    '....t.....t.....',
+    '....t.....t.....',
+    '....t.....t.....',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── SHELF / BOOKSHELF (tall, with scrolls) ──
+const SHELF_PAL: Record<string, [number, number, number]> = {
+  w: [100, 72, 40],     // wood frame
+  W: [120, 90, 52],     // wood highlight
+  d: [75, 55, 30],      // dark
+  s: [180, 165, 130],   // scroll tan
+  S: [160, 140, 100],   // scroll dark
+  b: [60, 80, 120],     // blue scroll
+  r: [140, 50, 45],     // red scroll
+};
+
+export const OBJ_SHELF: PixelPattern = {
+  width: 16, height: 16,
+  palette: SHELF_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.....dWWWWd.....',
+    '.....wsSbsw.....',
+    '.....wrssSw.....',
+    '.....dWWWWd.....',
+    '.....wSsbsw.....',
+    '.....wsrsSw.....',
+    '.....dWWWWd.....',
+    '.....wsSrsw.....',
+    '.....wsbsSw.....',
+    '.....dWWWWd.....',
+    '.....dddddd.....',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── COUNTER (shop counter, wide) ──
+const COUNTER_PAL: Record<string, [number, number, number]> = {
+  w: [105, 78, 45],
+  W: [125, 95, 55],
+  d: [80, 58, 32],
+  t: [65, 48, 28],     // front face
+  T: [78, 58, 35],     // front highlight
+};
+
+export const OBJ_COUNTER: PixelPattern = {
+  width: 16, height: 16,
+  palette: COUNTER_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '....dWWWWWWd....',
+    '...dWwwwwwWWd...',
+    '..dWwwwwwwwWd...',
+    '..dwwwwwwwwwd...',
+    '..tTtTtTtTtTt...',
+    '..tTtTtTtTtTt...',
+    '..tTtTtTtTtTt...',
+    '..tttttttttttt..',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── WEAPONS RACK ──
+const WRACK_PAL: Record<string, [number, number, number]> = {
+  w: [90, 65, 35],      // wood
+  W: [110, 82, 48],     // highlight
+  d: [70, 50, 28],      // dark
+  s: [180, 180, 190],   // steel blade
+  S: [140, 140, 150],   // steel dark
+  h: [100, 70, 30],     // handle
+};
+
+export const OBJ_WEAPONS_RACK: PixelPattern = {
+  width: 16, height: 16,
+  palette: WRACK_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.....dWWWWd.....',
+    '.....wsShsw.....',
+    '.....w.ss.w.....',
+    '.....dWWWWd.....',
+    '.....whsSsw.....',
+    '.....w.ss.w.....',
+    '.....dWWWWd.....',
+    '.....wsSshw.....',
+    '.....w.ss.w.....',
+    '.....dWWWWd.....',
+    '.....dddddd.....',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── MEDICINE CABINET ──
+const MEDCAB_PAL: Record<string, [number, number, number]> = {
+  w: [200, 195, 185],   // white cabinet
+  W: [215, 210, 200],   // highlight
+  d: [170, 165, 155],   // shadow
+  r: [160, 40, 40],     // red cross
+  b: [100, 140, 120],   // green bottle
+  B: [80, 120, 100],    // bottle dark
+};
+
+export const OBJ_MEDICINE_CABINET: PixelPattern = {
+  width: 16, height: 16,
+  palette: MEDCAB_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.....dWWWWd.....',
+    '.....w.r..w.....',
+    '.....wrrr.w.....',
+    '.....w.r..w.....',
+    '.....dWWWWd.....',
+    '.....wbBbBw.....',
+    '.....wBbBbw.....',
+    '.....wbBbBw.....',
+    '.....dWWWWd.....',
+    '.....dddddd.....',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};
