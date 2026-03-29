@@ -285,49 +285,49 @@ export class MissionBoardUI {
     objSection.appendChild(createElement('div', { className: 'mission-board__section-text', text: m.objective }));
     this.detailEl.appendChild(objSection);
 
-    // Specifics (from template data)
+    // Specifics (from template data — show only player-facing info)
     if (m.templateData) {
-      const specSection = createElement('div', { className: 'mission-board__section' });
-      specSection.appendChild(createElement('div', { className: 'mission-board__section-label', text: 'Details' }));
-      const specText = Object.entries(m.templateData)
-        .map(([key, val]) => `${key.replace(/_/g, ' ')}: ${val}`)
-        .join('\n');
-      const specEl = createElement('div', { className: 'mission-board__section-text mission-board__section-text--small' });
-      specEl.style.whiteSpace = 'pre-line';
-      specEl.textContent = specText;
-      specSection.appendChild(specEl);
-      this.detailEl.appendChild(specSection);
+      const details: string[] = [];
+      if (m.templateData.hint) details.push(`Hint: ${m.templateData.hint}`);
+      if (m.templateData.targetLocation) details.push(`Location: ${m.templateData.targetLocation}`);
+      if (m.templateData.searchArea) details.push(`Search area: ${m.templateData.searchArea}`);
+      if (m.templateData.routeName) details.push(`Route: ${m.templateData.routeName}`);
+      if (m.templateData.notImplemented) details.push('This mission type is not yet available.');
+
+      if (details.length > 0) {
+        const specSection = createElement('div', { className: 'mission-board__section' });
+        specSection.appendChild(createElement('div', { className: 'mission-board__section-label', text: 'Details' }));
+        const specEl = createElement('div', { className: 'mission-board__section-text mission-board__section-text--small' });
+        specEl.style.whiteSpace = 'pre-line';
+        specEl.textContent = details.join('\n');
+        specSection.appendChild(specEl);
+        this.detailEl.appendChild(specSection);
+      }
     }
 
-    // Rewards
-    const rewardSection = createElement('div', { className: 'mission-board__section' });
-    rewardSection.appendChild(createElement('div', { className: 'mission-board__section-label', text: 'Reward' }));
-    const rewardsRow = createElement('div', { className: 'mission-board__rewards' });
-
-    const ryoReward = createElement('div', { className: 'mission-board__reward' });
-    ryoReward.appendChild(createElement('span', { className: 'mission-board__reward-label', text: 'Ryo:' }));
-    ryoReward.appendChild(createElement('span', { className: 'mission-board__reward-value', text: m.reward.ryo.toLocaleString() }));
-    rewardsRow.appendChild(ryoReward);
-
-    const xpReward = createElement('div', { className: 'mission-board__reward' });
-    xpReward.appendChild(createElement('span', { className: 'mission-board__reward-label', text: 'XP Bonus:' }));
-    xpReward.appendChild(createElement('span', { className: 'mission-board__reward-value', text: `+${m.reward.xpBonus}` }));
-    rewardsRow.appendChild(xpReward);
-
-    rewardSection.appendChild(rewardsRow);
+    // Mission info (expiry + track record note)
+    const infoSection = createElement('div', { className: 'mission-board__section' });
+    infoSection.appendChild(createElement('div', { className: 'mission-board__section-label', text: 'Info' }));
+    const infoRow = createElement('div', { className: 'mission-board__rewards' });
 
     // Expiry
     const daysLeft = (m.postedDay + m.durationDays) - currentDay;
-    const expiryReward = createElement('div', { className: 'mission-board__reward' });
-    expiryReward.style.marginTop = 'var(--space-2)';
-    expiryReward.appendChild(createElement('span', { className: 'mission-board__reward-label', text: 'Expires in:' }));
+    const expiryInfo = createElement('div', { className: 'mission-board__reward' });
+    expiryInfo.appendChild(createElement('span', { className: 'mission-board__reward-label', text: 'Expires in:' }));
     const daysEl = createElement('span', { className: 'mission-board__reward-value' });
     daysEl.textContent = `${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
     if (daysLeft <= 1) daysEl.style.color = 'var(--color-blood)';
-    expiryReward.appendChild(daysEl);
-    rewardSection.appendChild(expiryReward);
+    expiryInfo.appendChild(daysEl);
+    infoRow.appendChild(expiryInfo);
 
-    this.detailEl.appendChild(rewardSection);
+    // Track record note
+    const recordInfo = createElement('div', { className: 'mission-board__reward' });
+    recordInfo.appendChild(createElement('span', { className: 'mission-board__reward-label', text: 'Reward:' }));
+    recordInfo.appendChild(createElement('span', { className: 'mission-board__reward-value', text: 'Track record' }));
+    infoRow.appendChild(recordInfo);
+
+    infoSection.appendChild(infoRow);
+    this.detailEl.appendChild(infoSection);
 
     // Locked reason
     if (!allowed && reason) {

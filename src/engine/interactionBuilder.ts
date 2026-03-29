@@ -37,7 +37,17 @@ export function buildContextOptions(
 
   // ── Examine (always available for anything with a sheet) ──
   if (sheet || charSheet) {
-    options.push({ id: 'examine', label: 'Examine' });
+    // Check if this is a mission search target — show "Collect" instead
+    const isSearchTarget = world.missionLog.active
+      && !world.missionLog.active.objectiveComplete
+      && world.missionLog.active.mission.templateKey === 'search'
+      && world.missionLog.active.progress.searchEntityId === entityId;
+
+    if (isSearchTarget) {
+      options.push({ id: 'examine', label: 'Collect', accent: true });
+    } else {
+      options.push({ id: 'examine', label: 'Examine' });
+    }
   }
 
   // ── Special interactable (sleep, etc.) ──
@@ -53,7 +63,18 @@ export function buildContextOptions(
 
   // ── NPC: Conscious ──
   if (isNpc && !unconscious && !dead) {
-    options.push({ id: 'talk', label: 'Talk', disabled: true, disabledReason: 'Not available yet' });
+    // Talk is enabled for delivery mission targets, otherwise disabled
+    const npcName = world.names.get(entityId)?.display;
+    const isDeliveryTarget = npcName && world.missionLog.active
+      && !world.missionLog.active.objectiveComplete
+      && world.missionLog.active.mission.templateKey === 'delivery'
+      && world.missionLog.active.mission.templateData.targetNpc === npcName;
+
+    if (isDeliveryTarget) {
+      options.push({ id: 'talk', label: 'Deliver Package', accent: true });
+    } else {
+      options.push({ id: 'talk', label: 'Talk', disabled: true, disabledReason: 'Not available yet' });
+    }
     options.push({
       id: 'assassinate', label: 'Assassinate', danger: true,
       disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,

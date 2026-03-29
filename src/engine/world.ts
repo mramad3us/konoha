@@ -116,6 +116,11 @@ export class World {
     return id;
   }
 
+  /** Alias for destroyEntity — used by mission system */
+  removeEntity(id: EntityId): void {
+    this.destroyEntity(id);
+  }
+
   /** Remove an entity and all its components */
   destroyEntity(id: EntityId): void {
     // Remove from spatial grid before deleting position

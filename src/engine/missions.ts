@@ -4,10 +4,14 @@
  * Mission ranks: D (genin), C (experienced genin), B (chuunin), A (jonin/experienced chuunin)
  * Board refreshes daily — expired missions are replaced with new ones.
  * Active mission grants 2x skill XP for all skill improvements.
+ *
+ * Shinobi work on behalf of the village — no monetary rewards.
+ * Track record of completed missions determines career progression.
  */
 
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import type { ShinobiRank } from '../types/character.ts';
+import type { World } from './world.ts';
 
 // ── TYPES ──
 
@@ -20,49 +24,50 @@ export interface Mission {
   client: string;
   description: string;
   objective: string;
-  reward: { ryo: number; xpBonus: number };
   /** In-game day the mission was posted */
   postedDay: number;
   /** How many in-game days before it expires */
   durationDays: number;
   /** Mission template key for completion logic */
   templateKey: string;
-  /** Template-specific data (target location, NPC name, item, etc.) */
+  /** Template-specific data (target NPC, location, etc.) */
   templateData: Record<string, unknown>;
 }
 
 export interface MissionBoard {
-  /** Available missions on the board */
   missions: Mission[];
-  /** Last day the board was refreshed */
   lastRefreshDay: number;
 }
 
 export interface ActiveMission {
   mission: Mission;
-  /** Day the mission was accepted */
   acceptedDay: number;
-  /** Progress tracking (template-specific) */
+  /** Progress tracking — keys depend on template */
   progress: Record<string, unknown>;
-  /** Whether this mission is complete */
-  complete: boolean;
+  /** Objective completed (still need to report back) */
+  objectiveComplete: boolean;
+  /** Fully reported and done */
+  reported: boolean;
 }
 
 export interface MissionLog {
-  /** Currently active mission (only one at a time for now) */
   active: ActiveMission | null;
-  /** Completed mission count by rank */
   completed: Record<MissionRank, number>;
-  /** Total missions completed */
   totalCompleted: number;
 }
 
+// ── MISSION EVENT SYSTEM ──
+
+export type MissionEvent =
+  | { type: 'interact_npc'; npcName: string }
+  | { type: 'reach_area'; x: number; y: number }
+  | { type: 'collect_entity'; entityId: number };
+
 // ── CONSTANTS ──
 
-const BOARD_SIZE = 8;  // missions on the board at once
+const BOARD_SIZE = 8;
 const MISSION_EXPIRY_DAYS: Record<MissionRank, number> = { D: 3, C: 5, B: 7, A: 10 };
 
-/** Rank distribution weights for board generation */
 const RANK_WEIGHTS: Array<{ rank: MissionRank; weight: number }> = [
   { rank: 'D', weight: 40 },
   { rank: 'C', weight: 30 },
@@ -70,7 +75,6 @@ const RANK_WEIGHTS: Array<{ rank: MissionRank; weight: number }> = [
   { rank: 'A', weight: 10 },
 ];
 
-/** Minimum completed missions of the previous rank to unlock the next */
 export const RANK_UNLOCK_REQUIREMENTS: Record<MissionRank, { minRank: ShinobiRank; minPrevCompleted: number; prevRank?: MissionRank }> = {
   D: { minRank: 'genin', minPrevCompleted: 0 },
   C: { minRank: 'genin', minPrevCompleted: 15, prevRank: 'D' },
@@ -78,20 +82,17 @@ export const RANK_UNLOCK_REQUIREMENTS: Record<MissionRank, { minRank: ShinobiRan
   A: { minRank: 'jounin', minPrevCompleted: 0 },
 };
 
-// Also allow experienced chuunin (30 B-rank) to take A-rank
 export function canTakeMission(
   rank: MissionRank,
   playerRank: ShinobiRank,
   completedLog: Record<MissionRank, number>,
 ): { allowed: boolean; reason?: string } {
   const req = RANK_UNLOCK_REQUIREMENTS[rank];
-
-  // Rank hierarchy check
   const rankOrder: ShinobiRank[] = ['civilian', 'academy_student', 'genin', 'chuunin', 'special_jounin', 'jounin', 'anbu', 'kage'];
   const playerIdx = rankOrder.indexOf(playerRank);
   const reqIdx = rankOrder.indexOf(req.minRank);
 
-  // Special case: A-rank can be taken by experienced chuunin (30+ B-rank completed)
+  // A-rank: experienced chuunin (30+ B-rank) can also take
   if (rank === 'A' && playerIdx >= rankOrder.indexOf('chuunin') && completedLog.B >= 30) {
     return { allowed: true };
   }
@@ -107,161 +108,220 @@ export function canTakeMission(
   return { allowed: true };
 }
 
-// ── MISSION TEMPLATES (D-rank for now) ──
+// ══════════════════════════════════════
+//  D-RANK TEMPLATES — Village-local missions
+// ══════════════════════════════════════
+
+/** Actual NPCs in the village that can be delivery targets */
+const DELIVERY_NPCS = [
+  { name: 'Mrs. Suzuki', location: 'the main avenue', hint: 'She walks the main road near the commercial strip.' },
+  { name: 'Old Masashi', location: 'Konoha Kitchen', hint: 'The ramen chef is always at his post.' },
+  { name: 'Grandpa Oda', location: 'the west residential area', hint: 'He sits outside his home, watching the clouds.' },
+  { name: 'Tenten', location: 'the weapons shop', hint: 'She runs the weapons shop in the market plaza.' },
+  { name: 'Dr. Nono', location: 'the hospital', hint: 'The head medic is inside the hospital building.' },
+  { name: 'Daikichi-sensei', location: 'the academy', hint: 'He teaches inside the academy building.' },
+  { name: 'Kotetsu', location: 'the main gate', hint: 'One of the gate guards — he\'s always on duty.' },
+  { name: 'Genma', location: 'the supply shop', hint: 'He runs the supply shop in the market.' },
+  { name: 'Hiashi', location: 'the Hyuga compound', hint: 'The Hyuga clan leader — inside the main hall.' },
+];
+
+/** Locations for search missions — spawn area for lost items/creatures */
+const SEARCH_AREAS: Array<{ label: string; x: number; y: number; radius: number }> = [
+  { label: 'the academy yard', x: 66, y: 24, radius: 6 },
+  { label: 'the market plaza', x: 115, y: 79, radius: 8 },
+  { label: 'the main gate area', x: 77, y: 144, radius: 6 },
+  { label: 'the river bank', x: 50, y: 62, radius: 8 },
+  { label: 'the south park', x: 65, y: 134, radius: 5 },
+  { label: 'the residential west', x: 30, y: 110, radius: 10 },
+  { label: 'the residential east', x: 115, y: 112, radius: 10 },
+];
+
+/** Patrol waypoints — player must visit all of them */
+const PATROL_ROUTES: Array<{ name: string; waypoints: Array<{ x: number; y: number; label: string }> }> = [
+  {
+    name: 'Main Avenue Patrol',
+    waypoints: [
+      { x: 77, y: 145, label: 'Main gate' },
+      { x: 77, y: 110, label: 'Commercial district' },
+      { x: 77, y: 80, label: 'Market road crossing' },
+      { x: 77, y: 50, label: 'North village' },
+    ],
+  },
+  {
+    name: 'Perimeter Sweep',
+    waypoints: [
+      { x: 77, y: 145, label: 'Main gate' },
+      { x: 30, y: 110, label: 'West residential' },
+      { x: 30, y: 63, label: 'West river bank' },
+      { x: 120, y: 63, label: 'East river bank' },
+      { x: 120, y: 110, label: 'East residential' },
+    ],
+  },
+  {
+    name: 'Market District Watch',
+    waypoints: [
+      { x: 100, y: 74, label: 'Weapons shop' },
+      { x: 120, y: 74, label: 'Scroll shop' },
+      { x: 110, y: 86, label: 'South market' },
+      { x: 76, y: 79, label: 'Village well' },
+    ],
+  },
+];
 
 interface MissionTemplate {
   rank: MissionRank;
   titles: string[];
   clients: string[];
   descriptions: string[];
-  objectives: string[];
-  baseRyo: number;
-  xpBonus: number;
   templateKey: string;
-  generateData: (seed: number) => Record<string, unknown>;
+  generateData: (seed: number) => { objective: string; templateData: Record<string, unknown> };
 }
 
-const DELIVERY_TARGETS = ['Mrs. Suzuki in the residential district', 'Old Masashi at Konoha Kitchen', 'the Hyuga compound gatekeeper', 'Grandpa Oda near the west houses', 'the supply shop in the market plaza'];
-const LOST_ITEMS = ['a child\'s wooden kunai', 'a missing cat named Tora', 'a lost medicine pouch', 'a runaway chicken', 'a set of stolen laundry'];
-const ERRAND_LOCATIONS = ['the academy yard', 'the market plaza', 'the hospital entrance', 'the main gate', 'the river bank'];
+const D_RANK_DELIVERY: MissionTemplate = {
+  rank: 'D',
+  titles: ['Package Delivery', 'Urgent Delivery', 'Supply Run', 'Medicine Delivery', 'Scroll Courier'],
+  clients: ['Postal Service', 'Konoha Hospital', 'Academy Admin', 'Market Association', 'Village Elder'],
+  descriptions: [
+    'A package needs to be delivered across the village.',
+    'Medical supplies must reach their destination promptly.',
+    'Important documents need to be hand-delivered for security.',
+    'Fresh supplies are needed at their destination.',
+    'A sealed scroll requires careful handling during transport.',
+  ],
+  templateKey: 'delivery',
+  generateData: (seed) => {
+    const target = DELIVERY_NPCS[seed % DELIVERY_NPCS.length];
+    const items = ['package', 'medicine box', 'sealed scroll', 'supply crate', 'document tube'];
+    return {
+      objective: `Deliver the ${items[seed % items.length]} to ${target.name} at ${target.location}, then report back.`,
+      templateData: {
+        targetNpc: target.name,
+        targetLocation: target.location,
+        hint: target.hint,
+        item: items[seed % items.length],
+      },
+    };
+  },
+};
 
-const D_RANK_TEMPLATES: MissionTemplate[] = [
-  {
-    rank: 'D',
-    titles: ['Package Delivery', 'Urgent Delivery', 'Supply Run', 'Medicine Delivery', 'Scroll Courier'],
-    clients: ['Postal Service', 'Konoha Hospital', 'Academy Admin', 'Market Association', 'Village Elder'],
-    descriptions: [
-      'A package needs to be delivered across the village before sundown.',
-      'Medical supplies must reach their destination promptly.',
-      'Important documents need to be hand-delivered for security.',
-      'Fresh supplies are needed at their destination as soon as possible.',
-      'A sealed scroll requires careful handling during transport.',
-    ],
-    objectives: ['Deliver the package to the specified location.'],
-    baseRyo: 500,
-    xpBonus: 5,
-    templateKey: 'delivery',
-    generateData: (seed) => ({
-      target: DELIVERY_TARGETS[seed % DELIVERY_TARGETS.length],
-      item: ['package', 'medicine box', 'sealed scroll', 'supply crate', 'document tube'][seed % 5],
-    }),
+const D_RANK_SEARCH: MissionTemplate = {
+  rank: 'D',
+  titles: ['Lost & Found', 'Missing Pet', 'Item Recovery', 'The Runaway', 'Search & Retrieve'],
+  clients: ['Worried Villager', 'Elderly Resident', 'Academy Student', 'Shop Owner', 'Farmer'],
+  descriptions: [
+    'Something precious has gone missing in the village.',
+    'A beloved pet has escaped and needs to be found.',
+    'An important item was lost somewhere in the village.',
+    'Someone\'s property needs to be tracked down and returned.',
+    'A thorough search of the village grounds is needed.',
+  ],
+  templateKey: 'search',
+  generateData: (seed) => {
+    const area = SEARCH_AREAS[seed % SEARCH_AREAS.length];
+    const targets = [
+      { name: 'a missing cat named Tora', sprite: 'obj_bush_small' },
+      { name: 'a lost medicine pouch', sprite: 'obj_barrel' },
+      { name: 'a child\'s wooden kunai', sprite: 'obj_rock_small' },
+      { name: 'a runaway chicken', sprite: 'obj_bush_flower' },
+      { name: 'a dropped scroll case', sprite: 'obj_rock_small' },
+    ];
+    const target = targets[seed % targets.length];
+    // Actual spawn position is computed when mission is accepted (needs World)
+    const angle = (seed * 137) % 360;
+    const dist = 1 + (seed % area.radius);
+    const spawnX = Math.round(area.x + Math.cos(angle * Math.PI / 180) * dist);
+    const spawnY = Math.round(area.y + Math.sin(angle * Math.PI / 180) * dist);
+    return {
+      objective: `Find ${target.name} near ${area.label}, then report back.`,
+      templateData: {
+        searchTarget: target.name,
+        searchSprite: target.sprite,
+        searchArea: area.label,
+        spawnX,
+        spawnY,
+      },
+    };
   },
-  {
-    rank: 'D',
-    titles: ['Lost & Found', 'Missing Pet', 'Item Recovery', 'The Runaway', 'Search & Retrieve'],
-    clients: ['Worried Villager', 'Elderly Resident', 'Academy Student', 'Shop Owner', 'Farmer'],
-    descriptions: [
-      'Something precious has gone missing in the village.',
-      'A beloved pet has escaped and needs to be found.',
-      'An important item was lost somewhere in the village.',
-      'Someone\'s property needs to be tracked down and returned.',
-      'A search of the village grounds is needed to recover a lost possession.',
-    ],
-    objectives: ['Search the village and recover the lost item or creature.'],
-    baseRyo: 600,
-    xpBonus: 5,
-    templateKey: 'search',
-    generateData: (seed) => ({
-      target: LOST_ITEMS[seed % LOST_ITEMS.length],
-      searchArea: ERRAND_LOCATIONS[seed % ERRAND_LOCATIONS.length],
-    }),
-  },
-  {
-    rank: 'D',
-    titles: ['Guard Duty', 'Patrol Assignment', 'Night Watch', 'Escort Mission', 'Perimeter Check'],
-    clients: ['Gate Command', 'Village Security', 'Merchant Guild', 'Hokage Office', 'Hospital Admin'],
-    descriptions: [
-      'A routine patrol of the village perimeter is needed.',
-      'A merchant needs a guard for their market stall.',
-      'The night watch is short-staffed and needs an extra set of eyes.',
-      'An elderly villager needs an escort through the village.',
-      'A security sweep of a district has been requested.',
-    ],
-    objectives: ['Complete the assigned patrol or guard shift.'],
-    baseRyo: 450,
-    xpBonus: 4,
-    templateKey: 'patrol',
-    generateData: (seed) => ({
-      area: ERRAND_LOCATIONS[seed % ERRAND_LOCATIONS.length],
-      duration: 2 + (seed % 3),
-    }),
-  },
-];
+};
 
-const C_RANK_TEMPLATES: MissionTemplate[] = [
-  {
-    rank: 'C',
-    titles: ['Bandit Deterrence', 'Road Security', 'Trade Route Patrol', 'Outskirts Sweep', 'Threat Assessment'],
-    clients: ['Trade Council', 'Border Patrol', 'Merchant Caravan', 'Village Defense', 'Intelligence Division'],
-    descriptions: [
-      'Bandits have been spotted near the trade routes. A show of force is needed.',
-      'The roads outside the village need to be secured for merchant traffic.',
-      'A trade caravan requests shinobi escort through contested territory.',
-      'Reports of suspicious activity near the village outskirts require investigation.',
-      'An intelligence report needs field verification in the surrounding area.',
-    ],
-    objectives: ['Investigate and neutralize any threats in the assigned area.'],
-    baseRyo: 1500,
-    xpBonus: 10,
-    templateKey: 'combat_patrol',
-    generateData: (seed) => ({
-      threatLevel: 1 + (seed % 3),
-      enemies: 2 + (seed % 4),
-    }),
+const D_RANK_PATROL: MissionTemplate = {
+  rank: 'D',
+  titles: ['Guard Duty', 'Patrol Assignment', 'Night Watch', 'Village Patrol', 'Perimeter Check'],
+  clients: ['Gate Command', 'Village Security', 'Merchant Guild', 'Hokage Office', 'Hospital Admin'],
+  descriptions: [
+    'A routine patrol of a village district is needed.',
+    'The night watch is short-staffed and needs an extra set of eyes.',
+    'A security sweep of multiple checkpoints has been requested.',
+    'An important area needs regular patrols today.',
+    'The village perimeter needs checking for unusual activity.',
+  ],
+  templateKey: 'patrol',
+  generateData: (seed) => {
+    const route = PATROL_ROUTES[seed % PATROL_ROUTES.length];
+    const waypointLabels = route.waypoints.map(w => w.label).join(' → ');
+    return {
+      objective: `Complete the ${route.name}: visit all checkpoints (${waypointLabels}), then report back.`,
+      templateData: {
+        routeName: route.name,
+        waypoints: route.waypoints,
+        visited: route.waypoints.map(() => false),
+      },
+    };
   },
-];
+};
 
-const B_RANK_TEMPLATES: MissionTemplate[] = [
-  {
-    rank: 'B',
-    titles: ['Infiltration Op', 'Asset Recovery', 'High-Value Escort', 'Enemy Encampment', 'Sabotage Mission'],
-    clients: ['ANBU Liaison', 'Hokage Office', 'Intelligence Division', 'Defense Council', 'Allied Village'],
-    descriptions: [
-      'A covert operation requiring skill and discretion.',
-      'A stolen village asset must be recovered from hostile territory.',
-      'A VIP requires protection during transit through dangerous territory.',
-      'An enemy encampment has been located and must be dealt with.',
-      'Critical enemy infrastructure needs to be neutralized.',
-    ],
-    objectives: ['Complete the high-risk objective assigned by command.'],
-    baseRyo: 5000,
-    xpBonus: 20,
-    templateKey: 'combat_mission',
-    generateData: (seed) => ({
-      threatLevel: 3 + (seed % 3),
-      enemies: 4 + (seed % 6),
-    }),
-  },
-];
+// C/B/A templates — placeholder until we build maps for them
+const C_RANK_PLACEHOLDER: MissionTemplate = {
+  rank: 'C',
+  titles: ['Bandit Deterrence', 'Road Security', 'Trade Route Patrol', 'Outskirts Sweep', 'Threat Assessment'],
+  clients: ['Trade Council', 'Border Patrol', 'Merchant Caravan', 'Village Defense', 'Intelligence Division'],
+  descriptions: [
+    'Bandits have been spotted near the trade routes.',
+    'The roads outside the village need to be secured.',
+    'Reports of suspicious activity near the outskirts.',
+  ],
+  templateKey: 'not_implemented',
+  generateData: () => ({
+    objective: 'This mission type is not yet available.',
+    templateData: { notImplemented: true },
+  }),
+};
 
-const A_RANK_TEMPLATES: MissionTemplate[] = [
-  {
-    rank: 'A',
-    titles: ['S-Class Threat Response', 'Border Crisis', 'Assassination Prevention', 'Village Defense Op', 'Allied Reinforcement'],
-    clients: ['Hokage', 'ANBU Commander', 'Defense Council', 'Allied Kage', 'Intelligence Chief'],
-    descriptions: [
-      'A grave threat to the village requires the strongest shinobi available.',
-      'A border crisis demands immediate intervention by elite forces.',
-      'Intelligence suggests an assassination plot that must be stopped.',
-      'The village faces a direct threat requiring organized defense.',
-      'An allied village has requested urgent military assistance.',
-    ],
-    objectives: ['Resolve the critical threat by any means necessary.'],
-    baseRyo: 15000,
-    xpBonus: 40,
-    templateKey: 'elite_mission',
-    generateData: (seed) => ({
-      threatLevel: 6 + (seed % 4),
-      enemies: 6 + (seed % 8),
-    }),
-  },
-];
+const B_RANK_PLACEHOLDER: MissionTemplate = {
+  rank: 'B',
+  titles: ['Infiltration Op', 'Asset Recovery', 'High-Value Escort', 'Enemy Encampment', 'Sabotage Mission'],
+  clients: ['ANBU Liaison', 'Hokage Office', 'Intelligence Division', 'Defense Council', 'Allied Village'],
+  descriptions: [
+    'A covert operation requiring skill and discretion.',
+    'An enemy encampment has been located.',
+  ],
+  templateKey: 'not_implemented',
+  generateData: () => ({
+    objective: 'This mission type is not yet available.',
+    templateData: { notImplemented: true },
+  }),
+};
+
+const A_RANK_PLACEHOLDER: MissionTemplate = {
+  rank: 'A',
+  titles: ['Threat Response', 'Border Crisis', 'Assassination Prevention', 'Village Defense Op', 'Allied Reinforcement'],
+  clients: ['Hokage', 'ANBU Commander', 'Defense Council', 'Allied Kage', 'Intelligence Chief'],
+  descriptions: [
+    'A grave threat to the village requires the strongest shinobi.',
+    'The village faces a direct threat requiring organized defense.',
+  ],
+  templateKey: 'not_implemented',
+  generateData: () => ({
+    objective: 'This mission type is not yet available.',
+    templateData: { notImplemented: true },
+  }),
+};
 
 const ALL_TEMPLATES: MissionTemplate[] = [
-  ...D_RANK_TEMPLATES,
-  ...C_RANK_TEMPLATES,
-  ...B_RANK_TEMPLATES,
-  ...A_RANK_TEMPLATES,
+  D_RANK_DELIVERY, D_RANK_SEARCH, D_RANK_PATROL,
+  C_RANK_PLACEHOLDER,
+  B_RANK_PLACEHOLDER,
+  A_RANK_PLACEHOLDER,
 ];
 
 // ── GENERATION ──
@@ -286,9 +346,7 @@ function generateMission(seed: number, day: number): Mission {
   const clientIdx = (seed >> 8) % template.clients.length;
   const descIdx = (seed >> 12) % template.descriptions.length;
 
-  // Add ±20% ryo variance
-  const ryoVariance = 0.8 + ((seed % 41) / 100); // 0.80 to 1.20
-  const ryo = Math.round(template.baseRyo * ryoVariance);
+  const { objective, templateData } = template.generateData(seed);
 
   return {
     id: `mission_${++missionIdCounter}_${day}`,
@@ -296,16 +354,14 @@ function generateMission(seed: number, day: number): Mission {
     title: template.titles[titleIdx],
     client: template.clients[clientIdx],
     description: template.descriptions[descIdx],
-    objective: template.objectives[0],
-    reward: { ryo, xpBonus: template.xpBonus },
+    objective,
     postedDay: day,
     durationDays: MISSION_EXPIRY_DAYS[rank],
     templateKey: template.templateKey,
-    templateData: template.generateData(seed),
+    templateData,
   };
 }
 
-/** Create a fresh mission board */
 export function createMissionBoard(day: number): MissionBoard {
   const missions: Mission[] = [];
   for (let i = 0; i < BOARD_SIZE; i++) {
@@ -315,17 +371,14 @@ export function createMissionBoard(day: number): MissionBoard {
   return { missions, lastRefreshDay: day };
 }
 
-/** Refresh the board: remove expired, fill with new missions */
 export function refreshMissionBoard(board: MissionBoard, currentDay: number): void {
-  if (currentDay <= board.lastRefreshDay) return; // already refreshed today
+  if (currentDay <= board.lastRefreshDay) return;
 
-  // Remove expired missions
   board.missions = board.missions.filter(m => {
     const expiryDay = m.postedDay + m.durationDays;
     return currentDay <= expiryDay;
   });
 
-  // Fill empty slots with new missions
   let slotIdx = board.missions.length;
   while (board.missions.length < BOARD_SIZE) {
     const seed = cellHash(currentDay * 1000 + slotIdx, currentDay * 13 + slotIdx * 37);
@@ -336,37 +389,65 @@ export function refreshMissionBoard(board: MissionBoard, currentDay: number): vo
   board.lastRefreshDay = currentDay;
 }
 
-/** Create a fresh mission log */
 export function createMissionLog(): MissionLog {
-  return {
-    active: null,
-    completed: { D: 0, C: 0, B: 0, A: 0 },
-    totalCompleted: 0,
-  };
+  return { active: null, completed: { D: 0, C: 0, B: 0, A: 0 }, totalCompleted: 0 };
 }
 
-/** Accept a mission from the board */
-export function acceptMission(log: MissionLog, board: MissionBoard, missionId: string): Mission | null {
+// ── MISSION LIFECYCLE ──
+
+/** Accept a mission. For search missions, spawns the search target entity. */
+export function acceptMission(log: MissionLog, board: MissionBoard, missionId: string, world?: World): Mission | null {
   const idx = board.missions.findIndex(m => m.id === missionId);
   if (idx < 0) return null;
 
   const mission = board.missions[idx];
-  // Remove from board
   board.missions.splice(idx, 1);
+
+  const progress: Record<string, unknown> = {};
+
+  // Search missions: spawn the target entity in the village
+  if (mission.templateKey === 'search' && world) {
+    const sx = mission.templateData.spawnX as number;
+    const sy = mission.templateData.spawnY as number;
+    const sprite = mission.templateData.searchSprite as string;
+    const targetName = mission.templateData.searchTarget as string;
+
+    const eid = world.createEntity();
+    world.setPosition(eid, { x: sx, y: sy, facing: 's' });
+    world.renderables.set(eid, { spriteId: sprite, layer: 'object', offsetY: -14 });
+    world.blockings.set(eid, { blocksMovement: false, blocksSight: false });
+    world.names.set(eid, { display: targetName, article: '' });
+    world.objectSheets.set(eid, {
+      description: `This is ${targetName}! Collect it to complete your mission.`,
+      category: 'object',
+    });
+    world.interactables.set(eid, { interactionType: 'examine', label: 'Collect' });
+
+    progress.searchEntityId = eid;
+  }
+
+  // Patrol missions: initialize visited array
+  if (mission.templateKey === 'patrol') {
+    const waypoints = mission.templateData.waypoints as Array<{ x: number; y: number; label: string }>;
+    progress.visited = waypoints.map(() => false);
+    progress.visitedCount = 0;
+    progress.totalWaypoints = waypoints.length;
+  }
 
   log.active = {
     mission,
     acceptedDay: mission.postedDay,
-    progress: {},
-    complete: false,
+    progress,
+    objectiveComplete: false,
+    reported: false,
   };
 
   return mission;
 }
 
-/** Complete the active mission */
-export function completeMission(log: MissionLog): Mission | null {
-  if (!log.active || !log.active.complete) return null;
+/** Report mission completion at the mission desk */
+export function reportMission(log: MissionLog): Mission | null {
+  if (!log.active || !log.active.objectiveComplete) return null;
 
   const mission = log.active.mission;
   log.completed[mission.rank]++;
@@ -376,28 +457,133 @@ export function completeMission(log: MissionLog): Mission | null {
   return mission;
 }
 
-/** Abandon the active mission (no penalty for now) */
-export function abandonMission(log: MissionLog): void {
+/** Abandon the active mission */
+export function abandonMission(log: MissionLog, world?: World): void {
+  if (!log.active) return;
+
+  // Clean up search entity if it exists
+  if (log.active.progress.searchEntityId && world) {
+    const eid = log.active.progress.searchEntityId as number;
+    world.removeEntity(eid);
+  }
+
   log.active = null;
 }
 
-/** Get the current in-game day from gameTimeSeconds */
+// ── MISSION PROGRESS ──
+
+/** Proximity threshold for patrol waypoints and area checks */
+const WAYPOINT_RADIUS = 3;
+
+/**
+ * Process a mission event. Returns a log message if progress was made, or null.
+ * Call this from interaction handlers and the turn system.
+ */
+export function processMissionEvent(log: MissionLog, event: MissionEvent, world?: World): string | null {
+  if (!log.active || log.active.objectiveComplete) return null;
+
+  const active = log.active;
+  const mission = active.mission;
+
+  switch (mission.templateKey) {
+    case 'delivery': {
+      if (event.type === 'interact_npc') {
+        const targetNpc = mission.templateData.targetNpc as string;
+        if (event.npcName === targetNpc) {
+          active.objectiveComplete = true;
+          return `Package delivered to ${targetNpc}! Return to the Mission Desk to report.`;
+        }
+      }
+      break;
+    }
+
+    case 'search': {
+      if (event.type === 'collect_entity') {
+        const searchEntityId = active.progress.searchEntityId as number | undefined;
+        if (searchEntityId !== undefined && event.entityId === searchEntityId) {
+          // Remove the entity from the world
+          if (world) world.removeEntity(searchEntityId);
+          active.progress.searchEntityId = null;
+          active.objectiveComplete = true;
+          const targetName = mission.templateData.searchTarget as string;
+          return `Found ${targetName}! Return to the Mission Desk to report.`;
+        }
+      }
+      break;
+    }
+
+    case 'patrol': {
+      if (event.type === 'reach_area') {
+        const waypoints = mission.templateData.waypoints as Array<{ x: number; y: number; label: string }>;
+        const visited = active.progress.visited as boolean[];
+
+        for (let i = 0; i < waypoints.length; i++) {
+          if (visited[i]) continue;
+          const wp = waypoints[i];
+          const dx = event.x - wp.x;
+          const dy = event.y - wp.y;
+          if (dx * dx + dy * dy <= WAYPOINT_RADIUS * WAYPOINT_RADIUS) {
+            visited[i] = true;
+            active.progress.visitedCount = (active.progress.visitedCount as number) + 1;
+
+            if (active.progress.visitedCount === waypoints.length) {
+              active.objectiveComplete = true;
+              return `All checkpoints visited! Return to the Mission Desk to report.`;
+            }
+            return `Checkpoint reached: ${wp.label} (${active.progress.visitedCount}/${waypoints.length})`;
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  return null;
+}
+
+/** Check patrol progress on player movement (call each turn) */
+export function checkPatrolProgress(log: MissionLog, playerX: number, playerY: number): string | null {
+  if (!log.active || log.active.objectiveComplete) return null;
+  if (log.active.mission.templateKey !== 'patrol') return null;
+
+  return processMissionEvent(log, { type: 'reach_area', x: playerX, y: playerY });
+}
+
+// ── HELPERS ──
+
 export function getGameDay(gameTimeSeconds: number): number {
   return Math.floor(gameTimeSeconds / 86400) + 1;
 }
 
-/** Returns the XP multiplier (2 if on active mission, 1 otherwise) */
 export function getMissionXpMultiplier(log: MissionLog): number {
-  return log.active && !log.active.complete ? 2 : 1;
+  return log.active && !log.active.objectiveComplete ? 2 : 1;
+}
+
+/** Get a human-readable status for the active mission */
+export function getActiveMissionStatus(log: MissionLog): string | null {
+  if (!log.active) return null;
+  const m = log.active.mission;
+
+  if (log.active.objectiveComplete) {
+    return `${m.title} — COMPLETE — Report to Mission Desk`;
+  }
+
+  if (m.templateKey === 'patrol') {
+    const count = log.active.progress.visitedCount as number ?? 0;
+    const total = log.active.progress.totalWaypoints as number ?? 0;
+    return `${m.title} — ${count}/${total} checkpoints`;
+  }
+
+  return `${m.title} — ${m.objective}`;
 }
 
 // ── RANK DISPLAY ──
 
 export const RANK_COLORS: Record<MissionRank, string> = {
-  D: '#5b8c5a',  // leaf green — easy, safe
-  C: '#4a7fb5',  // steel blue — moderate
-  B: '#c9a84c',  // gold — significant
-  A: '#b22234',  // blood red — dangerous
+  D: '#5b8c5a',
+  C: '#4a7fb5',
+  B: '#c9a84c',
+  A: '#b22234',
 };
 
 export const RANK_LABELS: Record<MissionRank, string> = {

@@ -18,7 +18,7 @@ import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { MissionBoardUI } from '../ui/missionBoardUI.ts';
 import { interactWithEntity } from '../engine/turnSystem.ts';
-import { refreshMissionBoard, acceptMission, getGameDay } from '../engine/missions.ts';
+import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -271,6 +271,18 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       for (const line of lines) {
         world.log(line, 'info');
       }
+      // Check if this is a search mission collect
+      if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+        const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId }, world);
+        if (msg) world.log(msg, 'system');
+      }
+    } else if (choice === 'talk') {
+      // Check if this NPC is a delivery target
+      const npcName = world.names.get(entityId)?.display;
+      if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+        const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
+        if (msg) world.log(msg, 'system');
+      }
     } else if (choice === 'revive') {
       reviveEntity(world, entityId, 0.3);
       world.gameTimeSeconds += 6;
@@ -317,7 +329,46 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   // Mission board UI
   const missionBoardUI = new MissionBoardUI();
+  const missionContextMenu = new ContextMenu();
   const openMissionBoard = async () => {
+    // If player has an active mission, show mission status menu first
+    if (world.missionLog.active) {
+      const active = world.missionLog.active;
+      const status = getActiveMissionStatus(world.missionLog) ?? active.mission.title;
+      const missionOptions: import('../ui/contextMenu.ts').ContextMenuOption[] = [
+        { id: 'status', label: status, disabled: true },
+      ];
+
+      if (active.objectiveComplete) {
+        missionOptions.push({ id: 'report', label: 'Report Mission', accent: true });
+      }
+      missionOptions.push({ id: 'abandon', label: 'Abandon Mission', danger: true });
+      missionOptions.push({ id: 'browse', label: 'Browse Board' });
+
+      const choice = await missionContextMenu.show('Active Mission', missionOptions);
+
+      if (choice === 'report') {
+        const completed = reportMission(world.missionLog);
+        if (completed) {
+          world.log(`Mission complete: ${completed.title} (${completed.rank}-Rank)`, 'system');
+          world.log(`${completed.rank}-Rank missions completed: ${world.missionLog.completed[completed.rank]}`, 'info');
+          world.log(`Total missions completed: ${world.missionLog.totalCompleted}`, 'info');
+        }
+        hud.update(world);
+        return;
+      } else if (choice === 'abandon') {
+        const missionName = active.mission.title;
+        abandonMission(world.missionLog, world);
+        world.log(`Mission abandoned: ${missionName}`, 'system');
+        hud.update(world);
+        return;
+      } else if (choice !== 'browse') {
+        // Cancelled or status — do nothing
+        return;
+      }
+      // If 'browse', fall through to show the board
+    }
+
     // Refresh board for current day
     const currentDay = getGameDay(world.gameTimeSeconds);
     refreshMissionBoard(world.missionBoard, currentDay);
@@ -330,11 +381,11 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     );
 
     if (chosenId) {
-      const mission = acceptMission(world.missionLog, world.missionBoard, chosenId);
+      const mission = acceptMission(world.missionLog, world.missionBoard, chosenId, world);
       if (mission) {
         world.log(`Mission accepted: ${mission.title} (${mission.rank}-Rank)`, 'system');
         world.log(`Objective: ${mission.objective}`, 'info');
-        world.log('Skill training now grants 2\u00d7 XP.', 'info');
+        world.log('Skill training now grants 2\u00d7 XP while on mission.', 'info');
       }
     }
 
@@ -375,6 +426,18 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       if (ctxChoice === 'examine') {
         const lines = getExamineText(world, interaction.entityId);
         for (const line of lines) world.log(line, 'info');
+        // Check if this is a search mission collect
+        if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+          const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId: interaction.entityId }, world);
+          if (msg) world.log(msg, 'system');
+        }
+      } else if (ctxChoice === 'talk') {
+        // Check if this NPC is a delivery target
+        const npcName = world.names.get(interaction.entityId)?.display;
+        if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+          const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
+          if (msg) world.log(msg, 'system');
+        }
       } else if (ctxChoice === 'revive') {
         reviveEntity(world, interaction.entityId, 0.3);
         world.gameTimeSeconds += 6; world.currentTick += 1;

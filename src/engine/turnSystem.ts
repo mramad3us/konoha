@@ -8,6 +8,7 @@ import { getNightFovReduction } from './gameTime.ts';
 import { tickUnconsciousRecovery, tickBleeding } from './entityState.ts';
 import { tickProximityDialogue } from './proximityDialogue.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
+import { checkPatrolProgress } from './missions.ts';
 
 /** Advance game time and recompute FOV with night reduction */
 function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
@@ -140,6 +141,10 @@ export function executeTurn(action: GameAction, world: World): boolean {
       // Advance time
       const tickCost = STANCE_TICK_COST[playerCtrl.movementStance];
       advanceTurn(world, tickCost, STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);
+
+      // Check patrol mission waypoints after move
+      const patrolMsg = checkPatrolProgress(world.missionLog, playerPos.x, playerPos.y);
+      if (patrolMsg) world.log(patrolMsg, 'system');
 
       return true;
     }
