@@ -338,6 +338,29 @@ function pickWeightedRank(seed: number): MissionRank {
   return 'D';
 }
 
+const D_RANK_TEMPLATES: MissionTemplate[] = [D_RANK_DELIVERY, D_RANK_SEARCH, D_RANK_PATROL];
+
+function generateDRankMission(seed: number, day: number): Mission {
+  const template = D_RANK_TEMPLATES[seed % D_RANK_TEMPLATES.length];
+  const titleIdx = (seed >> 4) % template.titles.length;
+  const clientIdx = (seed >> 8) % template.clients.length;
+  const descIdx = (seed >> 12) % template.descriptions.length;
+  const { objective, templateData } = template.generateData(seed);
+
+  return {
+    id: `mission_${++missionIdCounter}_${day}`,
+    rank: 'D',
+    title: template.titles[titleIdx],
+    client: template.clients[clientIdx],
+    description: template.descriptions[descIdx],
+    objective,
+    postedDay: day,
+    durationDays: MISSION_EXPIRY_DAYS.D,
+    templateKey: template.templateKey,
+    templateData,
+  };
+}
+
 function generateMission(seed: number, day: number): Mission {
   const rank = pickWeightedRank(seed);
   const templates = ALL_TEMPLATES.filter(t => t.rank === rank);
@@ -364,10 +387,20 @@ function generateMission(seed: number, day: number): Mission {
 
 export function createMissionBoard(day: number): MissionBoard {
   const missions: Mission[] = [];
-  for (let i = 0; i < BOARD_SIZE; i++) {
+
+  // Guarantee at least 3 D-rank missions so genin always have work
+  const MIN_D_RANK = 3;
+  for (let i = 0; i < MIN_D_RANK; i++) {
+    const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
+    missions.push(generateDRankMission(seed, day));
+  }
+
+  // Fill remaining slots with weighted random ranks
+  for (let i = MIN_D_RANK; i < BOARD_SIZE; i++) {
     const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
     missions.push(generateMission(seed, day));
   }
+
   return { missions, lastRefreshDay: day };
 }
 
@@ -379,10 +412,19 @@ export function refreshMissionBoard(board: MissionBoard, currentDay: number): vo
     return currentDay <= expiryDay;
   });
 
+  // Ensure at least 3 D-rank on the board after refill
+  const dCount = board.missions.filter(m => m.rank === 'D').length;
   let slotIdx = board.missions.length;
+  let dNeeded = Math.max(0, 3 - dCount);
+
   while (board.missions.length < BOARD_SIZE) {
     const seed = cellHash(currentDay * 1000 + slotIdx, currentDay * 13 + slotIdx * 37);
-    board.missions.push(generateMission(seed, currentDay));
+    if (dNeeded > 0) {
+      board.missions.push(generateDRankMission(seed, currentDay));
+      dNeeded--;
+    } else {
+      board.missions.push(generateMission(seed, currentDay));
+    }
     slotIdx++;
   }
 
