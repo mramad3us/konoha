@@ -51,8 +51,55 @@ export class World {
   // Pending interaction (set by turnSystem, consumed by game.ts)
   _pendingInteraction: { entityId: number; type: string } | null = null;
 
+  // Spatial hash for O(1) entity position lookups
+  private entityGrid = new Map<string, Set<EntityId>>();
+
   constructor(tileMap: TileMap) {
     this.tileMap = tileMap;
+  }
+
+  private gridKey(x: number, y: number): string {
+    return `${x},${y}`;
+  }
+
+  /** Register entity in spatial grid (call after setting position) */
+  registerInGrid(id: EntityId, x: number, y: number): void {
+    const key = this.gridKey(x, y);
+    let set = this.entityGrid.get(key);
+    if (!set) { set = new Set(); this.entityGrid.set(key, set); }
+    set.add(id);
+  }
+
+  /** Remove entity from spatial grid */
+  removeFromGrid(id: EntityId, x: number, y: number): void {
+    const key = this.gridKey(x, y);
+    const set = this.entityGrid.get(key);
+    if (set) {
+      set.delete(id);
+      if (set.size === 0) this.entityGrid.delete(key);
+    }
+  }
+
+  /** Move entity in spatial grid */
+  moveInGrid(id: EntityId, oldX: number, oldY: number, newX: number, newY: number): void {
+    this.removeFromGrid(id, oldX, oldY);
+    this.registerInGrid(id, newX, newY);
+  }
+
+  /** Set entity position and update spatial grid */
+  setPosition(id: EntityId, pos: PositionComponent): void {
+    const old = this.positions.get(id);
+    if (old) this.removeFromGrid(id, old.x, old.y);
+    this.positions.set(id, pos);
+    this.registerInGrid(id, pos.x, pos.y);
+  }
+
+  /** Rebuild spatial grid from all positions (for deserialization) */
+  rebuildGrid(): void {
+    this.entityGrid.clear();
+    for (const [id, pos] of this.positions) {
+      this.registerInGrid(id, pos.x, pos.y);
+    }
   }
 
   /** Create a new entity and return its ID */
@@ -64,6 +111,10 @@ export class World {
 
   /** Remove an entity and all its components */
   destroyEntity(id: EntityId): void {
+    // Remove from spatial grid before deleting position
+    const pos = this.positions.get(id);
+    if (pos) this.removeFromGrid(id, pos.x, pos.y);
+
     this.entities.delete(id);
     this.positions.delete(id);
     this.renderables.delete(id);
@@ -85,41 +136,39 @@ export class World {
     this.proximityDialogue.delete(id);
   }
 
-  /** Get entity at a specific tile position (first found) */
+  /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
   getEntityAt(x: number, y: number): EntityId | null {
-    for (const [id, pos] of this.positions) {
-      if (pos.x === x && pos.y === y) return id;
-    }
+    const set = this.entityGrid.get(this.gridKey(x, y));
+    if (!set) return null;
+    for (const id of set) return id;
     return null;
   }
 
-  /** Get all entities at a specific tile position */
+  /** Get all entities at a specific tile position — O(1) via spatial hash */
   getEntitiesAt(x: number, y: number): EntityId[] {
-    const result: EntityId[] = [];
-    for (const [id, pos] of this.positions) {
-      if (pos.x === x && pos.y === y) result.push(id);
-    }
-    return result;
+    const set = this.entityGrid.get(this.gridKey(x, y));
+    if (!set) return [];
+    return Array.from(set);
   }
 
-  /** Check if a tile is blocked by any entity */
+  /** Check if a tile is blocked by any entity — O(k) where k = entities at tile */
   isBlockedByEntity(x: number, y: number): boolean {
-    for (const [id, pos] of this.positions) {
-      if (pos.x === x && pos.y === y) {
-        const blocking = this.blockings.get(id);
-        if (blocking?.blocksMovement) return true;
-      }
+    const set = this.entityGrid.get(this.gridKey(x, y));
+    if (!set) return false;
+    for (const id of set) {
+      const blocking = this.blockings.get(id);
+      if (blocking?.blocksMovement) return true;
     }
     return false;
   }
 
-  /** Get blocking entity at position (for combat targeting) */
+  /** Get blocking entity at position — O(k) where k = entities at tile */
   getBlockingEntityAt(x: number, y: number): EntityId | null {
-    for (const [id, pos] of this.positions) {
-      if (pos.x === x && pos.y === y) {
-        const blocking = this.blockings.get(id);
-        if (blocking?.blocksMovement) return id;
-      }
+    const set = this.entityGrid.get(this.gridKey(x, y));
+    if (!set) return null;
+    for (const id of set) {
+      const blocking = this.blockings.get(id);
+      if (blocking?.blocksMovement) return id;
     }
     return null;
   }
@@ -242,6 +291,9 @@ export class World {
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
     }
+
+    // Rebuild spatial hash from deserialized positions
+    world.rebuildGrid();
 
     return world;
   }

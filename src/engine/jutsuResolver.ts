@@ -182,6 +182,7 @@ function executeSubstitution(
   sfxSubstitution();
 
   // Teleport
+  world.moveInGrid(casterId, casterPos.x, casterPos.y, newX, newY);
   casterPos.x = newX;
   casterPos.y = newY;
 

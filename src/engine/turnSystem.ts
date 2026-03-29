@@ -99,6 +99,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
         world.log('The way is blocked.', 'info');
       } else {
         // Move!
+        world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
         playerPos.x = newX;
         playerPos.y = newY;
         sfxStep();

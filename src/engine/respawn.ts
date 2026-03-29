@@ -65,6 +65,7 @@ export function executeRespawn(world: World, config: RespawnConfig): void {
 
   // Move player to spawn
   if (pos) {
+    world.moveInGrid(playerId, pos.x, pos.y, config.spawnX, config.spawnY);
     pos.x = config.spawnX;
     pos.y = config.spawnY;
     pos.facing = 'n';

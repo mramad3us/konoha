@@ -193,7 +193,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   const playerId = world.createEntity();
   world.playerEntityId = playerId;
 
-  world.positions.set(playerId, { x: PLAYER_START_X, y: PLAYER_START_Y, facing: 'n' });
+  world.setPosition(playerId, { x: PLAYER_START_X, y: PLAYER_START_Y, facing: 'n' });
   world.renderables.set(playerId, {
     spriteId: `char_${playerGender}_s`,
     layer: 'character',
@@ -247,7 +247,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     const cfg = SPAWN_CONFIG[spawn.type];
     const id = world.createEntity();
 
-    world.positions.set(id, { x: spawn.x, y: spawn.y, facing: 's' });
+    world.setPosition(id, { x: spawn.x, y: spawn.y, facing: 's' });
     world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'object', offsetY: cfg.offsetY });
     world.blockings.set(id, { blocksMovement: cfg.blocksMove, blocksSight: cfg.blocksSight });
     world.names.set(id, { display: cfg.displayName, article: cfg.article });
@@ -305,7 +305,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     const anbuId = world.createEntity();
     const anbuStats = { phy: 60, cha: 55, men: 50, soc: 30 };
     const anbuHp = computeMaxHp(anbuStats);
-    world.positions.set(anbuId, { x: 20, y: 3, facing: 's' });
+    world.setPosition(anbuId, { x: 20, y: 3, facing: 's' });
     world.renderables.set(anbuId, { spriteId: 'char_anbu_s', layer: 'character', offsetY: -16 });
     world.blockings.set(anbuId, { blocksMovement: true, blocksSight: false });
     world.healths.set(anbuId, { current: anbuHp, max: anbuHp });
