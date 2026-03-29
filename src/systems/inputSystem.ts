@@ -1,4 +1,7 @@
-import { resolveAction, GAME_KEYS } from '../engine/actionResolver.ts';
+import { resolveAction, GAME_KEYS, JUTSU_COMBAT_KEYS } from '../engine/actionResolver.ts';
+import { tryCastJutsuByKey, getJutsuFailMessage } from '../engine/jutsuResolver.ts';
+import { getJutsuByCombatKey } from '../data/jutsus.ts';
+import { findAdjacentTarget as findTarget } from '../engine/combatSystem.ts';
 import { executeTurn } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
@@ -52,8 +55,8 @@ export class InputSystem {
 
     const key = e.key;
 
-    // Prevent default for game keys and combat keys
-    if (GAME_KEYS.has(key) || isCombatKey(key)) {
+    // Prevent default for game keys, combat keys, and jutsu keys
+    if (GAME_KEYS.has(key) || isCombatKey(key) || JUTSU_COMBAT_KEYS.has(key)) {
       e.preventDefault();
     }
 
@@ -61,6 +64,30 @@ export class InputSystem {
     const now = Date.now();
     if (now - this.lastInputTime < INPUT_DEBOUNCE_MS) return;
     this.lastInputTime = now;
+
+    // ── Jutsu combat keys (@ etc.) ──
+    if (JUTSU_COMBAT_KEYS.has(key)) {
+      const targetId = findTarget(this.world);
+      const result = tryCastJutsuByKey(this.world, this.world.playerEntityId, key, targetId);
+
+      if (result.success) {
+        this.world.log(result.message, 'combat_tempo');
+        // Update camera to follow teleport
+        const pp = this.world.positions.get(this.world.playerEntityId);
+        if (pp) this.camera.snapTo(pp.x, pp.y);
+      } else {
+        const jutsu = getJutsuByCombatKey(key);
+        const failMsg = jutsu
+          ? getJutsuFailMessage(jutsu.id, result.reason)
+          : 'Nothing happens.';
+        this.world.log(failMsg, 'info');
+      }
+
+      this.hud.update(this.world);
+      this.tempoBeads.update(getPlayerTempo(this.world));
+      this.conditionIndicator.update(getPlayerCondition(this.world));
+      return;
+    }
 
     // ── Combat keys (a/z/e/q/s/d) ──
     if (isCombatKey(key)) {

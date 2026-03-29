@@ -154,18 +154,16 @@ export function executeTurn(action: GameAction, world: World): boolean {
       return true;
     }
 
-    case 'changeStance': {
-      if (playerCtrl.movementStance === action.stance) return false;
-
-      playerCtrl.movementStance = action.stance;
-      const stanceNames = {
-        sprint: 'Sprint',
-        walk: 'Walk',
-        creep: 'Creep',
-        crawl: 'Crawl',
+    case 'cycleStance': {
+      const cycle: Array<import('../types/ecs.ts').MovementStance> = ['walk', 'sprint', 'creep', 'crawl'];
+      const stanceNames: Record<string, string> = {
+        sprint: 'Sprint', walk: 'Walk', creep: 'Creep', crawl: 'Crawl',
       };
-      world.log(`Stance: ${stanceNames[action.stance]}.`, 'system');
-      return false; // Stance change doesn't consume a turn
+      const idx = cycle.indexOf(playerCtrl.movementStance);
+      const next = cycle[(idx + 1) % cycle.length];
+      playerCtrl.movementStance = next;
+      world.log(`Stance: ${stanceNames[next]}.`, 'system');
+      return false;
     }
 
     case 'toggleKeybindings':

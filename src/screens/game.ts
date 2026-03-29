@@ -11,6 +11,7 @@ import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
+import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
@@ -235,6 +236,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     lastTime = time;
 
     camera.update(dt);
+    updateParticles(dt);
     renderer.draw(world);
 
     rafId = requestAnimationFrame(renderLoop);

@@ -19,10 +19,8 @@ export class KeybindingsPanel {
         { keys: 'n', descs: 'SE' },
       ],
       [
-        { keys: '1', descs: 'Sprint' },
-        { keys: '2', descs: 'Walk' },
-        { keys: '3', descs: 'Creep' },
-        { keys: '4', descs: 'Crawl' },
+        { keys: ',', descs: 'Stance' },
+        { keys: '@', descs: 'Jutsu' },
       ],
       [
         { keys: 'a/z/e', descs: 'Attack' },

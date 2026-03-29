@@ -277,6 +277,43 @@ export function sfxMenuClick(): void {
   ring.stop(now + 0.15);
 }
 
+/** Substitution jutsu — poof + whoosh + soft thud of log */
+export function sfxSubstitution(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+
+  // Poof (smoke burst)
+  noiseHit(0.1, 2, 0, vol(0.3), 2000);
+
+  // Whoosh (body flicker movement)
+  const bufSize = Math.floor(ac.sampleRate * 0.15);
+  const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ac.createBufferSource();
+  noise.buffer = buf;
+
+  const filter = ac.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(1000, now + 0.05);
+  filter.frequency.linearRampToValueAtTime(4000, now + 0.15);
+  filter.Q.value = 1.5;
+
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0, now + 0.05);
+  gain.gain.linearRampToValueAtTime(vol(0.2), now + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+  noise.connect(filter).connect(gain).connect(ac.destination);
+  noise.start(now + 0.05);
+  noise.stop(now + 0.25);
+
+  // Soft log thud (delayed)
+  setTimeout(() => noiseHit(0.06, 2, 80, vol(0.15), 800), 100);
+}
+
 /** Footstep — very quiet, subtle */
 export function sfxStep(): void {
   noiseHit(0.04, 2, 0, vol(0.06), 800 + Math.random() * 400);

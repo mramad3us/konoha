@@ -2,6 +2,7 @@ import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 import type { World } from '../engine/world.ts';
 import { getNightDimFactor } from '../engine/gameTime.ts';
 import { getActiveEngagements } from '../engine/combatSystem.ts';
+import { drawParticles } from '../systems/particleSystem.ts';
 import { Camera } from './camera.ts';
 import { spriteCache } from './spriteCache.ts';
 import type { DrawCommand } from './depthSort.ts';
@@ -130,6 +131,9 @@ export class IsoRenderer {
 
     // ── Combat status indicators above characters ──
     this.drawCombatIndicators(ctx, world, offset);
+
+    // ── Particles (smoke, chakra flashes) ──
+    drawParticles(ctx, offset);
 
     // ── Night overlay ──
     const nightDim = getNightDimFactor(world.gameTimeSeconds);

@@ -1,9 +1,7 @@
-import type { MovementStance } from './ecs.ts';
-
 export type GameAction =
   | { type: 'move'; dx: number; dy: number }
   | { type: 'wait' }
-  | { type: 'changeStance'; stance: MovementStance }
+  | { type: 'cycleStance' }
   | { type: 'toggleKeybindings' }
   | { type: 'toggleCharacterSheet' }
   | { type: 'interact' };

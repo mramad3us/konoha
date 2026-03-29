@@ -1,5 +1,4 @@
 import type { GameAction } from '../types/actions.ts';
-import type { MovementStance } from '../types/ecs.ts';
 
 /** Map keyboard keys to game actions */
 const KEY_MAP: Record<string, GameAction> = {
@@ -18,11 +17,8 @@ const KEY_MAP: Record<string, GameAction> = {
   // Wait
   '.': { type: 'wait' },
 
-  // Stance changes
-  '1': { type: 'changeStance', stance: 'sprint' as MovementStance },
-  '2': { type: 'changeStance', stance: 'walk' as MovementStance },
-  '3': { type: 'changeStance', stance: 'creep' as MovementStance },
-  '4': { type: 'changeStance', stance: 'crawl' as MovementStance },
+  // Stance cycling
+  ',': { type: 'cycleStance' },
 
   // UI toggles
   '?': { type: 'toggleKeybindings' },
@@ -37,3 +33,6 @@ export function resolveAction(key: string): GameAction | null {
 
 /** Set of keys that should prevent default browser behavior */
 export const GAME_KEYS = new Set(Object.keys(KEY_MAP));
+
+/** Jutsu combat keys — checked separately from regular combat keys */
+export const JUTSU_COMBAT_KEYS = new Set(['@']);

@@ -226,6 +226,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
       title: 'Elite Shinobi',
       skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70 },
       stats: { phy: 70, cha: 70, men: 70, soc: 70 },
+      learnedJutsus: ['substitution'],
     });
   } else {
     world.characterSheets.set(playerId, {
@@ -253,6 +254,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         title: 'Training Equipment',
         skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0 },
         stats: { phy: 10, cha: 0, men: 0, soc: 0 },
+        learnedJutsus: [],
       });
       world.destructibles.set(id, {
         onDestroyMessage: `The ${cfg.displayName} splinters apart in a shower of wood and straw!`,
@@ -280,6 +282,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         title: 'Training Partner',
         skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2 },
         stats: { phy: 20, cha: 10, men: 8, soc: 12 },
+        learnedJutsus: [],
       });
       world.names.set(id, { display: 'Takeshi', article: '' });
       world.aiControlled.set(id, { behavior: 'static' });

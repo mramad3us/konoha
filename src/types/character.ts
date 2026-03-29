@@ -141,6 +141,7 @@ export interface CharacterSheet {
   title: CharacterTitle;
   skills: CharacterSkills;
   stats: CharacterStats;
+  learnedJutsus: string[];
 }
 
 // ── SKILL / STAT IMPROVEMENT ──
@@ -208,4 +209,5 @@ export const DEFAULT_SHINOBI_SHEET: CharacterSheet = {
     men: 6,
     soc: 10,
   },
+  learnedJutsus: [],
 };

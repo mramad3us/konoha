@@ -79,6 +79,10 @@ export const TRAINING_RESPAWN_TIME_S = 3600;  // 1 in-game hour
 // ── Interact ──
 export const INTERACT_TIME_SECONDS = 2;
 
+// ── Jutsu ──
+export const SUBSTITUTION_CHAKRA_COST = 15;
+export const SUBSTITUTION_COOLDOWN_PASSES = 5;
+
 // ── Critical Hits ──
 export const CRIT_BASE_CHANCE = 0.05;     // 5% base chance per clean hit
 export const SCREEN_SHAKE_DURATION_MS = 300;
