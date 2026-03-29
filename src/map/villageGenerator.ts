@@ -40,42 +40,23 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   }
 
   // ══════════════════════════════════════
-  //  PASS 2: Border (cliff + dense forest feel)
+  //  PASS 2: Border (cliff + trees)
   // ══════════════════════════════════════
   for (let x = 0; x < W; x++) {
     for (let d = 0; d < 4; d++) {
-      tileMap.setTile(x, d, 'cliff');           // north
-      tileMap.setTile(x, H - 1 - d, 'cliff');   // south
+      tileMap.setTile(x, d, 'cliff');
+      tileMap.setTile(x, H - 1 - d, 'cliff');
     }
   }
   for (let y = 0; y < H; y++) {
     for (let d = 0; d < 4; d++) {
-      tileMap.setTile(d, y, 'cliff');           // west
-      tileMap.setTile(W - 1 - d, y, 'cliff');   // east
+      tileMap.setTile(d, y, 'cliff');
+      tileMap.setTile(W - 1 - d, y, 'cliff');
     }
   }
 
   // ══════════════════════════════════════
-  //  PASS 3: Main roads
-  // ══════════════════════════════════════
-  // N-S main road (center)
-  stampRoad(tileMap, 78, 10, 78, 145, 3);
-  // E-W main road
-  stampRoad(tileMap, 4, 76, 155, 76, 3);
-  // Road to training grounds
-  stampRoad(tileMap, 25, 55, 25, 78, 2);
-  // Road to market
-  stampRoad(tileMap, 80, 80, 100, 80, 2);
-  // Road from gate to center
-  stampRoad(tileMap, 78, 145, 78, 155, 3);
-
-  // ══════════════════════════════════════
-  //  PASS 4: River (E-W at rows 68-73)
-  // ══════════════════════════════════════
-  stampRiver(tileMap, 68, 6, W, [30, 78, 125], 5);
-
-  // ══════════════════════════════════════
-  //  PASS 5: Training Grounds (copy existing layout at offset)
+  //  PASS 3: Training Grounds (copy existing 40x40 at offset)
   // ══════════════════════════════════════
   for (let ty = 0; ty < TRAINING_GROUNDS_HEIGHT; ty++) {
     for (let tx = 0; tx < TRAINING_GROUNDS_WIDTH; tx++) {
@@ -91,49 +72,57 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   }
 
   // ══════════════════════════════════════
-  //  PASS 6: Buildings
+  //  PASS 4: Buildings (BEFORE roads so roads connect to doors)
   // ══════════════════════════════════════
   const buildings: BuildingTemplate[] = [
-    // Hokage Tower (large, central)
-    { x: 70, y: 82, w: 16, h: 12, doorSide: 's', doorOffset: 8, label: 'Hokage Tower' },
-    // Mission Desk (adjacent)
-    { x: 72, y: 96, w: 10, h: 5, doorSide: 's', doorOffset: 5, label: 'Mission Desk' },
+    // Hokage Tower (large, south of E-W road)
+    { x: 68, y: 82, w: 18, h: 14, doorSide: 's', doorOffset: 9, label: 'Hokage Tower' },
+    // Mission Desk (south of tower)
+    { x: 71, y: 98, w: 12, h: 5, doorSide: 's', doorOffset: 6, label: 'Mission Desk' },
 
-    // Academy (north area)
-    { x: 58, y: 10, w: 16, h: 10, doorSide: 's', doorOffset: 8, label: 'Academy' },
-    // Academy yard (sand area)
+    // Academy (north-center, well away from roads)
+    { x: 56, y: 8, w: 18, h: 10, doorSide: 's', doorOffset: 9, label: 'Academy' },
 
-    // Hospital
-    { x: 32, y: 82, w: 12, h: 10, doorSide: 'e', doorOffset: 5, label: 'Hospital' },
+    // Hospital (west side, south of river)
+    { x: 20, y: 82, w: 14, h: 10, doorSide: 'e', doorOffset: 5, label: 'Hospital' },
 
-    // Ramen Shop
-    { x: 92, y: 106, w: 8, h: 6, doorSide: 'w', doorOffset: 3, label: 'Konoha Kitchen' },
+    // Ramen Shop (east of center road)
+    { x: 90, y: 108, w: 8, h: 6, doorSide: 'w', doorOffset: 3, label: 'Konoha Kitchen' },
 
-    // Market stalls (small buildings)
-    { x: 102, y: 82, w: 6, h: 5, doorSide: 's', doorOffset: 3, label: 'Weapons Shop' },
-    { x: 110, y: 82, w: 6, h: 5, doorSide: 's', doorOffset: 3, label: 'Supply Shop' },
-    { x: 118, y: 82, w: 6, h: 5, doorSide: 's', doorOffset: 3, label: 'Scroll Shop' },
-    { x: 102, y: 90, w: 6, h: 5, doorSide: 'n', doorOffset: 3, label: 'Clothing Shop' },
+    // Market stalls (east side, south of river, away from road)
+    { x: 100, y: 84, w: 7, h: 5, doorSide: 's', doorOffset: 3, label: 'Weapons Shop' },
+    { x: 110, y: 84, w: 7, h: 5, doorSide: 's', doorOffset: 3, label: 'Supply Shop' },
+    { x: 120, y: 84, w: 7, h: 5, doorSide: 's', doorOffset: 3, label: 'Scroll Shop' },
+    { x: 100, y: 92, w: 7, h: 5, doorSide: 'n', doorOffset: 3, label: 'Clothing Shop' },
+    { x: 110, y: 92, w: 7, h: 5, doorSide: 'n', doorOffset: 3, label: 'Tea House' },
 
-    // Hyuga Compound (north-west)
-    { x: 12, y: 6, w: 18, h: 8, doorSide: 's', doorOffset: 9, floorType: 'stone', label: 'Hyuga Compound' },
+    // Hyuga Compound (northwest)
+    { x: 10, y: 6, w: 20, h: 8, doorSide: 's', doorOffset: 10, floorType: 'stone', label: 'Hyuga Compound' },
 
-    // Uchiha Compound (north-east)
-    { x: 105, y: 6, w: 20, h: 8, doorSide: 's', doorOffset: 10, floorType: 'stone', label: 'Uchiha Compound' },
+    // Uchiha Compound (northeast)
+    { x: 108, y: 6, w: 20, h: 8, doorSide: 's', doorOffset: 10, floorType: 'stone', label: 'Uchiha Compound' },
 
-    // Residential houses
-    { x: 22, y: 108, w: 7, h: 6, doorSide: 's', doorOffset: 3, label: 'House' },
-    { x: 31, y: 108, w: 7, h: 6, doorSide: 's', doorOffset: 3, label: 'House' },
-    { x: 40, y: 108, w: 7, h: 6, doorSide: 's', doorOffset: 3, label: 'House' },
-    { x: 22, y: 118, w: 7, h: 6, doorSide: 'n', doorOffset: 3, label: 'House' },
-    { x: 31, y: 118, w: 7, h: 6, doorSide: 'n', doorOffset: 3, label: 'House' },
-    { x: 40, y: 118, w: 7, h: 6, doorSide: 'n', doorOffset: 3, label: 'House' },
-    { x: 22, y: 126, w: 7, h: 6, doorSide: 's', doorOffset: 3, label: 'House' },
-    { x: 31, y: 126, w: 7, h: 6, doorSide: 's', doorOffset: 3, label: 'House' },
+    // Residential houses (southwest, away from main road)
+    { x: 14, y: 108, w: 7, h: 6, doorSide: 'e', doorOffset: 3, label: 'House' },
+    { x: 14, y: 118, w: 7, h: 6, doorSide: 'e', doorOffset: 3, label: 'House' },
+    { x: 14, y: 128, w: 7, h: 6, doorSide: 'e', doorOffset: 3, label: 'House' },
+    { x: 26, y: 108, w: 7, h: 6, doorSide: 'w', doorOffset: 3, label: 'House' },
+    { x: 26, y: 118, w: 7, h: 6, doorSide: 'w', doorOffset: 3, label: 'House' },
+    { x: 26, y: 128, w: 7, h: 6, doorSide: 'w', doorOffset: 3, label: 'House' },
+    { x: 38, y: 108, w: 7, h: 6, doorSide: 'e', doorOffset: 3, label: 'House' },
+    { x: 38, y: 118, w: 7, h: 6, doorSide: 'e', doorOffset: 3, label: 'House' },
+    { x: 50, y: 108, w: 7, h: 6, doorSide: 'w', doorOffset: 3, label: 'House' },
+    { x: 50, y: 118, w: 7, h: 6, doorSide: 'w', doorOffset: 3, label: 'House' },
 
-    // Gate guard posts
-    { x: 72, y: 148, w: 5, h: 4, doorSide: 'e', doorOffset: 2, label: 'Guard Post' },
-    { x: 84, y: 148, w: 5, h: 4, doorSide: 'w', doorOffset: 2, label: 'Guard Post' },
+    // Gate guard posts (flanking the gate, not on the road)
+    { x: 68, y: 148, w: 5, h: 4, doorSide: 'e', doorOffset: 2, label: 'Guard Post' },
+    { x: 89, y: 148, w: 5, h: 4, doorSide: 'w', doorOffset: 2, label: 'Guard Post' },
+
+    // Weapons forge (near market)
+    { x: 130, y: 84, w: 8, h: 6, doorSide: 's', doorOffset: 4, label: 'Forge' },
+
+    // Library (near academy)
+    { x: 56, y: 22, w: 10, h: 7, doorSide: 's', doorOffset: 5, label: 'Library' },
   ];
 
   for (const b of buildings) {
@@ -141,15 +130,54 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   }
 
   // Academy sand yard
-  fillRect(tileMap, 58, 21, 16, 8, 'sand');
+  fillRect(tileMap, 56, 19, 18, 3, 'sand');
 
-  // Main gate opening
+  // Memorial stone area
+  fillRect(tileMap, 50, 35, 6, 5, 'stone');
+
+  // ══════════════════════════════════════
+  //  PASS 5: Roads (after buildings so they don't get overwritten)
+  // ══════════════════════════════════════
+
+  // Main N-S road (center, x=76-78)
+  stampRoad(tileMap, 76, 10, 76, 145, 3);
+  // E-W main road (y=78-80, bridges over river handled separately)
+  stampRoad(tileMap, 4, 78, 66, 78, 3);    // west segment
+  stampRoad(tileMap, 88, 78, 155, 78, 3);   // east segment
+
+  // Road from gate to center
+  stampRoad(tileMap, 76, 145, 76, 155, 3);
+
+  // Road to training grounds (from main road west)
+  stampRoad(tileMap, 26, 56, 76, 56, 2);
+
+  // Road to residential area
+  stampRoad(tileMap, 22, 80, 22, 105, 2);
+
+  // Road to market district
+  stampRoad(tileMap, 88, 80, 100, 80, 2);
+
+  // Residential cross-road
+  stampRoad(tileMap, 12, 115, 58, 115, 2);
+
+  // Academy approach road
+  stampRoad(tileMap, 64, 20, 76, 20, 2);
+
+  // ══════════════════════════════════════
+  //  PASS 6: River (E-W at rows 68-73, with 3 bridges)
+  // ══════════════════════════════════════
+  stampRiver(tileMap, 68, 6, W, [22, 76, 125], 5);
+
+  // Gate opening (south border)
+  tileMap.setTile(77, 155, 'gate');
+  tileMap.setTile(78, 155, 'gate');
   tileMap.setTile(79, 155, 'gate');
-  tileMap.setTile(80, 155, 'gate');
-  tileMap.setTile(81, 155, 'gate');
-
-  // Memorial stone area (stone clearing near training grounds)
-  fillRect(tileMap, 50, 32, 6, 5, 'stone');
+  // Clear cliff behind gate
+  for (let d = 0; d < 4; d++) {
+    tileMap.setTile(77, 156 + d, 'road');
+    tileMap.setTile(78, 156 + d, 'road');
+    tileMap.setTile(79, 156 + d, 'road');
+  }
 
   // ══════════════════════════════════════
   //  CREATE WORLD
@@ -212,6 +240,8 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
 
   world.log(`${playerName} stands at the gates of Konoha.`, 'system');
   world.log('The Hidden Leaf Village stretches before you.', 'info');
+  world.log('Head north along the main road to reach the village center.', 'info');
+  world.log('The training grounds are to the northwest, past the river.', 'info');
 
   return world;
 }

@@ -7,7 +7,7 @@
 import type { World } from './world.ts';
 import { isUnconscious, isDead } from './entityState.ts';
 
-const PROXIMITY_RANGE = 3; // tiles
+const PROXIMITY_RANGE = 2; // tiles (reduced from 3 to prevent spam)
 
 /**
  * Check all NPCs with proximity dialogue and fire lines if player is close.

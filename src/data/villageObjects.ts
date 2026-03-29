@@ -137,6 +137,62 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // ── Rocks near river ──
   spawn(world, { x: 50, y: 67, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -8, blocksMove: true, blocksSight: false, name: 'rock', article: 'a', description: 'A river stone.', category: 'terrain' });
   spawn(world, { x: 110, y: 67, spriteId: 'obj_rock_mossy', layer: 'object', offsetY: -10, blocksMove: true, blocksSight: false, name: 'mossy rock', article: 'a', description: 'A mossy stone by the water.', category: 'terrain' });
+
+  // ══════════════════════════════════════
+  //  BUILDING INTERIORS — furniture, torches
+  // ══════════════════════════════════════
+
+  // Hokage Tower interior (68-85, 82-95)
+  spawn(world, { x: 72, y: 84, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'A torch inside the Hokage Tower.', category: 'object', lightRadius: 4 });
+  spawn(world, { x: 82, y: 84, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'A torch inside the Hokage Tower.', category: 'object', lightRadius: 4 });
+  spawn(world, { x: 72, y: 92, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'A torch inside the Hokage Tower.', category: 'object', lightRadius: 4 });
+  spawn(world, { x: 82, y: 92, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'A torch inside the Hokage Tower.', category: 'object', lightRadius: 4 });
+  spawn(world, { x: 75, y: 85, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4, blocksMove: true, blocksSight: false, name: 'desk', article: 'a', description: 'The Hokage\'s desk. Scrolls and mission reports are piled high.', category: 'object' });
+
+  // Hospital interior (20-33, 82-91)
+  spawn(world, { x: 24, y: 84, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4, blocksMove: false, blocksSight: false, name: 'hospital bed', article: 'a', description: 'A medical bed with clean sheets.', category: 'object' });
+  spawn(world, { x: 24, y: 86, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4, blocksMove: false, blocksSight: false, name: 'hospital bed', article: 'a', description: 'A medical bed. Unoccupied.', category: 'object' });
+  spawn(world, { x: 24, y: 88, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4, blocksMove: false, blocksSight: false, name: 'hospital bed', article: 'a', description: 'A medical bed with medicine on the side table.', category: 'object' });
+  spawn(world, { x: 30, y: 84, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'lamp', article: 'a', description: 'A medical lamp for examinations.', category: 'object', lightRadius: 3 });
+
+  // Market shop interiors (each shop gets a torch + crate)
+  const shopInteriors = [
+    { x: 103, y: 86, desc: 'Kunai, shuriken, and blades line the walls.' },
+    { x: 113, y: 86, desc: 'Pouches, wire, and explosive tags in organized bins.' },
+    { x: 123, y: 86, desc: 'Scrolls of every size fill the shelves.' },
+    { x: 103, y: 93, desc: 'Fabrics and shinobi outfits on display.' },
+    { x: 113, y: 93, desc: 'Tea leaves and ceramic cups arranged neatly.' },
+  ];
+  for (const si of shopInteriors) {
+    spawn(world, { x: si.x, y: si.y, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'shop display', article: 'a', description: si.desc, category: 'object', lightRadius: 3 });
+  }
+
+  // Residential interiors (each house gets a sleeping bag + torch)
+  const houseInteriors = [
+    { x: 16, y: 110 }, { x: 16, y: 120 }, { x: 16, y: 130 },
+    { x: 28, y: 110 }, { x: 28, y: 120 }, { x: 28, y: 130 },
+    { x: 40, y: 110 }, { x: 40, y: 120 },
+    { x: 52, y: 110 }, { x: 52, y: 120 },
+  ];
+  for (const hi of houseInteriors) {
+    spawn(world, { x: hi.x, y: hi.y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4, blocksMove: false, blocksSight: false, name: 'bed', article: 'a', description: 'A comfortable futon.', category: 'object', interactType: 'sleep', interactLabel: 'Sleep' });
+    spawn(world, { x: hi.x + 2, y: hi.y, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'lamp', article: 'a', description: 'A small oil lamp.', category: 'object', lightRadius: 3 });
+  }
+
+  // Ramen shop interior (90-97, 108-113)
+  spawn(world, { x: 93, y: 110, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'lantern', article: 'a', description: 'A warm lantern hanging from the ceiling. The smell of broth fills the air.', category: 'object', lightRadius: 4 });
+
+  // Academy interior (56-73, 8-17)
+  spawn(world, { x: 60, y: 12, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'Academy wall torch.', category: 'object', lightRadius: 4 });
+  spawn(world, { x: 70, y: 12, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'torch', article: 'a', description: 'Academy wall torch.', category: 'object', lightRadius: 4 });
+
+  // Library interior (56-65, 22-28)
+  spawn(world, { x: 59, y: 24, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4, blocksMove: true, blocksSight: false, name: 'bookshelf', article: 'a', description: 'Rows of scrolls and books on jutsu theory, village history, and tactics.', category: 'object' });
+  spawn(world, { x: 62, y: 24, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4, blocksMove: true, blocksSight: false, name: 'bookshelf', article: 'a', description: 'A shelf of forbidden technique references. Sealed with chakra locks.', category: 'object' });
+  spawn(world, { x: 60, y: 26, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'reading lamp', article: 'a', description: 'A quiet lamp for study.', category: 'object', lightRadius: 3 });
+
+  // Forge interior (130-137, 84-89)
+  spawn(world, { x: 133, y: 86, spriteId: 'obj_torch_pillar', layer: 'object', offsetY: -20, blocksMove: true, blocksSight: false, name: 'forge fire', article: 'the', description: 'A blazing forge. Heat radiates from the glowing coals.', category: 'object', lightRadius: 5 });
 }
 
 /** Spawn training grounds objects at the village offset */
