@@ -396,13 +396,15 @@ export const OBJ_ROCK_MOSSY: PixelPattern = {
   ],
 };
 
-// ── SLEEPING BAG ──
+// ── FUTON / BED ──
 const SLEEPBAG_PAL: Record<string, [number, number, number]> = {
-  b: [40, 60, 90],     // bag blue
-  B: [50, 75, 110],    // bag highlight
-  d: [30, 45, 70],     // bag dark
-  p: [70, 55, 40],     // pillow
-  P: [85, 70, 55],     // pillow highlight
+  b: [55, 75, 110],    // blanket blue
+  B: [70, 90, 130],    // blanket highlight
+  d: [40, 55, 80],     // blanket dark
+  p: [180, 170, 150],  // pillow cream
+  P: [200, 190, 170],  // pillow highlight
+  m: [120, 100, 70],   // mat/frame
+  M: [140, 120, 85],   // mat highlight
 };
 
 export const OBJ_SLEEPING_BAG: PixelPattern = {
@@ -412,17 +414,17 @@ export const OBJ_SLEEPING_BAG: PixelPattern = {
     '................',
     '................',
     '................',
+    '....MMMMM.......',
+    '...MpPPPpM......',
+    '...MpPPPpM......',
+    '...MdbbBbM......',
+    '...MdbBBbM......',
+    '...MdbbBbM......',
+    '...MdbBBbM......',
+    '...MdbbBbM......',
+    '...MdddddM......',
+    '....mmmmmm......',
     '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '....pPPp........',
-    '...dbbBBbd......',
-    '...dbbbBbd......',
-    '...dbbBBbd......',
-    '....dddddd......',
     '................',
     '................',
   ],
