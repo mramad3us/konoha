@@ -338,10 +338,21 @@ function pickWeightedRank(seed: number): MissionRank {
   return 'D';
 }
 
-const D_RANK_TEMPLATES: MissionTemplate[] = [D_RANK_DELIVERY, D_RANK_SEARCH, D_RANK_PATROL];
+/** Get the highest mission rank the player can currently take */
+function getHighestAccessibleRank(
+  playerRank: ShinobiRank,
+  completedLog: Record<MissionRank, number>,
+): MissionRank {
+  const ranks: MissionRank[] = ['A', 'B', 'C', 'D'];
+  for (const r of ranks) {
+    if (canTakeMission(r, playerRank, completedLog).allowed) return r;
+  }
+  return 'D';
+}
 
-function generateDRankMission(seed: number, day: number): Mission {
-  const template = D_RANK_TEMPLATES[seed % D_RANK_TEMPLATES.length];
+function generateMissionOfRank(seed: number, day: number, rank: MissionRank): Mission {
+  const templates = ALL_TEMPLATES.filter(t => t.rank === rank);
+  const template = templates[seed % templates.length];
   const titleIdx = (seed >> 4) % template.titles.length;
   const clientIdx = (seed >> 8) % template.clients.length;
   const descIdx = (seed >> 12) % template.descriptions.length;
@@ -349,13 +360,13 @@ function generateDRankMission(seed: number, day: number): Mission {
 
   return {
     id: `mission_${++missionIdCounter}_${day}`,
-    rank: 'D',
+    rank,
     title: template.titles[titleIdx],
     client: template.clients[clientIdx],
     description: template.descriptions[descIdx],
     objective,
     postedDay: day,
-    durationDays: MISSION_EXPIRY_DAYS.D,
+    durationDays: MISSION_EXPIRY_DAYS[rank],
     templateKey: template.templateKey,
     templateData,
   };
@@ -385,18 +396,19 @@ function generateMission(seed: number, day: number): Mission {
   };
 }
 
-export function createMissionBoard(day: number): MissionBoard {
+export function createMissionBoard(day: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }): MissionBoard {
   const missions: Mission[] = [];
+  const bestRank = getHighestAccessibleRank(playerRank, completedLog);
 
-  // Guarantee at least 3 D-rank missions so genin always have work
-  const MIN_D_RANK = 3;
-  for (let i = 0; i < MIN_D_RANK; i++) {
+  // Guarantee at least 3 missions at the player's best accessible rank
+  const GUARANTEED = 3;
+  for (let i = 0; i < GUARANTEED; i++) {
     const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
-    missions.push(generateDRankMission(seed, day));
+    missions.push(generateMissionOfRank(seed, day, bestRank));
   }
 
   // Fill remaining slots with weighted random ranks
-  for (let i = MIN_D_RANK; i < BOARD_SIZE; i++) {
+  for (let i = GUARANTEED; i < BOARD_SIZE; i++) {
     const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
     missions.push(generateMission(seed, day));
   }
@@ -404,7 +416,7 @@ export function createMissionBoard(day: number): MissionBoard {
   return { missions, lastRefreshDay: day };
 }
 
-export function refreshMissionBoard(board: MissionBoard, currentDay: number): void {
+export function refreshMissionBoard(board: MissionBoard, currentDay: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }): void {
   if (currentDay <= board.lastRefreshDay) return;
 
   board.missions = board.missions.filter(m => {
@@ -412,16 +424,17 @@ export function refreshMissionBoard(board: MissionBoard, currentDay: number): vo
     return currentDay <= expiryDay;
   });
 
-  // Ensure at least 3 D-rank on the board after refill
-  const dCount = board.missions.filter(m => m.rank === 'D').length;
+  // Ensure at least 3 of the player's best accessible rank on the board
+  const bestRank = getHighestAccessibleRank(playerRank, completedLog);
+  const accessibleCount = board.missions.filter(m => m.rank === bestRank).length;
   let slotIdx = board.missions.length;
-  let dNeeded = Math.max(0, 3 - dCount);
+  let needed = Math.max(0, 3 - accessibleCount);
 
   while (board.missions.length < BOARD_SIZE) {
     const seed = cellHash(currentDay * 1000 + slotIdx, currentDay * 13 + slotIdx * 37);
-    if (dNeeded > 0) {
-      board.missions.push(generateDRankMission(seed, currentDay));
-      dNeeded--;
+    if (needed > 0) {
+      board.missions.push(generateMissionOfRank(seed, currentDay, bestRank));
+      needed--;
     } else {
       board.missions.push(generateMission(seed, currentDay));
     }

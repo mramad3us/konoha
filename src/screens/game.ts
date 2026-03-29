@@ -477,11 +477,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }
 
     // Refresh board for current day
-    const currentDay = getGameDay(world.gameTimeSeconds);
-    refreshMissionBoard(world.missionBoard, currentDay);
-
     const playerSheet = world.characterSheets.get(world.playerEntityId);
     const playerRank = playerSheet?.rank ?? 'genin';
+    const currentDay = getGameDay(world.gameTimeSeconds);
+    refreshMissionBoard(world.missionBoard, currentDay, playerRank, world.missionLog.completed);
 
     const chosenId = await missionBoardUI.show(
       world.missionBoard, world.missionLog, playerRank, world.gameTimeSeconds,
