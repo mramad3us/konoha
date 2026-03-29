@@ -50,7 +50,7 @@ export class World {
   gameLog: GameLogEntry[] = [];
 
   // Pending interaction (set by turnSystem, consumed by game.ts)
-  _pendingInteraction: { entityId: number; type: string } | null = null;
+  _pendingInteraction: { entityId: number; type: string; candidates?: number[] } | null = null;
 
   // Spatial hash for O(1) entity position lookups
   private entityGrid = new Map<string, Set<EntityId>>();

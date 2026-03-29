@@ -1,6 +1,6 @@
 /**
  * Building stamper — stamps rectangular buildings onto a TileMap.
- * Handles walls, floors, doors, and roofs.
+ * Supports multi-room layouts with internal walls and connecting doors.
  */
 
 import { TileMap } from './tileMap.ts';
@@ -18,11 +18,25 @@ export interface BuildingTemplate {
   label?: string;      // for debugging
 }
 
+/** Internal wall divider within a building */
+export interface InternalWall {
+  /** 'h' = horizontal wall (runs left-right), 'v' = vertical wall (runs top-bottom) */
+  orientation: 'h' | 'v';
+  /** Absolute position of the wall row (h) or column (v) */
+  pos: number;
+  /** Start of wall (absolute x for 'h', absolute y for 'v') */
+  from: number;
+  /** End of wall (absolute x for 'h', absolute y for 'v'), inclusive */
+  to: number;
+  /** Offset along wall where a door is placed (absolute coord). undefined = no door */
+  doorAt?: number;
+}
+
 /**
  * Stamp a building onto the tilemap.
  * Creates walls around the perimeter, floor inside, and a door on one side.
+ * Returns the door position { x, y } for entity spawning.
  */
-/** Returns the door position { x, y } for entity spawning */
 export function stampBuilding(map: TileMap, b: BuildingTemplate): { doorX: number; doorY: number } {
   const floor = b.floorType ?? 'wooden_floor';
   const doorOff = b.doorOffset ?? Math.floor(b.w / 2);
@@ -77,6 +91,35 @@ export function stampBuilding(map: TileMap, b: BuildingTemplate): { doorX: numbe
   }
 
   return { doorX, doorY };
+}
+
+/**
+ * Stamp internal walls inside an already-stamped building.
+ * Call AFTER stampBuilding(). Places wall tiles along the specified line
+ * and a door tile at the optional doorAt position.
+ */
+export function stampInternalWalls(map: TileMap, walls: InternalWall[]): void {
+  for (const w of walls) {
+    if (w.orientation === 'h') {
+      // Horizontal wall: fixed y = w.pos, x runs from w.from to w.to
+      for (let x = w.from; x <= w.to; x++) {
+        if (w.doorAt !== undefined && x === w.doorAt) {
+          map.setTile(x, w.pos, 'door');
+        } else {
+          map.setTile(x, w.pos, 'building_wall');
+        }
+      }
+    } else {
+      // Vertical wall: fixed x = w.pos, y runs from w.from to w.to
+      for (let y = w.from; y <= w.to; y++) {
+        if (w.doorAt !== undefined && y === w.doorAt) {
+          map.setTile(w.pos, y, 'door');
+        } else {
+          map.setTile(w.pos, y, 'building_wall');
+        }
+      }
+    }
+  }
 }
 
 /**

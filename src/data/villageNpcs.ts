@@ -285,7 +285,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Academy Instructor ──
   spawnNpc(world, {
-    x: 64, y: 16, name: 'Daikichi-sensei', accents: ACCENTS_JONIN_3,
+    x: 64, y: 14, name: 'Daikichi-sensei', accents: ACCENTS_JONIN_3,
     rank: 'jounin', title: 'Academy Instructor', charClass: 'shinobi',
     skills: { taijutsu: 50, bukijutsu: 45, ninjutsu: 55, genjutsu: 30, med: 15 },
     stats: { phy: 35, cha: 40, men: 35, soc: 50 },
@@ -363,7 +363,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   });
 
   spawnNpc(world, {
-    x: 27, y: 88, name: 'Nurse Kabuki', accents: ACCENTS_MEDIC_2,
+    x: 27, y: 86, name: 'Nurse Kabuki', accents: ACCENTS_MEDIC_2,
     rank: 'chuunin', title: 'Medical Ninja', charClass: 'shinobi',
     skills: { taijutsu: 15, bukijutsu: 8, ninjutsu: 30, genjutsu: 10, med: 55 },
     stats: { phy: 18, cha: 35, men: 30, soc: 30 },
@@ -459,7 +459,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     belt: [100, 95, 110], beltHighlight: [120, 115, 130],
   };
   const hyugaNames = ['Hiashi', 'Neji', 'Hanabi', 'Ko'];
-  const hyugaPos = [{ x: 16, y: 12 }, { x: 28, y: 12 }, { x: 14, y: 22 }, { x: 24, y: 22 }];
+  const hyugaPos = [{ x: 16, y: 12 }, { x: 33, y: 10 }, { x: 14, y: 22 }, { x: 24, y: 22 }];
   for (let i = 0; i < hyugaNames.length; i++) {
     spawnNpc(world, {
       x: hyugaPos[i].x, y: hyugaPos[i].y, name: hyugaNames[i], accents: hyugaAccent,

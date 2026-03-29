@@ -27,6 +27,7 @@ export class InputSystem {
   private lastInputTime = 0;
   private onSleep: (() => void) | null = null;
   private onContextMenu: ((entityId: number) => void) | null = null;
+  private onTargetSelect: ((candidates: number[]) => void) | null = null;
 
   constructor(
     world: World,
@@ -162,6 +163,8 @@ export class InputSystem {
 
       if (interaction.type === 'sleep' && this.onSleep) {
         this.onSleep();
+      } else if (interaction.type === 'target_select' && this.onTargetSelect && interaction.candidates) {
+        this.onTargetSelect(interaction.candidates);
       } else if (interaction.type === 'context_menu' && this.onContextMenu) {
         this.onContextMenu(interaction.entityId);
       }
@@ -181,6 +184,11 @@ export class InputSystem {
   /** Set callback for universal context menu */
   setContextMenuCallback(cb: (entityId: number) => void): void {
     this.onContextMenu = cb;
+  }
+
+  /** Set callback for target selection (multiple interactables nearby) */
+  setTargetSelectCallback(cb: (candidates: number[]) => void): void {
+    this.onTargetSelect = cb;
   }
 
   /** Remove event listener */

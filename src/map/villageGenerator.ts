@@ -19,7 +19,7 @@ import type { TileType } from '../types/tiles.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina } from '../engine/derivedStats.ts';
-import { stampBuilding, stampRoad, stampRiver, fillRect } from './buildingStamper.ts';
+import { stampBuilding, stampInternalWalls, stampRoad, stampRiver, fillRect } from './buildingStamper.ts';
 import { spawnVillageNpcs } from '../data/villageNpcs.ts';
 import { spawnVillageObjects, spawnDoor } from '../data/villageObjects.ts';
 import {
@@ -164,100 +164,232 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   // ╔══════════════════════════════════════╗
   // ║  LAYER 3-4: BUILDING PLOTS + STAMP   ║
   // ║  (buildings LAST so walls never erased║
+  // ║  Multi-room with internal walls       ║
   // ╚══════════════════════════════════════╝
 
-  // --- GOVERNMENT QUARTER (stone, south of river, west of main avenue) ---
-  stampBuilding(tileMap, { x: 58, y: 72, w: 16, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 8, label: 'Hokage Tower' });
-  stampBuilding(tileMap, { x: 60, y: 85, w: 12, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Mission Desk' });
-  stampBuilding(tileMap, { x: 60, y: 92, w: 8, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Council Room' });
+  // ─── GOVERNMENT QUARTER (stone, south of river, west of main avenue) ───
 
-  // --- ACADEMY DISTRICT (north, near main avenue) ---
-  stampBuilding(tileMap, { x: 58, y: 12, w: 16, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 8, label: 'Academy' });
-  stampBuilding(tileMap, { x: 78, y: 12, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 's', doorOffset: 4, label: 'Library' });
-  stampBuilding(tileMap, { x: 58, y: 32, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 2, label: 'Instructor Office' });
+  // Hokage Tower: 20×12 — Office (top), meeting room (bottom-left), archive (bottom-right)
+  stampBuilding(tileMap, { x: 55, y: 72, w: 20, h: 12, floorType: 'stone', doorSide: 's', doorOffset: 10, label: 'Hokage Tower' });
+  stampInternalWalls(tileMap, [
+    // Horizontal wall splitting top office from bottom rooms at y=78
+    { orientation: 'h', pos: 78, from: 56, to: 73, doorAt: 65 },
+    // Vertical wall splitting bottom into meeting room (left) and archive (right) at x=65
+    { orientation: 'v', pos: 65, from: 79, to: 81, doorAt: 80 },
+  ]);
 
-  // --- COMMERCIAL STRIP (both sides of main avenue) ---
-  // West side of avenue — doors face east toward the road
-  stampBuilding(tileMap, { x: 62, y: 97, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Konoha Kitchen' });
-  stampBuilding(tileMap, { x: 62, y: 105, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 2, label: 'Tea House' });
-  stampBuilding(tileMap, { x: 62, y: 112, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Inn' });
-  // East side of avenue — doors face west toward the road
-  stampBuilding(tileMap, { x: 80, y: 97, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'Barbershop' });
-  stampBuilding(tileMap, { x: 80, y: 104, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'Dango Shop' });
-  stampBuilding(tileMap, { x: 80, y: 111, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'General Store' });
+  // Mission Desk: 14×7 — Counter area (front), back office
+  stampBuilding(tileMap, { x: 58, y: 86, w: 14, h: 7, floorType: 'stone', doorSide: 's', doorOffset: 7, label: 'Mission Desk' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 89, from: 59, to: 70, doorAt: 64 },
+  ]);
 
-  // --- MARKET PLAZA (east side, buildings face the square) ---
-  stampBuilding(tileMap, { x: 98, y: 72, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 's', doorOffset: 3, label: 'Weapons Shop' });
-  stampBuilding(tileMap, { x: 108, y: 72, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 's', doorOffset: 3, label: 'Supply Shop' });
-  stampBuilding(tileMap, { x: 118, y: 72, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 's', doorOffset: 3, label: 'Scroll Shop' });
-  stampBuilding(tileMap, { x: 128, y: 72, w: 8, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Forge' });
-  stampBuilding(tileMap, { x: 98, y: 88, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Clothing Shop' });
-  stampBuilding(tileMap, { x: 108, y: 88, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Food Stall' });
+  // Council Chamber: 10×7 — Single room with table
+  stampBuilding(tileMap, { x: 55, y: 93, w: 10, h: 6, floorType: 'stone', doorSide: 'e', doorOffset: 3, label: 'Council Room' });
 
-  // --- HOSPITAL (west, faces market road) ---
-  stampBuilding(tileMap, { x: 18, y: 82, w: 14, h: 10, floorType: 'stone', doorSide: 'e', doorOffset: 5, label: 'Hospital' });
-  stampBuilding(tileMap, { x: 18, y: 94, w: 8, h: 5, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Clinic' });
+  // ─── ACADEMY DISTRICT (north, near main avenue) ───
 
-  // --- RESIDENTIAL WEST (houses face residential lane or cross-streets) ---
-  // Row 1: y=102-107, facing east toward lane at x=30
-  stampBuilding(tileMap, { x: 10, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 20, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 34, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 44, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  // Row 2: y=117-122
-  stampBuilding(tileMap, { x: 10, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 20, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 34, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 44, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
+  // Academy: 20×10 — Main classroom (top-left), practice hall (top-right), storage (bottom)
+  stampBuilding(tileMap, { x: 56, y: 10, w: 20, h: 10, floorType: 'stone', doorSide: 's', doorOffset: 10, label: 'Academy' });
+  stampInternalWalls(tileMap, [
+    // Vertical wall: classroom (left) | practice hall (right) at x=66
+    { orientation: 'v', pos: 66, from: 11, to: 15, doorAt: 13 },
+    // Horizontal wall: top rooms | bottom corridor at y=16
+    { orientation: 'h', pos: 16, from: 57, to: 74, doorAt: 62 },
+  ]);
 
-  // --- RESIDENTIAL EAST ---
-  stampBuilding(tileMap, { x: 98, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 110, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 124, y: 102, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 98, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 110, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
-  stampBuilding(tileMap, { x: 124, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
+  // Library: 10×8 — Reading room (front), restricted section (back)
+  stampBuilding(tileMap, { x: 78, y: 10, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 's', doorOffset: 5, label: 'Library' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 14, from: 79, to: 86, doorAt: 83 },
+  ]);
 
-  // --- HYUGA COMPOUND (northwest, mini-village) ---
-  // Outer wall
-  fillRect(tileMap, 8, 6, 32, 24, 'stone'); // stone ground for entire compound
-  // Main hall
-  stampBuilding(tileMap, { x: 12, y: 8, w: 12, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Hyuga Main Hall' });
-  // Training dojo
-  stampBuilding(tileMap, { x: 26, y: 8, w: 10, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 5, label: 'Hyuga Dojo' });
-  // Residences
-  stampBuilding(tileMap, { x: 12, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Hyuga House' });
-  stampBuilding(tileMap, { x: 22, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Hyuga House' });
-  // Pond (decorative water feature)
-  fillRect(tileMap, 32, 16, 6, 4, 'water');
-  // Internal paths
-  stampRoad(tileMap, 18, 16, 30, 16, 2);
-  // Sand training area
-  fillRect(tileMap, 26, 15, 8, 4, 'sand');
+  // Instructor Office: 8×6
+  stampBuilding(tileMap, { x: 56, y: 32, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Instructor Office' });
 
-  // --- UCHIHA COMPOUND (northeast, mini-village) ---
-  fillRect(tileMap, 108, 6, 32, 24, 'stone');
-  // Main hall (larger)
-  stampBuilding(tileMap, { x: 112, y: 8, w: 14, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 7, label: 'Uchiha Main Hall' });
-  // Armory
-  stampBuilding(tileMap, { x: 128, y: 8, w: 8, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Uchiha Armory' });
-  // Residences
-  stampBuilding(tileMap, { x: 112, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
-  stampBuilding(tileMap, { x: 122, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
-  stampBuilding(tileMap, { x: 132, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
-  // Training yard
-  fillRect(tileMap, 128, 16, 8, 4, 'sand');
-  // Internal paths
-  stampRoad(tileMap, 118, 16, 136, 16, 2);
-  // Decorative pond
-  fillRect(tileMap, 110, 18, 4, 3, 'water');
+  // ─── COMMERCIAL STRIP (both sides of main avenue) ───
 
-  // --- GATE GUARD POSTS ---
-  stampBuilding(tileMap, { x: 68, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Guard Post' });
-  stampBuilding(tileMap, { x: 88, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'w', doorOffset: 2, label: 'Guard Post' });
+  // Konoha Kitchen: 10×8 — Dining area (front), kitchen (back)
+  stampBuilding(tileMap, { x: 62, y: 97, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 4, label: 'Konoha Kitchen' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'v', pos: 67, from: 98, to: 103, doorAt: 100 },
+  ]);
 
-  // --- SHRINE (east, on platform) ---
-  stampBuilding(tileMap, { x: 143, y: 73, w: 6, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 3, label: 'Shrine' });
+  // Tea House: 9×6 — Seating (front), prep room (back)
+  stampBuilding(tileMap, { x: 62, y: 107, w: 9, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Tea House' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'v', pos: 67, from: 108, to: 111, doorAt: 109 },
+  ]);
+
+  // Inn: 12×10 — Lobby (front), room 1 (back-left), room 2 (back-right)
+  stampBuilding(tileMap, { x: 60, y: 115, w: 12, h: 10, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 5, label: 'Inn' });
+  stampInternalWalls(tileMap, [
+    // Horizontal wall: lobby (bottom) | rooms (top) at y=119
+    { orientation: 'h', pos: 119, from: 61, to: 70, doorAt: 64 },
+    // Vertical wall: room 1 (left) | room 2 (right) at x=66
+    { orientation: 'v', pos: 66, from: 116, to: 118, doorAt: 117 },
+  ]);
+
+  // East side of avenue
+  // Barbershop: 8×6
+  stampBuilding(tileMap, { x: 80, y: 97, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'Barbershop' });
+
+  // Dango Shop: 8×6
+  stampBuilding(tileMap, { x: 80, y: 105, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'Dango Shop' });
+
+  // General Store: 10×7 — Front shop, back storage
+  stampBuilding(tileMap, { x: 80, y: 113, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'General Store' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'v', pos: 85, from: 114, to: 118, doorAt: 116 },
+  ]);
+
+  // ─── MARKET PLAZA (east side, buildings face the square) ───
+
+  // Weapons Shop: 9×7 — Showroom (front), forge room (back)
+  stampBuilding(tileMap, { x: 98, y: 72, w: 9, h: 7, floorType: 'wooden_floor', doorSide: 's', doorOffset: 4, label: 'Weapons Shop' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 75, from: 99, to: 105, doorAt: 102 },
+  ]);
+
+  // Supply Shop: 9×7 — Front counter, back storage
+  stampBuilding(tileMap, { x: 109, y: 72, w: 9, h: 7, floorType: 'wooden_floor', doorSide: 's', doorOffset: 4, label: 'Supply Shop' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 75, from: 110, to: 116, doorAt: 113 },
+  ]);
+
+  // Scroll Shop: 9×7
+  stampBuilding(tileMap, { x: 120, y: 72, w: 9, h: 7, floorType: 'wooden_floor', doorSide: 's', doorOffset: 4, label: 'Scroll Shop' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 75, from: 121, to: 127, doorAt: 124 },
+  ]);
+
+  // Forge: 10×8 — Front shop, back forge area
+  stampBuilding(tileMap, { x: 131, y: 72, w: 10, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 5, label: 'Forge' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 76, from: 132, to: 139, doorAt: 135 },
+  ]);
+
+  // Clothing Shop: 9×6
+  stampBuilding(tileMap, { x: 98, y: 88, w: 9, h: 6, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 4, label: 'Clothing Shop' });
+
+  // Food Stall: 8×5
+  stampBuilding(tileMap, { x: 109, y: 88, w: 8, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 4, label: 'Food Stall' });
+
+  // ─── HOSPITAL (west, faces market road) ───
+
+  // Hospital: 18×12 — Ward 1 (top-left), Ward 2 (top-right), Treatment (bottom-left), Supply (bottom-right)
+  stampBuilding(tileMap, { x: 15, y: 82, w: 18, h: 12, floorType: 'stone', doorSide: 'e', doorOffset: 5, label: 'Hospital' });
+  stampInternalWalls(tileMap, [
+    // Vertical wall: left wards | right corridor at x=24
+    { orientation: 'v', pos: 24, from: 83, to: 92, doorAt: 86 },
+    // Horizontal wall: top ward | bottom ward at y=88
+    { orientation: 'h', pos: 88, from: 16, to: 23, doorAt: 19 },
+    // Horizontal wall in right side: treatment | supply at y=88
+    { orientation: 'h', pos: 88, from: 25, to: 31, doorAt: 28 },
+  ]);
+
+  // Clinic: 10×6
+  stampBuilding(tileMap, { x: 15, y: 96, w: 10, h: 6, floorType: 'stone', doorSide: 'e', doorOffset: 3, label: 'Clinic' });
+
+  // ─── RESIDENTIAL WEST ───
+  // Houses: 10×8 each — Living room (front), bedroom (back)
+  // Row 1
+  stampBuilding(tileMap, { x: 8, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House W1' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 9, to: 16, doorAt: 12 }]);
+
+  stampBuilding(tileMap, { x: 20, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House W2' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 21, to: 28, doorAt: 24 }]);
+
+  stampBuilding(tileMap, { x: 34, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House W3' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 35, to: 42, doorAt: 38 }]);
+
+  stampBuilding(tileMap, { x: 46, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House W4' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 47, to: 54, doorAt: 50 }]);
+
+  // Row 2
+  stampBuilding(tileMap, { x: 8, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House W5' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 9, to: 16, doorAt: 12 }]);
+
+  stampBuilding(tileMap, { x: 20, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House W6' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 21, to: 28, doorAt: 24 }]);
+
+  stampBuilding(tileMap, { x: 34, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House W7' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 35, to: 42, doorAt: 38 }]);
+
+  stampBuilding(tileMap, { x: 46, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House W8' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 47, to: 54, doorAt: 50 }]);
+
+  // ─── RESIDENTIAL EAST ───
+  stampBuilding(tileMap, { x: 96, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House E1' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 97, to: 104, doorAt: 100 }]);
+
+  stampBuilding(tileMap, { x: 110, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House E2' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 111, to: 118, doorAt: 114 }]);
+
+  stampBuilding(tileMap, { x: 124, y: 102, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House E3' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 106, from: 125, to: 132, doorAt: 128 }]);
+
+  stampBuilding(tileMap, { x: 96, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'House E4' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 97, to: 104, doorAt: 100 }]);
+
+  stampBuilding(tileMap, { x: 110, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House E5' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 111, to: 118, doorAt: 114 }]);
+
+  stampBuilding(tileMap, { x: 124, y: 117, w: 10, h: 8, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House E6' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 121, from: 125, to: 132, doorAt: 128 }]);
+
+  // ─── HYUGA COMPOUND (northwest, mini-village) ───
+  fillRect(tileMap, 8, 6, 34, 26, 'stone');
+  // Main hall: 16×10 — Audience hall + back meditation room
+  stampBuilding(tileMap, { x: 10, y: 7, w: 16, h: 10, floorType: 'stone', doorSide: 's', doorOffset: 8, label: 'Hyuga Main Hall' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 13, from: 11, to: 24, doorAt: 18 },
+  ]);
+  // Training dojo: 12×8
+  stampBuilding(tileMap, { x: 28, y: 7, w: 12, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Hyuga Dojo' });
+  // Residences: 10×7 each with bedroom
+  stampBuilding(tileMap, { x: 10, y: 21, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 5, label: 'Hyuga House 1' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 24, from: 11, to: 18, doorAt: 14 }]);
+
+  stampBuilding(tileMap, { x: 22, y: 21, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 5, label: 'Hyuga House 2' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 24, from: 23, to: 30, doorAt: 26 }]);
+
+  // Pond + sand + paths
+  fillRect(tileMap, 34, 18, 6, 4, 'water');
+  stampRoad(tileMap, 16, 17, 32, 17, 2);
+  fillRect(tileMap, 28, 16, 10, 4, 'sand');
+
+  // ─── UCHIHA COMPOUND (northeast, mini-village) ───
+  fillRect(tileMap, 106, 6, 38, 26, 'stone');
+  // Main hall: 18×10 — Audience + armory back
+  stampBuilding(tileMap, { x: 108, y: 7, w: 18, h: 10, floorType: 'stone', doorSide: 's', doorOffset: 9, label: 'Uchiha Main Hall' });
+  stampInternalWalls(tileMap, [
+    { orientation: 'h', pos: 13, from: 109, to: 124, doorAt: 117 },
+    { orientation: 'v', pos: 118, from: 14, to: 15, doorAt: 14 },
+  ]);
+  // Armory: 10×7
+  stampBuilding(tileMap, { x: 128, y: 7, w: 12, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Uchiha Armory' });
+  // Residences: 10×7 each
+  stampBuilding(tileMap, { x: 108, y: 21, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 5, label: 'Uchiha House 1' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 24, from: 109, to: 116, doorAt: 112 }]);
+
+  stampBuilding(tileMap, { x: 120, y: 21, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 5, label: 'Uchiha House 2' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 24, from: 121, to: 128, doorAt: 124 }]);
+
+  stampBuilding(tileMap, { x: 132, y: 21, w: 10, h: 7, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 5, label: 'Uchiha House 3' });
+  stampInternalWalls(tileMap, [{ orientation: 'h', pos: 24, from: 133, to: 140, doorAt: 136 }]);
+
+  // Training + paths + pond
+  fillRect(tileMap, 128, 16, 10, 4, 'sand');
+  stampRoad(tileMap, 114, 17, 138, 17, 2);
+  fillRect(tileMap, 108, 18, 4, 3, 'water');
+
+  // ─── GATE GUARD POSTS ───
+  stampBuilding(tileMap, { x: 66, y: 147, w: 6, h: 5, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Guard Post W' });
+  stampBuilding(tileMap, { x: 88, y: 147, w: 6, h: 5, floorType: 'stone', doorSide: 'w', doorOffset: 2, label: 'Guard Post E' });
+
+  // ─── SHRINE (east, on platform) ───
+  stampBuilding(tileMap, { x: 143, y: 73, w: 8, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Shrine' });
 
   // ╔══════════════════════════════════════╗
   // ║  CREATE WORLD + PLAYER               ║

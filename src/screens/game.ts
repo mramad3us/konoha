@@ -16,6 +16,7 @@ import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.
 import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
+import { interactWithEntity } from '../engine/turnSystem.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -304,6 +305,74 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.currentTick += 1;
     } else if (choice === 'use_sleep') {
       doSleep();
+    }
+
+    hud.update(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+  });
+
+  // Target selector — when multiple interactables are nearby, pick one first
+  const targetMenu = new ContextMenu();
+  inputSystem.setTargetSelectCallback(async (candidates: number[]) => {
+    const options = candidates.map(eid => {
+      const name = world.names.get(eid)?.display ?? 'Unknown';
+      const door = world.doors.get(eid);
+      const label = door
+        ? `${door.isOpen ? 'Close' : 'Open'} door`
+        : name;
+      return { id: String(eid), label };
+    });
+
+    const choice = await targetMenu.show('Interact with...', options);
+    if (choice === null) return;
+
+    const chosenId = Number(choice);
+    interactWithEntity(world, chosenId, world.playerEntityId);
+
+    // After interacting, check if a context menu was triggered
+    if (world._pendingInteraction?.type === 'context_menu') {
+      const interaction = world._pendingInteraction;
+      world._pendingInteraction = null;
+      const name = world.names.get(interaction.entityId)?.display ?? 'Unknown';
+      const ctxOptions = buildContextOptions(world, interaction.entityId, TRAINING_GROUNDS_FLAGS);
+      if (ctxOptions.length === 0) {
+        world.log('Nothing to do here.', 'info');
+        return;
+      }
+      const ctxChoice = await contextMenu.show(name, ctxOptions);
+      // Handle context menu choice (reuse same logic)
+      if (ctxChoice === 'examine') {
+        const lines = getExamineText(world, interaction.entityId);
+        for (const line of lines) world.log(line, 'info');
+      } else if (ctxChoice === 'revive') {
+        reviveEntity(world, interaction.entityId, 0.3);
+        world.gameTimeSeconds += 6; world.currentTick += 1;
+      } else if (ctxChoice === 'kill') {
+        killEntity(world, interaction.entityId, world.playerEntityId);
+        world.gameTimeSeconds += 2; world.currentTick += 1;
+      } else if (ctxChoice === 'assassinate') {
+        killEntity(world, interaction.entityId, world.playerEntityId, true);
+        world.gameTimeSeconds += 2; world.currentTick += 1;
+      } else if (ctxChoice === 'patch_up') {
+        stopBleeding(world, interaction.entityId);
+        world.gameTimeSeconds += 2; world.currentTick += 1;
+        const playerSheet = world.characterSheets.get(world.playerEntityId);
+        if (playerSheet) playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
+      } else if (ctxChoice === 'first_aid') {
+        const targetHp = world.healths.get(interaction.entityId);
+        const playerSheet = world.characterSheets.get(world.playerEntityId);
+        if (targetHp && playerSheet) {
+          const healPct = (5 + Math.floor(playerSheet.skills.med / 4)) / 100;
+          const healAmount = Math.max(1, Math.floor(targetHp.max * healPct));
+          targetHp.current = Math.min(targetHp.max, targetHp.current + healAmount);
+          const targetName = world.names.get(interaction.entityId)?.display ?? 'them';
+          world.log(`You treat ${targetName}'s wounds. (+${healAmount} HP)`, 'info');
+          playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
+        }
+        world.gameTimeSeconds += 6; world.currentTick += 1;
+      } else if (ctxChoice === 'use_sleep') {
+        doSleep();
+      }
     }
 
     hud.update(world);

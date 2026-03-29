@@ -179,56 +179,82 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'interact': {
-      // Find adjacent entity
+      // Collect ALL interactable adjacent entities
+      const candidates: number[] = [];
       for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           if (dx === 0 && dy === 0) continue;
           const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
           for (const eid of entities) {
             if (eid === playerId) continue;
-
-            // Doors toggle immediately (no context menu)
-            const door = world.doors.get(eid);
-            if (door) {
-              door.isOpen = !door.isOpen;
-              const renderable = world.renderables.get(eid);
-              const blocking = world.blockings.get(eid);
-              if (renderable) renderable.spriteId = door.isOpen ? 'obj_door_open' : 'obj_door_closed';
-              if (blocking) {
-                blocking.blocksMovement = !door.isOpen;
-                blocking.blocksSight = !door.isOpen;
-              }
-              const interactable = world.interactables.get(eid);
-              if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
-              world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');
-              advanceTurn(world, 1, 2);
-              return true;
-            }
-
-            // Examine-only objects: skip menu, log description directly
+            const isDoor = world.doors.has(eid);
             const hasObjectSheet = world.objectSheets.has(eid);
             const hasCharSheet = world.characterSheets.has(eid);
             const hasSpecialInteract = world.interactables.has(eid);
-            const isNpc = hasCharSheet;
-
-            if (hasObjectSheet && !isNpc && !hasSpecialInteract) {
-              // Simple object — just examine directly
-              const sheet = world.objectSheets.get(eid)!;
-              const name = world.names.get(eid)?.display ?? 'something';
-              world.log(`${name}: ${sheet.description}`, 'info');
-              return false;
-            }
-
-            if (hasObjectSheet || hasCharSheet || hasSpecialInteract) {
-              // Complex entity — open context menu
-              world._pendingInteraction = { entityId: eid, type: 'context_menu' };
-              return false;
+            if (isDoor || hasObjectSheet || hasCharSheet || hasSpecialInteract) {
+              candidates.push(eid);
             }
           }
         }
       }
-      world.log('Nothing to interact with nearby.', 'info');
-      return false;
+
+      if (candidates.length === 0) {
+        world.log('Nothing to interact with nearby.', 'info');
+        return false;
+      }
+
+      // Multiple candidates — show target selector first
+      if (candidates.length > 1) {
+        world._pendingInteraction = { entityId: candidates[0], type: 'target_select', candidates };
+        return false;
+      }
+
+      // Single candidate — interact directly
+      return interactWithEntity(world, candidates[0], playerId);
     }
   }
+}
+
+/**
+ * Interact with a specific entity. Handles doors, simple examine, and complex context menus.
+ * Exported so the target selector can call this after the player picks a target.
+ */
+export function interactWithEntity(world: World, eid: number, _playerId?: number): boolean {
+  // Doors toggle immediately
+  const door = world.doors.get(eid);
+  if (door) {
+    door.isOpen = !door.isOpen;
+    const renderable = world.renderables.get(eid);
+    const blocking = world.blockings.get(eid);
+    if (renderable) renderable.spriteId = door.isOpen ? 'obj_door_open' : 'obj_door_closed';
+    if (blocking) {
+      blocking.blocksMovement = !door.isOpen;
+      blocking.blocksSight = !door.isOpen;
+    }
+    const interactable = world.interactables.get(eid);
+    if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
+    world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');
+    advanceTurn(world, 1, 2);
+    return true;
+  }
+
+  // Examine-only objects: skip menu, log description directly
+  const hasObjectSheet = world.objectSheets.has(eid);
+  const hasCharSheet = world.characterSheets.has(eid);
+  const hasSpecialInteract = world.interactables.has(eid);
+  const isNpc = hasCharSheet;
+
+  if (hasObjectSheet && !isNpc && !hasSpecialInteract) {
+    const sheet = world.objectSheets.get(eid)!;
+    const name = world.names.get(eid)?.display ?? 'something';
+    world.log(`${name}: ${sheet.description}`, 'info');
+    return false;
+  }
+
+  if (hasObjectSheet || hasCharSheet || hasSpecialInteract) {
+    world._pendingInteraction = { entityId: eid, type: 'context_menu' };
+    return false;
+  }
+
+  return false;
 }
