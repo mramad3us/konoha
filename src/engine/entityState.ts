@@ -102,7 +102,7 @@ export function knockUnconscious(
   if (renderable) {
     const spriteBase = renderable.spriteId.replace(/_[snew]$/, '');
     renderable.spriteId = `${spriteBase}_prone`;
-    renderable.offsetY = -4;
+    renderable.offsetY = -14;
   }
 
   // Disable blocking (can walk over unconscious bodies)
