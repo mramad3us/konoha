@@ -64,6 +64,8 @@ export function findAdjacentTarget(world: World): EntityId | null {
       const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
       for (const eid of entities) {
         if (eid === world.playerEntityId) continue;
+        // Skip unconscious and dead entities — can't fight them
+        if (world.unconscious.has(eid) || world.dead.has(eid)) continue;
         if (world.combatStats.has(eid) || world.healths.has(eid)) return eid;
       }
     }
