@@ -264,7 +264,7 @@ const ANBU_BODIES: BodyOverrides = {
     '...hKKKKKKh.....',
     '...hKKKKKKh.....',
     '...hKKKKKKh.....',
-    '....KKKKKK......',
+    '....hKKKKh......',
     '....ooKKoo......',
     '...oOoOoOoo.....',
     '...oOoOoOoo.....',
