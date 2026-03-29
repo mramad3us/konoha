@@ -1,5 +1,6 @@
 import type { PixelPattern } from './pixelPatterns.ts';
 import { TILE_GRASS1, TILE_GRASS2, TILE_GRASS3, TILE_DIRT, TILE_STONE, TILE_FENCE, TILE_WATER, TILE_GATE } from './tiles.ts';
+import { TILE_ROAD, TILE_WOODEN_FLOOR, TILE_BUILDING_WALL, TILE_DOOR, TILE_BRIDGE, TILE_ROOF, TILE_SAND, TILE_DEEP_WATER, TILE_CLIFF } from './tilesVillage.ts';
 import {
   OBJ_DUMMY, OBJ_TREE_SMALL, OBJ_TREE_LARGE, OBJ_TREE_WILLOW,
   OBJ_BUSH_SMALL, OBJ_BUSH_BERRY, OBJ_BUSH_TALL, OBJ_BUSH_FLOWER,
@@ -39,6 +40,16 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'tile_fence',  pattern: TILE_FENCE,  displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
   { id: 'tile_water',  pattern: TILE_WATER,  displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
   { id: 'tile_gate',   pattern: TILE_GATE,   displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  // Village tiles
+  { id: 'tile_road',          pattern: TILE_ROAD,          displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_wooden_floor',  pattern: TILE_WOODEN_FLOOR,  displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_building_wall', pattern: TILE_BUILDING_WALL, displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_door',          pattern: TILE_DOOR,          displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_bridge',        pattern: TILE_BRIDGE,        displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_roof',          pattern: TILE_ROOF,          displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_sand',          pattern: TILE_SAND,          displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_deep_water',    pattern: TILE_DEEP_WATER,    displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'tile_cliff',         pattern: TILE_CLIFF,         displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
 
   // Trees
   { id: 'obj_tree_small',  pattern: OBJ_TREE_SMALL,  displayWidth: 48, displayHeight: 48, outline: true },
