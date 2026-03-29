@@ -433,7 +433,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     const rng = cellHash(d.x, d.y);
     spawnNpc(world, {
       x: d.x, y: d.y, name: d.name, accents: accent,
-      rank: 'genin', title: d.title, charClass: 'civilian',
+      rank: 'academy_student', title: d.title, charClass: 'civilian',
       skills: { taijutsu: 1, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: (rng % 3) },
       stats: {
         phy: 1 + (rng % 10),

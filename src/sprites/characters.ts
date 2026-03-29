@@ -33,15 +33,19 @@ export interface CharacterAccents {
   special?: RGB;
   /** Override skin color (e.g. porcelain white for ANBU mask) */
   skinOverride?: RGB;
+  /** Override outfit colors (civilians wear colored clothing, not black) */
+  outfitDark?: RGB;
+  outfitMid?: RGB;
+  outfitShadow?: RGB;
 }
 
 // ── BASE PALETTE (shared black outfit) ──
 
 function buildPalette(accents: CharacterAccents): Record<string, RGB> {
   return {
-    o: [26, 26, 38],       // outfit dark
-    O: [34, 34, 48],       // outfit mid
-    S: [18, 18, 28],       // outfit shadow
+    o: accents.outfitDark ?? [26, 26, 38],       // outfit dark
+    O: accents.outfitMid ?? [34, 34, 48],        // outfit mid
+    S: accents.outfitShadow ?? [18, 18, 28],     // outfit shadow
     s: [212, 165, 116],    // skin
     h: accents.hair,
     b: accents.headband,

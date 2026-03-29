@@ -167,77 +167,92 @@ export const ACCENTS_CHEF: CharacterAccents = {
 
 export const ACCENTS_CIV_FARMER: CharacterAccents = {
   hair: [70, 55, 35], headband: [70, 55, 35], pupil: [40, 35, 28],
-  belt: [110, 90, 55], beltHighlight: [130, 110, 70], // earthy brown apron
+  belt: [110, 90, 55], beltHighlight: [130, 110, 70],
+  outfitDark: [80, 65, 45], outfitMid: [95, 78, 55], outfitShadow: [65, 52, 35], // brown work clothes
 };
 
 export const ACCENTS_CIV_ELDER_M: CharacterAccents = {
   hair: [180, 175, 168], headband: [180, 175, 168], pupil: [50, 45, 40],
-  belt: [80, 70, 55], beltHighlight: [100, 90, 72], // muted grey-brown
+  belt: [80, 70, 55], beltHighlight: [100, 90, 72],
+  outfitDark: [60, 55, 50], outfitMid: [75, 70, 64], outfitShadow: [48, 44, 40], // grey robes
 };
 
 export const ACCENTS_CIV_ELDER_F: CharacterAccents = {
   hair: [160, 155, 148], headband: [160, 155, 148], pupil: [45, 40, 38],
-  belt: [120, 60, 70], beltHighlight: [140, 80, 90], // maroon kimono
+  belt: [120, 60, 70], beltHighlight: [140, 80, 90],
+  outfitDark: [100, 45, 55], outfitMid: [120, 60, 70], outfitShadow: [80, 35, 42], // maroon kimono
 };
 
 export const ACCENTS_CIV_YOUNG_M: CharacterAccents = {
   hair: [40, 35, 30], headband: [40, 35, 30], pupil: [35, 30, 25],
-  belt: [60, 80, 120], beltHighlight: [80, 100, 140], // blue work clothes
+  belt: [60, 80, 120], beltHighlight: [80, 100, 140],
+  outfitDark: [40, 55, 90], outfitMid: [55, 72, 110], outfitShadow: [30, 42, 72], // blue work clothes
 };
 
 export const ACCENTS_CIV_YOUNG_F: CharacterAccents = {
   hair: [50, 35, 25], headband: [50, 35, 25], pupil: [60, 40, 30],
-  belt: [150, 80, 90], beltHighlight: [170, 100, 110], // pink kimono
+  belt: [150, 80, 90], beltHighlight: [170, 100, 110],
+  outfitDark: [130, 60, 70], outfitMid: [150, 80, 90], outfitShadow: [110, 48, 55], // pink kimono
 };
 
 export const ACCENTS_CIV_MERCHANT: CharacterAccents = {
   hair: [60, 50, 40], headband: [60, 50, 40], pupil: [40, 35, 30],
-  belt: [160, 130, 50], beltHighlight: [180, 150, 70], // gold apron (merchant)
+  belt: [160, 130, 50], beltHighlight: [180, 150, 70],
+  outfitDark: [50, 45, 35], outfitMid: [65, 58, 45], outfitShadow: [38, 34, 28], // dark brown tunic
 };
 
 export const ACCENTS_CIV_FISHERMAN: CharacterAccents = {
   hair: [80, 65, 45], headband: [80, 65, 45], pupil: [45, 40, 35],
-  belt: [50, 80, 110], beltHighlight: [70, 100, 130], // blue work vest
+  belt: [50, 80, 110], beltHighlight: [70, 100, 130],
+  outfitDark: [35, 60, 85], outfitMid: [48, 75, 100], outfitShadow: [25, 48, 68], // navy blue vest
 };
 
 export const ACCENTS_CIV_ARTISAN: CharacterAccents = {
   hair: [45, 40, 35], headband: [45, 40, 35], pupil: [38, 33, 28],
-  belt: [90, 60, 40], beltHighlight: [110, 80, 55], // leather apron
+  belt: [90, 60, 40], beltHighlight: [110, 80, 55],
+  outfitDark: [70, 50, 35], outfitMid: [88, 65, 45], outfitShadow: [55, 38, 25], // leather brown
 };
 
 export const ACCENTS_CIV_MOTHER: CharacterAccents = {
   hair: [55, 40, 30], headband: [55, 40, 30], pupil: [45, 35, 28],
-  belt: [100, 130, 90], beltHighlight: [120, 150, 110], // green kimono
+  belt: [100, 130, 90], beltHighlight: [120, 150, 110],
+  outfitDark: [75, 100, 65], outfitMid: [90, 118, 78], outfitShadow: [60, 82, 52], // green kimono
 };
 
 export const ACCENTS_CIV_CHILD: CharacterAccents = {
   hair: [80, 60, 35], headband: [80, 60, 35], pupil: [50, 80, 50],
-  belt: [180, 140, 60], beltHighlight: [200, 160, 80], // bright yellow
+  belt: [180, 140, 60], beltHighlight: [200, 160, 80],
+  outfitDark: [150, 110, 40], outfitMid: [175, 135, 55], outfitShadow: [125, 90, 30], // bright yellow
 };
 
 export const ACCENTS_CIV_VENDOR_F: CharacterAccents = {
   hair: [30, 28, 25], headband: [30, 28, 25], pupil: [35, 30, 28],
-  belt: [140, 50, 50], beltHighlight: [165, 70, 70], // red apron
+  belt: [140, 50, 50], beltHighlight: [165, 70, 70],
+  outfitDark: [120, 38, 38], outfitMid: [140, 52, 52], outfitShadow: [95, 28, 28], // red apron outfit
 };
 
 export const ACCENTS_CIV_INNKEEPER: CharacterAccents = {
   hair: [90, 70, 50], headband: [90, 70, 50], pupil: [42, 38, 32],
-  belt: [80, 60, 45], beltHighlight: [100, 80, 60], // brown vest
+  belt: [80, 60, 45], beltHighlight: [100, 80, 60],
+  outfitDark: [62, 48, 35], outfitMid: [78, 62, 48], outfitShadow: [48, 36, 26], // brown vest
 };
 
 export const ACCENTS_CIV_BAKER: CharacterAccents = {
   hair: [65, 50, 38], headband: [65, 50, 38], pupil: [40, 35, 30],
-  belt: [190, 185, 175], beltHighlight: [210, 205, 195], // flour-white apron
+  belt: [190, 185, 175], beltHighlight: [210, 205, 195],
+  outfitDark: [170, 165, 155], outfitMid: [190, 185, 175], outfitShadow: [150, 145, 135], // flour-white
 };
 
 export const ACCENTS_CIV_TAILOR: CharacterAccents = {
   hair: [35, 30, 50], headband: [35, 30, 50], pupil: [40, 30, 50],
-  belt: [130, 80, 140], beltHighlight: [150, 100, 160], // purple sash
+  belt: [130, 80, 140], beltHighlight: [150, 100, 160],
+  outfitDark: [100, 60, 110], outfitMid: [120, 78, 130], outfitShadow: [80, 45, 88], // purple outfit
 };
 
 export const ACCENTS_CIV_GARDENER: CharacterAccents = {
   hair: [100, 80, 55], headband: [100, 80, 55], pupil: [50, 70, 40],
-  belt: [60, 100, 50], beltHighlight: [80, 120, 65], // green apron
+  belt: [60, 100, 50], beltHighlight: [80, 120, 65],
+  outfitDark: [45, 80, 38], outfitMid: [58, 95, 48], outfitShadow: [35, 65, 28], // green work clothes
 };
 
 /** All civilian accent presets for random selection */

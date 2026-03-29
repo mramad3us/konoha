@@ -147,9 +147,23 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   tileMap.setTile(77, 155, 'gate');
   tileMap.setTile(78, 155, 'gate');
 
+  // --- DEAD ZONE FILLS (before buildings!) ---
+  fillRect(tileMap, 42, 8, 14, 10, 'dirt'); // North park
+  fillRect(tileMap, 45, 10, 3, 3, 'water'); // park pond
+  stampRoad(tileMap, 42, 18, 55, 18, 2); // park path
+  fillRect(tileMap, 55, 130, 20, 10, 'dirt'); // South park
+  fillRect(tileMap, 60, 133, 4, 3, 'water'); // south park pond
+  fillRect(tileMap, 142, 72, 8, 8, 'stone'); // Shrine platform
+  fillRect(tileMap, 6, 100, 8, 12, 'dirt'); // Farm field west
+  fillRect(tileMap, 6, 115, 8, 12, 'dirt'); // Farm field 2
+  fillRect(tileMap, 73, 78, 7, 5, 'stone'); // Well plaza
+  stampRoad(tileMap, 42, 30, 55, 30, 2); // park to academy
+  stampRoad(tileMap, 90, 80, 98, 80, 2); // avenue to market
+  stampRoad(tileMap, 50, 100, 60, 100, 2); // residential to commercial
+
   // ╔══════════════════════════════════════╗
   // ║  LAYER 3-4: BUILDING PLOTS + STAMP   ║
-  // ║  (buildings face streets)             ║
+  // ║  (buildings LAST so walls never erased║
   // ╚══════════════════════════════════════╝
 
   // --- GOVERNMENT QUARTER (stone, south of river, west of main avenue) ---
@@ -242,31 +256,8 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   stampBuilding(tileMap, { x: 68, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Guard Post' });
   stampBuilding(tileMap, { x: 88, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'w', doorOffset: 2, label: 'Guard Post' });
 
-  // --- FILL DEAD ZONES ---
-  // North park (between compounds and academy)
-  fillRect(tileMap, 42, 8, 14, 10, 'dirt'); // park ground
-  fillRect(tileMap, 45, 10, 3, 3, 'water'); // small pond in park
-  stampRoad(tileMap, 42, 18, 55, 18, 2); // park path connecting to academy road
-
-  // South park (between residential and gate)
-  fillRect(tileMap, 55, 130, 20, 10, 'dirt'); // open park
-  fillRect(tileMap, 60, 133, 4, 3, 'water'); // park pond
-
-  // Shrine area (east, between river and market)
-  fillRect(tileMap, 142, 72, 8, 8, 'stone'); // shrine platform
+  // --- SHRINE (east, on platform) ---
   stampBuilding(tileMap, { x: 143, y: 73, w: 6, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 3, label: 'Shrine' });
-
-  // Farm plots (southwest, near residential)
-  fillRect(tileMap, 6, 100, 8, 12, 'dirt'); // farm field
-  fillRect(tileMap, 6, 115, 8, 12, 'dirt'); // farm field 2
-
-  // Well plaza (intersection of main roads)
-  fillRect(tileMap, 73, 78, 7, 5, 'stone'); // small plaza at crossroads
-
-  // Additional connecting roads
-  stampRoad(tileMap, 42, 30, 55, 30, 2); // park to academy
-  stampRoad(tileMap, 90, 80, 98, 80, 2); // avenue to market
-  stampRoad(tileMap, 50, 100, 60, 100, 2); // residential to commercial
 
   // ╔══════════════════════════════════════╗
   // ║  CREATE WORLD + PLAYER               ║
