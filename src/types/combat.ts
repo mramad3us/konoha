@@ -74,7 +74,8 @@ export interface TempoState {
 
 /** Calculate max tempo slots from combat skill (taijutsu for shinobi) */
 export function maxTempoSlots(combatSkill: number): number {
-  return Math.max(1, Math.floor(combatSkill / 10));
+  if (combatSkill < 5) return 0;
+  return Math.floor(combatSkill / 10);
 }
 
 /** Calculate starting tempo beads from skill difference */
