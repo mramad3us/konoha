@@ -243,6 +243,13 @@ export const CHAR_KUNOICHI_E = kasura.e;
 export const CHAR_KUNOICHI_W = kasura.w;
 export const CHAR_KUNOICHI_PRONE = kasura.prone;
 
+const anbu = generateCharacterSprites(ACCENTS_ANBU);
+export const CHAR_ANBU_S = anbu.s;
+export const CHAR_ANBU_N = anbu.n;
+export const CHAR_ANBU_E = anbu.e;
+export const CHAR_ANBU_W = anbu.w;
+export const CHAR_ANBU_PRONE = anbu.prone;
+
 const takeshi = generateCharacterSprites(ACCENTS_TAKESHI);
 export const CHAR_TAKESHI_S = takeshi.s;
 export const CHAR_TAKESHI_N = takeshi.n;

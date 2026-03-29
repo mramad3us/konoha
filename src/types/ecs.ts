@@ -123,5 +123,14 @@ export interface LightSourceComponent {
   activeAtNight: boolean;
 }
 
+export interface ProximityDialogueComponent {
+  /** Pools of dialogue lines keyed by situation */
+  lines: Record<string, string[]>;
+  /** Last tick this NPC spoke (prevent spam) */
+  lastSpokeTick: number;
+  /** Minimum ticks between lines */
+  cooldownTicks: number;
+}
+
 // Re-export CharacterSheet as a component type
 export type { CharacterSheet } from './character.ts';

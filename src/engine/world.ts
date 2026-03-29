@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -30,6 +30,7 @@ export class World {
   lightSources = new Map<EntityId, LightSourceComponent>();
   objectSheets = new Map<EntityId, ObjectSheetComponent>();
   bleeding = new Map<EntityId, BleedingComponent>();
+  proximityDialogue = new Map<EntityId, ProximityDialogueComponent>();
 
   // Combat intent
   playerKillIntent = false;
@@ -81,6 +82,7 @@ export class World {
     this.lightSources.delete(id);
     this.objectSheets.delete(id);
     this.bleeding.delete(id);
+    this.proximityDialogue.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) */
@@ -178,6 +180,7 @@ export class World {
       lightSources: serializeMap(this.lightSources),
       objectSheets: serializeMap(this.objectSheets),
       bleeding: serializeMap(this.bleeding),
+      proximityDialogue: serializeMap(this.proximityDialogue),
       playerKillIntent: this.playerKillIntent,
     };
   }
@@ -232,6 +235,9 @@ export class World {
     }
     if (data['bleeding']) {
       deserializeMap(world.bleeding, data['bleeding'] as Record<string, BleedingComponent>);
+    }
+    if (data['proximityDialogue']) {
+      deserializeMap(world.proximityDialogue, data['proximityDialogue'] as Record<string, ProximityDialogueComponent>);
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;

@@ -6,6 +6,7 @@ import { computeFOV } from './fov.ts';
 import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 import { tickUnconsciousRecovery, tickBleeding } from './entityState.ts';
+import { tickProximityDialogue } from './proximityDialogue.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
 
 /** Advance game time and recompute FOV with night reduction */
@@ -18,9 +19,10 @@ function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
     const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
     computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
   }
-  // Check auto-recovery for unconscious entities + tick bleeding
+  // Check auto-recovery for unconscious entities + tick bleeding + NPC dialogue
   tickUnconsciousRecovery(world);
   tickBleeding(world);
+  tickProximityDialogue(world);
 }
 
 /** Stance to game seconds per step */

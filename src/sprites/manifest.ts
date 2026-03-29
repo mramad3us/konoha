@@ -12,6 +12,7 @@ import {
   CHAR_KUNOICHI_S, CHAR_KUNOICHI_N, CHAR_KUNOICHI_E, CHAR_KUNOICHI_W,
   CHAR_SHINOBI_PRONE, CHAR_KUNOICHI_PRONE,
   CHAR_TAKESHI_S, CHAR_TAKESHI_N, CHAR_TAKESHI_E, CHAR_TAKESHI_W, CHAR_TAKESHI_PRONE,
+  CHAR_ANBU_S, CHAR_ANBU_N, CHAR_ANBU_E, CHAR_ANBU_W, CHAR_ANBU_PRONE,
 } from './characters.ts';
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 
@@ -81,6 +82,13 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_takeshi_e', pattern: CHAR_TAKESHI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_takeshi_w', pattern: CHAR_TAKESHI_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_takeshi_prone', pattern: CHAR_TAKESHI_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ANBU
+  { id: 'char_anbu_s', pattern: CHAR_ANBU_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_n', pattern: CHAR_ANBU_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_e', pattern: CHAR_ANBU_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_w', pattern: CHAR_ANBU_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_prone', pattern: CHAR_ANBU_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Prone / unconscious
   { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },

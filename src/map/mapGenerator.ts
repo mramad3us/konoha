@@ -6,6 +6,7 @@ import type { TileType } from '../types/tiles.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina } from '../engine/derivedStats.ts';
+import { TAKESHI_DIALOGUE, ANBU_DIALOGUE } from '../engine/proximityDialogue.ts';
 import {
   GAME_START_HOUR,
   TRAINING_GROUNDS_WIDTH,
@@ -295,7 +296,35 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
       });
       world.names.set(id, { display: 'Takeshi', article: '' });
       world.aiControlled.set(id, { behavior: 'static' });
+      world.proximityDialogue.set(id, { lines: TAKESHI_DIALOGUE, lastSpokeTick: -100, cooldownTicks: 15 });
     }
+  }
+
+  // ── ANBU (dev mode only) ──
+  if (devMode) {
+    const anbuId = world.createEntity();
+    const anbuStats = { phy: 60, cha: 55, men: 50, soc: 30 };
+    const anbuHp = computeMaxHp(anbuStats);
+    world.positions.set(anbuId, { x: 20, y: 3, facing: 's' });
+    world.renderables.set(anbuId, { spriteId: 'char_anbu_s', layer: 'character', offsetY: -16 });
+    world.blockings.set(anbuId, { blocksMovement: true, blocksSight: false });
+    world.healths.set(anbuId, { current: anbuHp, max: anbuHp });
+    world.combatStats.set(anbuId, { damage: 15, accuracy: 90, evasion: 40, attackVerb: 'strike' });
+    world.characterSheets.set(anbuId, {
+      class: 'shinobi',
+      rank: 'anbu',
+      title: 'ANBU Operative',
+      skills: { taijutsu: 65, bukijutsu: 60, ninjutsu: 55, genjutsu: 40, med: 20 },
+      stats: anbuStats,
+      learnedJutsus: ['substitution'],
+    });
+    world.names.set(anbuId, { display: 'ANBU Operative', article: 'an' });
+    world.aiControlled.set(anbuId, { behavior: 'static' });
+    world.objectSheets.set(anbuId, {
+      description: 'A masked ANBU operative standing motionless at the edge of the grounds. Their presence is unsettling.',
+      category: 'npc',
+    });
+    world.proximityDialogue.set(anbuId, { lines: ANBU_DIALOGUE, lastSpokeTick: -100, cooldownTicks: 20 });
   }
 
   world.log(`${playerName} enters the training grounds.`, 'system');
