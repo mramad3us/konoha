@@ -8,6 +8,8 @@ import './styles/game.css';
 
 import { screenManager } from './systems/screenManager.ts';
 import { saveSystem } from './systems/saveSystem.ts';
+import { loadVolumeSettings } from './systems/volumeManager.ts';
+import { startMenuMusic, stopMenuMusic } from './systems/musicSystem.ts';
 import { renderLanding } from './screens/landing.ts';
 import { renderNewGame } from './screens/newGame.ts';
 import { renderLoadGame } from './screens/loadGame.ts';
@@ -15,8 +17,15 @@ import { renderSettings } from './screens/settings.ts';
 import { renderGame } from './screens/game.ts';
 
 async function boot(): Promise<void> {
-  // Initialize save system
+  // Initialize save system + volume settings
   await saveSystem.init();
+  await loadVolumeSettings();
+
+  // Start/stop music based on screen
+  screenManager.onTransition((t) => {
+    if (t.to === 'landing') startMenuMusic();
+    else if (t.from === 'landing') stopMenuMusic();
+  });
 
   // Register all screens
   screenManager.register('landing', renderLanding);

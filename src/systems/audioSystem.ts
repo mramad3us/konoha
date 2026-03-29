@@ -6,12 +6,19 @@
  * designed to feel punchy and retro.
  */
 
+import { getSfxVolume } from './volumeManager.ts';
+
 let ctx: AudioContext | null = null;
 
 function getCtx(): AudioContext {
   if (!ctx) ctx = new AudioContext();
   if (ctx.state === 'suspended') ctx.resume();
   return ctx;
+}
+
+/** Scale volume by SFX setting */
+function vol(base: number): number {
+  return base * getSfxVolume();
 }
 
 /** Short noise burst shaped by an envelope — the core of impact sounds */
@@ -71,19 +78,19 @@ function noiseHit(
 /** Punch landing — sharp, mid-frequency crack */
 export function sfxPunchHit(): void {
   const variation = 0.9 + Math.random() * 0.2;
-  noiseHit(0.08 * variation, 3, 120 * variation, 0.35, 2000 + Math.random() * 800);
+  noiseHit(0.08 * variation, 3, 120 * variation, vol(0.35), 2000 + Math.random() * 800);
 }
 
 /** Kick landing — deeper, slightly longer thud */
 export function sfxKickHit(): void {
   const variation = 0.9 + Math.random() * 0.2;
-  noiseHit(0.12 * variation, 4, 80 * variation, 0.4, 1200 + Math.random() * 600);
+  noiseHit(0.12 * variation, 4, 80 * variation, vol(0.4), 1200 + Math.random() * 600);
 }
 
 /** Block/parry — short, high metallic clack */
 export function sfxBlock(): void {
   const variation = 0.9 + Math.random() * 0.2;
-  noiseHit(0.05 * variation, 2, 300 * variation, 0.2, 4000 + Math.random() * 1000);
+  noiseHit(0.05 * variation, 2, 300 * variation, vol(0.2), 4000 + Math.random() * 1000);
 }
 
 /** Miss/whiff — quiet swoosh */
@@ -108,7 +115,7 @@ export function sfxWhiff(): void {
 
   const gain = ac.createGain();
   gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+  gain.gain.linearRampToValueAtTime(vol(0.08), now + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
   noise.connect(filter).connect(gain).connect(ac.destination);
@@ -122,7 +129,7 @@ export function sfxCritical(): void {
   const now = ac.currentTime;
 
   // Heavy noise burst
-  noiseHit(0.15, 3, 60, 0.5, 1500);
+  noiseHit(0.15, 3, 60, vol(0.5), 1500);
 
   // Low boom
   const osc = ac.createOscillator();
@@ -131,7 +138,7 @@ export function sfxCritical(): void {
   osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
 
   const gain = ac.createGain();
-  gain.gain.setValueAtTime(0.5, now);
+  gain.gain.setValueAtTime(vol(0.5), now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
   osc.connect(gain).connect(ac.destination);
@@ -150,7 +157,7 @@ export function sfxTempoGain(): void {
   osc.frequency.linearRampToValueAtTime(900, now + 0.08);
 
   const gain = ac.createGain();
-  gain.gain.setValueAtTime(0.15, now);
+  gain.gain.setValueAtTime(vol(0.15), now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
   osc.connect(gain).connect(ac.destination);
@@ -169,7 +176,7 @@ export function sfxTempoSpend(): void {
   osc.frequency.linearRampToValueAtTime(400, now + 0.1);
 
   const gain = ac.createGain();
-  gain.gain.setValueAtTime(0.12, now);
+  gain.gain.setValueAtTime(vol(0.12), now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
   osc.connect(gain).connect(ac.destination);
@@ -185,5 +192,5 @@ export function sfxClash(): void {
 
 /** Footstep — very quiet, subtle */
 export function sfxStep(): void {
-  noiseHit(0.04, 2, 0, 0.06, 800 + Math.random() * 400);
+  noiseHit(0.04, 2, 0, vol(0.06), 800 + Math.random() * 400);
 }

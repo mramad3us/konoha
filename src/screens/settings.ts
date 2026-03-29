@@ -1,6 +1,7 @@
 import { createElement, staggerReveal } from '../utils/dom.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
+import { updateVolumeSettings } from '../systems/volumeManager.ts';
 import { MENU_STAGGER_MS } from '../core/constants.ts';
 import type { GameSettings } from '../types/save.ts';
 import { DEFAULT_SETTINGS } from '../types/save.ts';
@@ -18,6 +19,7 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
   backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
   backBtn.addEventListener('click', async () => {
     await saveSystem.saveSettings(settings);
+    updateVolumeSettings(settings);
     screenManager.goBack();
   });
   container.appendChild(backBtn);
