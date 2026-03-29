@@ -237,9 +237,9 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   const ox = TG_OFFSET_X;
   const oy = TG_OFFSET_Y;
 
-  // ── Hokage ──
+  // ── Hokage (inside Hokage Tower at 58-73, 72-79) ──
   spawnNpc(world, {
-    x: 78, y: 85, name: 'Lord Hirotaka', accents: ACCENTS_HOKAGE,
+    x: 64, y: 76, name: 'Lord Hirotaka', accents: ACCENTS_HOKAGE,
     rank: 'kage', title: 'Third Hokage', charClass: 'shinobi',
     skills: { taijutsu: 85, bukijutsu: 80, ninjutsu: 95, genjutsu: 70, med: 40 },
     stats: { phy: 55, cha: 90, men: 85, soc: 90 },
@@ -249,7 +249,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Mission Desk Chunin ──
   spawnNpc(world, {
-    x: 76, y: 98, name: 'Iruma', accents: ACCENTS_CHUNIN_1,
+    x: 65, y: 85, name: 'Iruma', accents: ACCENTS_CHUNIN_1,
     rank: 'chuunin', title: 'Mission Desk Operator', charClass: 'shinobi',
     skills: { taijutsu: 35, bukijutsu: 30, ninjutsu: 25, genjutsu: 15, med: 10 },
     stats: { phy: 25, cha: 20, men: 20, soc: 40 },
@@ -259,7 +259,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Gate Guards ──
   spawnNpc(world, {
-    x: 74, y: 150, name: 'Kotetsu', accents: ACCENTS_CHUNIN_1,
+    x: 70, y: 149, name: 'Kotetsu', accents: ACCENTS_CHUNIN_1,
     rank: 'chuunin', title: 'Gate Guard', charClass: 'shinobi',
     skills: { taijutsu: 40, bukijutsu: 35, ninjutsu: 20, genjutsu: 10, med: 5 },
     stats: { phy: 35, cha: 18, men: 15, soc: 20 },
@@ -268,7 +268,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   });
 
   spawnNpc(world, {
-    x: 86, y: 150, name: 'Izumo', accents: ACCENTS_CHUNIN_2,
+    x: 90, y: 149, name: 'Izumo', accents: ACCENTS_CHUNIN_2,
     rank: 'chuunin', title: 'Gate Guard', charClass: 'shinobi',
     skills: { taijutsu: 38, bukijutsu: 32, ninjutsu: 22, genjutsu: 12, med: 5 },
     stats: { phy: 32, cha: 20, men: 18, soc: 22 },
@@ -278,7 +278,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Academy Instructor ──
   spawnNpc(world, {
-    x: 65, y: 14, name: 'Daikichi-sensei', accents: ACCENTS_JONIN_3,
+    x: 64, y: 16, name: 'Daikichi-sensei', accents: ACCENTS_JONIN_3,
     rank: 'jounin', title: 'Academy Instructor', charClass: 'shinobi',
     skills: { taijutsu: 50, bukijutsu: 45, ninjutsu: 55, genjutsu: 30, med: 15 },
     stats: { phy: 35, cha: 40, men: 35, soc: 50 },
@@ -288,8 +288,8 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Academy Students ──
   const studentPos = [
-    { x: 62, y: 24 }, { x: 64, y: 26 }, { x: 66, y: 23 },
-    { x: 68, y: 25 }, { x: 70, y: 24 }, { x: 63, y: 27 },
+    { x: 60, y: 23 }, { x: 63, y: 25 }, { x: 66, y: 22 },
+    { x: 69, y: 24 }, { x: 72, y: 23 }, { x: 65, y: 26 },
   ];
   const studentAccents = [ACCENTS_STUDENT_1, ACCENTS_STUDENT_2, ACCENTS_STUDENT_3];
   const studentNames = ['Ren', 'Yuki', 'Sora', 'Hana', 'Kai', 'Miki'];
@@ -307,7 +307,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Jonin ──
   spawnNpc(world, {
-    x: 90, y: 40, name: 'Ryuuji', accents: ACCENTS_JONIN_1,
+    x: 76, y: 90, name: 'Ryuuji', accents: ACCENTS_JONIN_1,
     rank: 'jounin', title: 'Elite Jonin', charClass: 'shinobi',
     skills: { taijutsu: 65, bukijutsu: 60, ninjutsu: 70, genjutsu: 45, med: 20 },
     stats: { phy: 50, cha: 55, men: 45, soc: 35 },
@@ -317,7 +317,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   });
 
   spawnNpc(world, {
-    x: 55, y: 80, name: 'Asuka', accents: ACCENTS_JONIN_2,
+    x: 68, y: 28, name: 'Asuka', accents: ACCENTS_JONIN_2,
     rank: 'jounin', title: 'Jonin', charClass: 'shinobi',
     skills: { taijutsu: 55, bukijutsu: 50, ninjutsu: 60, genjutsu: 65, med: 15 },
     stats: { phy: 40, cha: 50, men: 55, soc: 40 },
@@ -328,10 +328,10 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Shopkeepers ──
   const shopDefs = [
-    { x: 104, y: 86, name: 'Tenten', desc: 'The weapons shop owner. She knows every blade in her inventory by name.' },
-    { x: 112, y: 86, name: 'Genma', desc: 'Runs the supply shop. Always chewing on a senbon needle.' },
-    { x: 120, y: 86, name: 'Shiho', desc: 'The scroll shop proprietor. Quiet, but knows more jutsu theory than most jonin.' },
-    { x: 104, y: 91, name: 'Ayame', desc: 'Sells shinobi clothing and armor. Has an eye for fashion.' },
+    { x: 101, y: 74, name: 'Tenten', desc: 'The weapons shop owner. She knows every blade in her inventory by name.' },
+    { x: 111, y: 74, name: 'Genma', desc: 'Runs the supply shop. Always chewing on a senbon needle.' },
+    { x: 121, y: 74, name: 'Shiho', desc: 'The scroll shop proprietor. Quiet, but knows more jutsu theory than most jonin.' },
+    { x: 101, y: 90, name: 'Ayame', desc: 'Sells shinobi clothing and armor. Has an eye for fashion.' },
   ];
   for (let i = 0; i < shopDefs.length; i++) {
     spawnNpc(world, {
@@ -347,7 +347,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Medical Ninja ──
   spawnNpc(world, {
-    x: 38, y: 86, name: 'Dr. Nono', accents: ACCENTS_MEDIC_1,
+    x: 25, y: 86, name: 'Dr. Nono', accents: ACCENTS_MEDIC_1,
     rank: 'special_jounin', title: 'Medical Ninja', charClass: 'shinobi',
     skills: { taijutsu: 20, bukijutsu: 10, ninjutsu: 40, genjutsu: 15, med: 75 },
     stats: { phy: 20, cha: 50, men: 45, soc: 35 },
@@ -356,7 +356,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   });
 
   spawnNpc(world, {
-    x: 40, y: 88, name: 'Nurse Kabuki', accents: ACCENTS_MEDIC_2,
+    x: 27, y: 88, name: 'Nurse Kabuki', accents: ACCENTS_MEDIC_2,
     rank: 'chuunin', title: 'Medical Ninja', charClass: 'shinobi',
     skills: { taijutsu: 15, bukijutsu: 8, ninjutsu: 30, genjutsu: 10, med: 55 },
     stats: { phy: 18, cha: 35, men: 30, soc: 30 },
@@ -366,7 +366,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Ramen Chef ──
   spawnNpc(world, {
-    x: 95, y: 108, name: 'Old Masashi', accents: ACCENTS_CHEF,
+    x: 66, y: 100, name: 'Old Masashi', accents: ACCENTS_CHEF,
     rank: 'genin', title: 'Ramen Chef', charClass: 'civilian',
     skills: { taijutsu: 5, bukijutsu: 30, ninjutsu: 0, genjutsu: 0, med: 5 },
     stats: { phy: 20, cha: 5, men: 15, soc: 55 },
@@ -376,10 +376,16 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Villagers ──
   const villagerPos = [
-    { x: 25, y: 112 }, { x: 34, y: 115 }, { x: 43, y: 110 },
-    { x: 85, y: 100 }, { x: 90, y: 115 }, { x: 100, y: 120 },
-    { x: 70, y: 105 }, { x: 60, y: 90 }, { x: 130, y: 95 },
-    { x: 50, y: 75 }, { x: 110, y: 75 }, { x: 140, y: 85 },
+    // Along main avenue
+    { x: 76, y: 100 }, { x: 77, y: 120 }, { x: 76, y: 130 },
+    // Market area
+    { x: 105, y: 80 }, { x: 115, y: 80 }, { x: 125, y: 82 },
+    // Commercial strip
+    { x: 63, y: 100 }, { x: 77, y: 105 },
+    // Residential west
+    { x: 30, y: 108 }, { x: 30, y: 123 },
+    // Residential east
+    { x: 120, y: 108 }, { x: 120, y: 123 },
   ];
   const civAccents = [ACCENTS_CIVILIAN_1, ACCENTS_CIVILIAN_2, ACCENTS_CIVILIAN_3, ACCENTS_CIVILIAN_4];
   const civNames = ['Tanaka', 'Suzuki', 'Yamamoto', 'Watanabe', 'Ito', 'Nakamura', 'Sato', 'Takahashi', 'Kobayashi', 'Yoshida', 'Mori', 'Fujita'];
