@@ -114,7 +114,7 @@ export interface DeadComponent {
 }
 
 export interface InteractableComponent {
-  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board';
+  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate';
   label: string;
 }
 

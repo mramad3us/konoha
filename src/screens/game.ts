@@ -12,13 +12,13 @@ import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
 import { setPlayerRespawnCallback, killEntity, reviveEntity, stopBleeding } from '../engine/entityState.ts';
-import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { MissionBoardUI } from '../ui/missionBoardUI.ts';
 import { interactWithEntity } from '../engine/turnSystem.ts';
-import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus } from '../engine/missions.ts';
+import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus, getMissionXpMultiplier } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -28,8 +28,10 @@ import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
 import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS } from '../core/constants.ts';
+import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
+import { cellHash } from '../sprites/pixelPatterns.ts';
 
 export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Loading overlay ──
@@ -253,6 +255,109 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   inputSystem.setSleepCallback(() => { doSleep(); });
 
+  // Meditation flow (4 hours pass, improve ninjutsu + chakra, max 2 productive sessions/day)
+  const MEDITATION_HOURS = 4;
+  const MEDITATION_NINJUTSU_GAIN = 0.53; // ~50% of level 1→2 per session at low levels
+  const MAX_MEDITATION_SESSIONS_PER_DAY = 2;
+
+  const MEDITATION_MESSAGES = [
+    'You close your eyes and focus inward. The world melts away as you sense the flow of chakra within you.',
+    'Sitting still, you concentrate on the hand seals in your mind. The shapes of chakra become clearer.',
+    'You enter a state of deep focus. Chakra circulates through your pathways like a warm current.',
+    'Your breathing slows. The subtle movements of chakra through your body feel more natural with practice.',
+    'You visualize the tenketsu points along your arms. The flow of energy sharpens with each breath.',
+  ];
+
+  const MEDITATION_IMPROVE_MESSAGES = [
+    'Your awareness of sign weaving and chakra manipulation has deepened.',
+    'You feel a subtle improvement in your ability to mold chakra.',
+    'The hand seals feel more intuitive. Your ninjutsu foundation grows stronger.',
+    'Something clicks — chakra flows a little easier through your pathways now.',
+    'Your chakra control feels noticeably sharper after this session.',
+  ];
+
+  const MEDITATION_DIMINISHED_MESSAGES = [
+    'You meditate, but your mind wanders. The chakra doesn\'t flow as freely today.',
+    'You go through the motions, but the deep focus won\'t come. You\'ve trained enough for one day.',
+    'Your body sits still but your mind resists. Additional meditation won\'t help today.',
+  ];
+
+  const doMeditate = async () => {
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+
+    // Check productive sessions for today
+    const currentDay = getGameDay(world.gameTimeSeconds);
+    if (world.meditationLastDay !== currentDay) {
+      world.meditationLastDay = currentDay;
+      world.meditationSessionsToday = 0;
+    }
+
+    // Advance time (always passes 4 hours regardless)
+    world.gameTimeSeconds += MEDITATION_HOURS * 3600;
+
+    // Flavor text
+    const sessionSeed = cellHash(world.currentTick, currentDay);
+    world.log(MEDITATION_MESSAGES[sessionSeed % MEDITATION_MESSAGES.length], 'system');
+
+    const playerSheet = world.characterSheets.get(world.playerEntityId);
+    if (playerSheet && world.meditationSessionsToday < MAX_MEDITATION_SESSIONS_PER_DAY) {
+      world.meditationSessionsToday++;
+
+      const mxp = getMissionXpMultiplier(world.missionLog);
+
+      // Improve ninjutsu (~50% of a level 1→2 per session)
+      const oldNinjutsu = playerSheet.skills.ninjutsu;
+      playerSheet.skills.ninjutsu = computeImprovement(
+        playerSheet.skills.ninjutsu,
+        MEDITATION_NINJUTSU_GAIN,
+        2.0,
+        mxp,
+      );
+
+      // Also improve chakra and mental stats (equivalent of 4 hours of meditation ticks)
+      // 4 hours = 14,400 seconds = 7,200 2-second combat passes
+      const meditationPasses = 7200;
+      playerSheet.stats.cha = computeImprovement(
+        playerSheet.stats.cha,
+        STAT_IMPROVEMENT_RATES.cha_meditation * meditationPasses,
+        2.0,
+        mxp,
+      );
+      playerSheet.stats.men = computeImprovement(
+        playerSheet.stats.men,
+        STAT_IMPROVEMENT_RATES.men_meditation * meditationPasses,
+        2.0,
+        mxp,
+      );
+
+      // Update chakra reserves
+      const res = world.resources.get(world.playerEntityId);
+      if (res) {
+        const newMaxChakra = computeMaxChakra(playerSheet.stats);
+        res.maxChakra = newMaxChakra;
+        res.chakra = Math.min(newMaxChakra, res.chakra + Math.floor(newMaxChakra * 0.3));
+      }
+
+      const ninjutsuGain = playerSheet.skills.ninjutsu - oldNinjutsu;
+      if (ninjutsuGain > 0.01) {
+        world.log(MEDITATION_IMPROVE_MESSAGES[sessionSeed % MEDITATION_IMPROVE_MESSAGES.length], 'info');
+      }
+
+      world.log(`(Session ${world.meditationSessionsToday}/${MAX_MEDITATION_SESSIONS_PER_DAY} today)`, 'info');
+    } else {
+      world.log(MEDITATION_DIMINISHED_MESSAGES[sessionSeed % MEDITATION_DIMINISHED_MESSAGES.length], 'info');
+    }
+
+    world.currentTick += 1;
+    hud.fullRender(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
   // Universal context menu for all entity interactions
   const contextMenu = new ContextMenu();
   inputSystem.setContextMenuCallback(async (entityId: number) => {
@@ -319,6 +424,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.currentTick += 1;
     } else if (choice === 'use_sleep') {
       doSleep();
+    } else if (choice === 'use_meditate') {
+      await doMeditate();
     } else if (choice === 'use_mission_board') {
       await openMissionBoard();
     }
@@ -466,6 +573,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         world.gameTimeSeconds += 6; world.currentTick += 1;
       } else if (ctxChoice === 'use_sleep') {
         doSleep();
+      } else if (ctxChoice === 'use_meditate') {
+        await doMeditate();
       } else if (ctxChoice === 'use_mission_board') {
         await openMissionBoard();
       }

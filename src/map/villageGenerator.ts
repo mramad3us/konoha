@@ -169,14 +169,8 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
 
   // ─── GOVERNMENT QUARTER (stone, south of river, west of main avenue) ───
 
-  // Hokage Tower: 20×12 — Office (top), meeting room (bottom-left), archive (bottom-right)
+  // Hokage Tower: 20×12 — Single open hall with Hokage's office
   stampBuilding(tileMap, { x: 55, y: 72, w: 20, h: 12, floorType: 'stone', doorSide: 's', doorOffset: 10, label: 'Hokage Tower' });
-  stampInternalWalls(tileMap, [
-    // Horizontal wall splitting top office from bottom rooms at y=78
-    { orientation: 'h', pos: 78, from: 56, to: 73, doorAt: 65 },
-    // Vertical wall splitting bottom into meeting room (left) and archive (right) at x=65
-    { orientation: 'v', pos: 65, from: 79, to: 81, doorAt: 80 },
-  ]);
 
   // Mission Desk: 14×7 — Counter area (front), back office
   stampBuilding(tileMap, { x: 58, y: 86, w: 14, h: 7, floorType: 'stone', doorSide: 's', doorOffset: 7, label: 'Mission Desk' });

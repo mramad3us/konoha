@@ -17,7 +17,7 @@ interface ObjSpawn {
   blocksMove: boolean; blocksSight: boolean;
   name: string; article: 'a' | 'an' | 'the' | '';
   description: string; category: ObjectCategory;
-  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board';
+  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board' | 'meditate';
   interactLabel?: string; lightRadius?: number;
 }
 
@@ -60,6 +60,21 @@ function bed(world: World, x: number, y: number): void {
     blocksMove: false, blocksSight: false, name: 'bed', article: 'a',
     description: 'A comfortable futon.', category: 'object',
     interactType: 'sleep', interactLabel: 'Sleep' });
+}
+
+/** A bed that belongs to someone — can't sleep in it */
+function ownedBed(world: World, x: number, y: number): void {
+  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -14,
+    blocksMove: false, blocksSight: false, name: 'bed', article: 'a',
+    description: 'Someone\'s futon. You can\'t just sleep in a stranger\'s bed.', category: 'object' });
+}
+
+/** Meditation carpet — functional, improves ninjutsu + chakra */
+function meditationCarpet(world: World, x: number, y: number): void {
+  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -14,
+    blocksMove: false, blocksSight: false, name: 'meditation carpet', article: 'a',
+    description: 'A woven mat for chakra meditation. Sit and focus your energy.',
+    category: 'object', interactType: 'meditate', interactLabel: 'Meditate' });
 }
 
 function desk(world: World, x: number, y: number, name: string, desc: string): void {
@@ -124,23 +139,17 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // ─── GOVERNMENT QUARTER ───────────────────
 
-  // Hokage Tower (55,72 20×12) — walls: h@78(door@65), v@65(79-82,door@80)
-  // Office (top): x=56-73, y=73-77
+  // Hokage Tower (55,72 20×12) — single open hall: x=56-73, y=73-82
   torch(world, 57, 73, 'The Hokage Tower interior glows with warm light.');
   torch(world, 73, 73, 'A torch flanking the Hokage\'s seat.');
   desk(world, 64, 73, 'Hokage\'s desk', 'The desk where the Hokage reviews missions and signs orders. Scrolls are piled high.');
-  desk(world, 67, 73, 'war table', 'A large table with a map of the shinobi nations. Pins mark known threats.');
-  shelf(world, 60, 77, 'scroll shelf', 'Village records and sealed documents dating back generations.');
-  weaponsRack(world, 72, 77, 'weapons rack', 'Ceremonial weapons displayed on the wall. Each has a story.');
-  // Meeting Room (bottom-left): x=56-64, y=79-82
-  torch(world, 57, 79, 'A torch in the meeting room.');
-  desk(world, 60, 80, 'meeting table', 'A table strewn with reports from various shinobi squads.');
-  shelf(world, 63, 81, 'filing shelf', 'Personnel files organized by rank and squad assignment.');
-  // Archive (bottom-right): x=66-73, y=79-81 (y=82 is entrance corridor)
-  torch(world, 73, 79, 'Archive lamp. Dry air to preserve the scrolls.');
-  shelf(world, 68, 80, 'archive shelf', 'Historical records of every mission the village has undertaken.');
-  shelf(world, 71, 80, 'sealed shelf', 'Classified documents. Several bear the Hokage\'s personal seal.');
-  barrel(world, 70, 81, 'ink barrel', 'A barrel of ink for official documents. The village seal sits beside it.');
+  desk(world, 68, 74, 'war table', 'A large table with a map of the shinobi nations. Pins mark known threats.');
+  shelf(world, 57, 77, 'scroll shelf', 'Village records and sealed documents dating back generations.');
+  weaponsRack(world, 73, 77, 'weapons rack', 'Ceremonial weapons displayed on the wall. Each has a story.');
+  shelf(world, 60, 80, 'archive shelf', 'Historical records of every mission the village has undertaken.');
+  shelf(world, 69, 80, 'sealed shelf', 'Classified documents. Several bear the Hokage\'s personal seal.');
+  desk(world, 63, 81, 'meeting table', 'A table strewn with reports from various shinobi squads.');
+  barrel(world, 72, 81, 'ink barrel', 'A barrel of ink for official documents. The village seal sits beside it.');
 
   // Mission Desk (58,86 14×7) — wall: h@89(door@64)
   // Counter Area (front): x=59-70, y=87-88
@@ -216,15 +225,18 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Inn (60,115 12×10) — walls: h@119(door@64), v@66(116-118,door@117)
   // Room 1 (top-left): x=61-65, y=116-118
   bed(world, 62, 117);
-  torch(world, 65, 116, 'Inn room lamp.', 3);
+  torch(world, 64, 116, 'A quiet lamp by the bedside.', 3);
+  shelf(world, 62, 116, 'nightstand', 'A small table with a water jug and a folded towel.');
   // Room 2 (top-right): x=67-70, y=116-118
-  bed(world, 68, 117);
-  torch(world, 70, 116, 'Inn room lamp.', 3);
+  bed(world, 69, 117);
+  torch(world, 68, 116, 'A quiet lamp by the bedside.', 3);
+  shelf(world, 70, 118, 'nightstand', 'Clean linens stacked neatly. The inn is well-kept.');
   // Lobby (bottom): x=61-70, y=120-123
-  torch(world, 62, 120, 'Inn lobby lantern.', 4);
-  counter(world, 65, 120, 'front desk', 'The innkeeper\'s desk. A guest ledger sits open.');
-  bench(world, 69, 122, 'lobby bench', 'A bench for travelers waiting to check in.');
+  torch(world, 62, 120, 'A warm lobby lantern.', 4);
+  counter(world, 64, 120, 'front desk', 'The innkeeper\'s desk. A guest ledger sits open, ink still wet.');
+  bench(world, 69, 120, 'lobby bench', 'A bench for travelers waiting to check in.');
   shelf(world, 62, 123, 'luggage shelf', 'A shelf holding a few forgotten bags and parcels.');
+  bench(world, 69, 123, 'waiting seat', 'A comfortable spot near the door. A pot of tea stays warm.');
 
   // Barbershop (80,97 8×6) — single room: x=81-86, y=98-101
   torch(world, 82, 98, 'Barbershop lamp.', 3);
@@ -330,50 +342,50 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 10, 103, 'A small oil lamp.', 3);
   desk(world, 14, 104, 'writing desk', 'A simple desk with family letters and a candle.');
   shelf(world, 14, 103, 'cupboard', 'Cups, bowls, and a few jars of preserved fruit.');
-  bed(world, 10, 108);
+  ownedBed(world, 10, 108);
   torch(world, 15, 107, 'Bedroom lamp.', 2);
 
   // House W2 (20,102) — interior: 21-28
   torch(world, 22, 103, 'A small oil lamp.', 3);
   shelf(world, 26, 104, 'bookshelf', 'A modest collection of novels and a family album.');
-  bed(world, 22, 108);
+  ownedBed(world, 22, 108);
   torch(world, 27, 107, 'Bedroom lamp.', 2);
 
   // House W3 (34,102) — interior: 35-42
   torch(world, 40, 103, 'A small oil lamp.', 3);
   counter(world, 37, 104, 'kitchen counter', 'A cutting board, some rice, and dried fish.');
-  bed(world, 40, 108);
+  ownedBed(world, 40, 108);
   torch(world, 36, 107, 'Bedroom lamp.', 2);
 
   // House W4 (46,102) — interior: 47-54
   torch(world, 52, 103, 'A small oil lamp.', 3);
   desk(world, 49, 104, 'hobby desk', 'Carving tools and a half-finished wooden figurine.');
   shelf(world, 52, 105, 'curio shelf', 'Trinkets and souvenirs from travels across the nations.');
-  bed(world, 52, 108);
+  ownedBed(world, 52, 108);
   torch(world, 48, 107, 'Bedroom lamp.', 2);
 
   // House W5 (8,117) — interior: 9-16
   torch(world, 10, 118, 'A small oil lamp.', 3);
   shelf(world, 14, 119, 'spice shelf', 'Jars of spices — this household loves to cook.');
-  bed(world, 10, 123);
+  ownedBed(world, 10, 123);
   torch(world, 15, 122, 'Bedroom lamp.', 2);
 
   // House W6 (20,117) — interior: 21-28
   torch(world, 22, 118, 'A small oil lamp.', 3);
   desk(world, 26, 119, 'work desk', 'Accounting ledgers for a small business.');
-  bed(world, 22, 123);
+  ownedBed(world, 22, 123);
   torch(world, 27, 122, 'Bedroom lamp.', 2);
 
   // House W7 (34,117) — interior: 35-42
   torch(world, 40, 118, 'A small oil lamp.', 3);
   shelf(world, 37, 119, 'medicine shelf', 'Home remedies and herbal teas. Someone here knows their plants.');
-  bed(world, 40, 123);
+  ownedBed(world, 40, 123);
   torch(world, 36, 122, 'Bedroom lamp.', 2);
 
   // House W8 (46,117) — interior: 47-54
   torch(world, 52, 118, 'A small oil lamp.', 3);
   weaponsRack(world, 49, 119, 'tool rack', 'Gardening tools hung neatly on the wall.');
-  bed(world, 52, 123);
+  ownedBed(world, 52, 123);
   torch(world, 48, 122, 'Bedroom lamp.', 2);
 
   // ─── RESIDENTIAL EAST ─────────────────────
@@ -382,37 +394,37 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 98, 103, 'A small oil lamp.', 3);
   desk(world, 102, 104, 'writing desk', 'Ink-stained desk of a retired academy instructor.');
   shelf(world, 102, 103, 'bookshelf', 'Teaching materials and nostalgic graduation photos.');
-  bed(world, 98, 108);
+  ownedBed(world, 98, 108);
   torch(world, 103, 107, 'Bedroom lamp.', 2);
 
   // House E2 (110,102) — interior: 111-118
   torch(world, 116, 103, 'A small oil lamp.', 3);
   counter(world, 113, 104, 'kitchen counter', 'A clean kitchen. Rice cooker and tea kettle ready.');
-  bed(world, 116, 108);
+  ownedBed(world, 116, 108);
   torch(world, 112, 107, 'Bedroom lamp.', 2);
 
   // House E3 (124,102) — interior: 125-132
   torch(world, 130, 103, 'A small oil lamp.', 3);
   shelf(world, 127, 104, 'family shrine', 'A small altar with incense and ancestral photos.');
-  bed(world, 130, 108);
+  ownedBed(world, 130, 108);
   torch(world, 126, 107, 'Bedroom lamp.', 2);
 
   // House E4 (96,117) — interior: 97-104
   torch(world, 98, 118, 'A small oil lamp.', 3);
   desk(world, 102, 119, 'craft table', 'Fabric scraps and sewing needles. A seamstress lives here.');
-  bed(world, 98, 123);
+  ownedBed(world, 98, 123);
   torch(world, 103, 122, 'Bedroom lamp.', 2);
 
   // House E5 (110,117) — interior: 111-118
   torch(world, 116, 118, 'A small oil lamp.', 3);
   shelf(world, 113, 119, 'pottery shelf', 'Handmade ceramic bowls and vases. Some are quite good.');
-  bed(world, 116, 123);
+  ownedBed(world, 116, 123);
   torch(world, 112, 122, 'Bedroom lamp.', 2);
 
   // House E6 (124,117) — interior: 125-132
   torch(world, 130, 118, 'A small oil lamp.', 3);
   weaponsRack(world, 127, 119, 'fishing rods', 'Rods and tackle for river fishing. A prized hobby.');
-  bed(world, 130, 123);
+  ownedBed(world, 130, 123);
   torch(world, 126, 122, 'Bedroom lamp.', 2);
 
   // ─── HYUGA COMPOUND ───────────────────────
@@ -424,7 +436,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   desk(world, 17, 9, 'clan elder\'s seat', 'An elevated seat where the Hyuga elder presides over meetings.');
   shelf(world, 13, 12, 'clan records', 'Genealogical scrolls tracing the Hyuga bloodline back centuries.');
   // Meditation Room: x=11-24, y=14-15
-  bench(world, 16, 15, 'meditation mat', 'A cushion for meditation and Byakugan training.');
+  meditationCarpet(world, 16, 15);
   torch(world, 22, 14, 'Meditation lamp. Dim and focused.', 2);
 
   // Hyuga Dojo (28,7 12×8) — single room: x=29-38, y=8-13
@@ -439,14 +451,14 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Living: y=22-23, Bedroom: y=25-26
   torch(world, 12, 22, 'Hyuga home lamp.', 3);
   shelf(world, 17, 23, 'family shelf', 'Clan history scrolls and a portrait of the Hyuga founders.');
-  bed(world, 12, 26);
+  ownedBed(world, 12, 26);
   torch(world, 17, 25, 'Bedroom lamp.', 2);
 
   // Hyuga House 2 (22,21 10×7) — wall: h@24(door@26)
   // Living: y=22-23, Bedroom: y=25-26
   torch(world, 24, 22, 'Hyuga home lamp.', 3);
   desk(world, 29, 23, 'study desk', 'Notes on advanced Gentle Fist techniques.');
-  bed(world, 24, 26);
+  ownedBed(world, 24, 26);
   torch(world, 29, 25, 'Bedroom lamp.', 2);
 
   // ─── UCHIHA COMPOUND ──────────────────────
@@ -475,21 +487,21 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Living: y=22-23, Bedroom: y=25-26
   torch(world, 110, 22, 'Uchiha home lamp.', 3);
   shelf(world, 115, 23, 'family shelf', 'Photos and a small Uchiha fan emblem on the wall.');
-  bed(world, 110, 26);
+  ownedBed(world, 110, 26);
   torch(world, 115, 25, 'Bedroom lamp.', 2);
 
   // Uchiha House 2 (120,21 10×7) — wall: h@24(door@124)
   // Living: y=22-23, Bedroom: y=25-26
   torch(world, 122, 22, 'Uchiha home lamp.', 3);
   desk(world, 127, 23, 'training journal', 'A desk with detailed training logs and jutsu research.');
-  bed(world, 122, 26);
+  ownedBed(world, 122, 26);
   torch(world, 127, 25, 'Bedroom lamp.', 2);
 
   // Uchiha House 3 (132,21 10×7) — wall: h@24(door@136)
   // Living: y=22-23, Bedroom: y=25-26
   torch(world, 134, 22, 'Uchiha home lamp.', 3);
   counter(world, 139, 23, 'kitchen counter', 'A tidy kitchen. Rice and grilled fish, the Uchiha staple.');
-  bed(world, 134, 26);
+  ownedBed(world, 134, 26);
   torch(world, 139, 25, 'Bedroom lamp.', 2);
 
   // ─── GATE GUARD POSTS ─────────────────────
@@ -594,11 +606,8 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // --- Training Grounds objects ---
   spawnTrainingGroundsObjects(world, devMode);
 
-  // --- Sleeping bag near training grounds ---
-  spawn(world, { x: TG_OFFSET_X + 21, y: TG_OFFSET_Y + 36, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -22,
-    blocksMove: false, blocksSight: false, name: 'sleeping bag', article: 'a',
-    description: 'A well-worn bedroll for training rest.', category: 'object',
-    interactType: 'sleep', interactLabel: 'Sleep' });
+  // --- Meditation carpet near training grounds ---
+  meditationCarpet(world, TG_OFFSET_X + 21, TG_OFFSET_Y + 36);
 }
 
 function spawnTrainingGroundsObjects(world: World, _devMode: boolean): void {

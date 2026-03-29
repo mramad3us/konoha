@@ -38,6 +38,10 @@ export class World {
   // Combat intent
   playerKillIntent = false;
 
+  // Meditation tracking (productive sessions per day)
+  meditationLastDay = -1;
+  meditationSessionsToday = 0;
+
   // Mission system
   missionBoard: MissionBoard = createMissionBoard(1);
   missionLog: MissionLog = createMissionLog();
@@ -247,6 +251,8 @@ export class World {
       playerKillIntent: this.playerKillIntent,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
+      meditationLastDay: this.meditationLastDay,
+      meditationSessionsToday: this.meditationSessionsToday,
     };
   }
 
@@ -315,6 +321,12 @@ export class World {
     }
     if (data['missionLog']) {
       world.missionLog = data['missionLog'] as MissionLog;
+    }
+    if (data['meditationLastDay'] !== undefined) {
+      world.meditationLastDay = data['meditationLastDay'] as number;
+    }
+    if (data['meditationSessionsToday'] !== undefined) {
+      world.meditationSessionsToday = data['meditationSessionsToday'] as number;
     }
 
     // Rebuild spatial hash from deserialized positions

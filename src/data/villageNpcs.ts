@@ -228,6 +228,24 @@ const CHEF_DIALOGUE: Record<string, string[]> = {
   ],
 };
 
+const INNKEEPER_DIALOGUE: Record<string, string[]> = {
+  idle: [
+    'Rooms are available. Clean sheets, no questions asked.',
+    'Welcome to the inn. Best rest in the village, if I do say so myself.',
+    'Tired from a mission? A good night\'s sleep works wonders.',
+    'The beds are clean and the walls are thick. You won\'t hear a thing.',
+    'We get all kinds here. Shinobi, merchants, travelers. All welcome.',
+    'Need a room? Just use any open bed upstairs.',
+  ],
+  night: [
+    'Late night? We\'re always open. Take any bed that\'s free.',
+    'Most guests are already asleep. Keep it quiet up there.',
+  ],
+  player_hurt: [
+    'You look rough. Get some rest — it\'ll do you good.',
+  ],
+};
+
 const MISSION_DESK_DIALOGUE: Record<string, string[]> = {
   idle: [
     'Looking for a mission? Check the board.',
@@ -379,6 +397,16 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 5, men: 15, soc: 55 },
     description: 'The legendary ramen chef of Konoha Kitchen. His noodles are the stuff of myth.',
     dialogue: CHEF_DIALOGUE, cooldownTicks: 12,
+  });
+
+  // ── Innkeeper ──
+  spawnNpc(world, {
+    x: 65, y: 121, name: 'Jinsuke', accents: ACCENTS_CHEF,
+    rank: 'civilian', title: 'Innkeeper', charClass: 'civilian',
+    skills: { taijutsu: 3, bukijutsu: 5, ninjutsu: 0, genjutsu: 0, med: 8 },
+    stats: { phy: 15, cha: 3, men: 12, soc: 50 },
+    description: 'The innkeeper of Konoha\'s only inn. A quiet man who keeps clean rooms and asks no questions.',
+    dialogue: INNKEEPER_DIALOGUE, cooldownTicks: 15,
   });
 
   // ── Villagers (30+ civilians with varied looks) ──
