@@ -90,7 +90,7 @@ export class GameHud {
       this.stanceTicks.textContent = `${STANCE_TICK_COST[playerCtrl.movementStance]} ticks/move`;
     }
 
-    this.gameLog.update(world.gameLog);
+    this.gameLog.update(world.gameLog, world.gameTimeSeconds);
   }
 
   /** Insert an element after the stance indicator (for tempo beads etc.) */
@@ -104,7 +104,7 @@ export class GameHud {
 
   /** Full re-render (for save loads) */
   fullRender(world: World): void {
-    this.gameLog.fullRender(world.gameLog);
+    this.gameLog.fullRender(world.gameLog, world.gameTimeSeconds);
     this.update(world);
   }
 }

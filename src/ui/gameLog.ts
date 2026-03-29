@@ -1,58 +1,72 @@
 import { createElement } from '../utils/dom.ts';
 import type { GameLogEntry } from '../types/actions.ts';
-import { VISIBLE_LOG_ENTRIES } from '../core/constants.ts';
+import { formatGameTime } from '../engine/gameTime.ts';
+
+const MAX_DOM_ENTRIES = 80; // max entries in DOM before pruning from bottom
 
 export class GameLog {
   readonly element: HTMLElement;
   private entriesEl: HTMLElement;
-  private lastRenderedCount = 0;
+  private lastTopText = '';     // track by content, not count
+  private lastTopTick = -1;
 
   constructor() {
     this.element = createElement('div', { className: 'game-log' });
-
     this.element.appendChild(
-      createElement('div', { className: 'game-log__header', text: '// Log' })
+      createElement('div', { className: 'game-log__header', text: '// Chronicle' })
     );
-
     this.entriesEl = createElement('div', { className: 'game-log__entries' });
     this.element.appendChild(this.entriesEl);
   }
 
-  /** Render new entries only (newest on top) */
-  update(entries: GameLogEntry[]): void {
-    const newCount = entries.length;
-    if (newCount === this.lastRenderedCount) return;
+  /** Render new entries only (newest on top). Uses content tracking, not count. */
+  update(entries: GameLogEntry[], gameTimeSeconds?: number): void {
+    if (entries.length === 0) return;
 
-    // Add only new entries at the top
-    const toAdd = newCount - this.lastRenderedCount;
-    for (let i = toAdd - 1; i >= 0; i--) {
+    // Find how many new entries at the top of the array
+    let newCount = 0;
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].text === this.lastTopText && entries[i].tick === this.lastTopTick) break;
+      newCount++;
+    }
+
+    if (newCount === 0) return;
+
+    // Render new entries
+    for (let i = newCount - 1; i >= 0; i--) {
       const entry = entries[i];
       const el = createElement('div', {
         className: `game-log__entry game-log__entry--${entry.category}`,
       });
 
-      const tick = createElement('span', {
+      // Timestamp instead of tick number
+      const timestamp = createElement('span', {
         className: 'game-log__tick',
-        text: `[${entry.tick}]`,
+        text: gameTimeSeconds !== undefined
+          ? `[${formatGameTime(gameTimeSeconds)}]`
+          : '',
       });
-      el.appendChild(tick);
+      if (timestamp.textContent) el.appendChild(timestamp);
       el.appendChild(document.createTextNode(` ${entry.text}`));
 
       this.entriesEl.insertBefore(el, this.entriesEl.firstChild);
     }
 
-    // Trim old entries from DOM if too many
-    while (this.entriesEl.children.length > VISIBLE_LOG_ENTRIES * 2) {
+    // Track the newest entry for next comparison
+    this.lastTopText = entries[0].text;
+    this.lastTopTick = entries[0].tick;
+
+    // Prune old DOM entries from bottom
+    while (this.entriesEl.children.length > MAX_DOM_ENTRIES) {
       this.entriesEl.removeChild(this.entriesEl.lastChild!);
     }
-
-    this.lastRenderedCount = newCount;
   }
 
-  /** Clear and re-render from scratch (for save loads) */
-  fullRender(entries: GameLogEntry[]): void {
+  /** Clear and re-render from scratch */
+  fullRender(entries: GameLogEntry[], gameTimeSeconds?: number): void {
     this.entriesEl.innerHTML = '';
-    this.lastRenderedCount = 0;
-    this.update(entries);
+    this.lastTopText = '';
+    this.lastTopTick = -1;
+    this.update(entries, gameTimeSeconds);
   }
 }
