@@ -36,6 +36,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Load or create world ──
   let world: World;
   let saveId = activeSaveId;
+  const settings = await saveSystem.loadSettings();
+  const devMode = settings.devMode;
 
   if (saveId) {
     const save = await saveSystem.load(saveId);
@@ -44,14 +46,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world = World.deserialize(save.data as Record<string, unknown>);
     } else if (save) {
       // Fresh save from new game — generate world
-      world = generateTrainingGrounds(save.playerName, save.playerGender);
+      world = generateTrainingGrounds(save.playerName, save.playerGender, devMode);
     } else {
       // Fallback
-      world = generateTrainingGrounds('Shinobi', 'shinobi');
+      world = generateTrainingGrounds('Shinobi', 'shinobi', devMode);
     }
   } else {
     // No save ID — shouldn't happen, but handle gracefully
-    world = generateTrainingGrounds('Shinobi', 'shinobi');
+    world = generateTrainingGrounds('Shinobi', 'shinobi', devMode);
   }
 
   // ── Compute initial FOV ──

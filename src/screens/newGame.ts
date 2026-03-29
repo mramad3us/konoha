@@ -6,6 +6,7 @@ import { MENU_STAGGER_MS, GAME_VERSION } from '../core/constants.ts';
 import { generateSaveId } from '../utils/id.ts';
 import { createSmokePuff } from '../components/smokeEffect.ts';
 import { setActiveSaveId } from '../engine/session.ts';
+import { sfxMenuClick } from '../systems/audioSystem.ts';
 import type { GameSave } from '../types/save.ts';
 
 export async function renderNewGame(container: HTMLElement): Promise<void> {
@@ -20,7 +21,7 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
   // ── Back button ──
   const backBtn = createElement('button', { className: 'back-btn' });
   backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
-  backBtn.addEventListener('click', () => screenManager.goBack());
+  backBtn.addEventListener('click', () => { sfxMenuClick(); screenManager.goBack(); });
   container.appendChild(backBtn);
 
   // ── Title ──
@@ -99,6 +100,7 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
     }));
 
     btn.addEventListener('click', () => {
+      sfxMenuClick();
       playerGender = value;
       // Update visual state
       genderBtns.querySelectorAll('button').forEach(b => {
@@ -130,6 +132,7 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
   startBtn.appendChild(createElement('span', { className: 'menu-btn__text', text: 'Begin Journey' }));
 
   startBtn.addEventListener('click', async () => {
+    sfxMenuClick();
     const finalName = playerName || DEFAULT_NAMES[playerGender];
 
     createSmokePuff(container, container.clientWidth / 2, container.clientHeight / 2, 10);

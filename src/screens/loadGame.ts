@@ -5,6 +5,7 @@ import { SCROLL_SVG } from '../assets/sprites/pixelArt.ts';
 import { MENU_STAGGER_MS } from '../core/constants.ts';
 import { formatPlaytime, formatDate } from '../utils/time.ts';
 import { setActiveSaveId } from '../engine/session.ts';
+import { sfxMenuClick } from '../systems/audioSystem.ts';
 import { showConfirm } from '../components/confirmDialog.ts';
 import type { GameSave } from '../types/save.ts';
 
@@ -12,7 +13,7 @@ export async function renderLoadGame(container: HTMLElement): Promise<void> {
   // ── Back button ──
   const backBtn = createElement('button', { className: 'back-btn' });
   backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
-  backBtn.addEventListener('click', () => screenManager.goBack());
+  backBtn.addEventListener('click', () => { sfxMenuClick(); screenManager.goBack(); });
   container.appendChild(backBtn);
 
   // ── Title ──

@@ -163,7 +163,7 @@ const SPAWN_CONFIG: Record<SpawnType, {
 /**
  * Generate a fresh training grounds World with player and objects.
  */
-export function generateTrainingGrounds(playerName: string, playerGender: 'shinobi' | 'kunoichi'): World {
+export function generateTrainingGrounds(playerName: string, playerGender: 'shinobi' | 'kunoichi', devMode: boolean = false): World {
   const W = TRAINING_GROUNDS_WIDTH;
   const H = TRAINING_GROUNDS_HEIGHT;
   const tileMap = new TileMap(W, H);
@@ -219,10 +219,20 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     lastExertionTick: 0,
   });
   world.names.set(playerId, { display: playerName, article: '' });
-  world.characterSheets.set(playerId, {
-    ...DEFAULT_SHINOBI_SHEET,
-    title: 'Academy Graduate',
-  });
+  if (devMode) {
+    world.characterSheets.set(playerId, {
+      class: 'shinobi',
+      rank: 'jounin',
+      title: 'Elite Shinobi',
+      skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70 },
+      stats: { phy: 70, cha: 70, men: 70, soc: 70 },
+    });
+  } else {
+    world.characterSheets.set(playerId, {
+      ...DEFAULT_SHINOBI_SHEET,
+      title: 'Academy Graduate',
+    });
+  }
 
   // ── Spawn Objects ──
   for (const spawn of OBJECT_SPAWNS) {

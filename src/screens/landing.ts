@@ -5,6 +5,7 @@ import { saveSystem } from '../systems/saveSystem.ts';
 import { createElement, staggerReveal } from '../utils/dom.ts';
 import { createSmokePuff } from '../components/smokeEffect.ts';
 import { setActiveSaveId } from '../engine/session.ts';
+import { sfxMenuClick } from '../systems/audioSystem.ts';
 
 export async function renderLanding(container: HTMLElement): Promise<void> {
   // Check for continue save
@@ -128,7 +129,7 @@ export async function renderLanding(container: HTMLElement): Promise<void> {
       btn.appendChild(createElement('span', { className: 'menu-btn__hint', text: item.hint }));
     }
 
-    btn.addEventListener('click', item.action);
+    btn.addEventListener('click', () => { sfxMenuClick(); item.action(); });
     menu.appendChild(btn);
     buttons.push(btn);
   });

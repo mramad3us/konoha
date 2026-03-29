@@ -234,6 +234,49 @@ export function sfxClash(): void {
   setTimeout(() => noiseHit(0.06, 2, 150, 0.25, 2500), 20);
 }
 
+/** Menu click — short metallic kunai clash */
+export function sfxMenuClick(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const v = vol(0.2);
+
+  // Sharp metallic transient
+  const bufSize = Math.floor(ac.sampleRate * 0.03);
+  const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const noise = ac.createBufferSource();
+  noise.buffer = buf;
+
+  const filter = ac.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 6000 + Math.random() * 2000;
+  filter.Q.value = 3;
+
+  const nGain = ac.createGain();
+  nGain.gain.setValueAtTime(v, now);
+  nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+  // Metallic ring
+  const ring = ac.createOscillator();
+  ring.type = 'triangle';
+  ring.frequency.value = 2000 + Math.random() * 800;
+
+  const rGain = ac.createGain();
+  rGain.gain.setValueAtTime(v * 0.4, now);
+  rGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+  noise.connect(filter).connect(nGain).connect(ac.destination);
+  ring.connect(rGain).connect(ac.destination);
+
+  noise.start(now);
+  noise.stop(now + 0.06);
+  ring.start(now);
+  ring.stop(now + 0.15);
+}
+
 /** Footstep — very quiet, subtle */
 export function sfxStep(): void {
   noiseHit(0.04, 2, 0, vol(0.06), 800 + Math.random() * 400);
