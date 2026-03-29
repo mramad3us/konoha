@@ -7,6 +7,7 @@
 import type { JutsuDefinition, JutsuCooldowns } from '../types/jutsu.ts';
 import { JUTSU_REGISTRY, getJutsuByCombatKey } from '../data/jutsus.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { getMissionXpMultiplier } from './missions.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { spawnSmokePuff } from '../systems/particleSystem.ts';
@@ -90,9 +91,12 @@ export function tryCastJutsu(
 
   // Improve ninjutsu
   if (sheet) {
+    const mxp = getMissionXpMultiplier(world.missionLog);
     sheet.skills.ninjutsu = computeImprovement(
       sheet.skills.ninjutsu,
       SKILL_IMPROVEMENT_RATES.ninjutsu,
+      2.0,
+      mxp,
     );
   }
 

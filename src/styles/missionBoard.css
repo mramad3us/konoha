@@ -1,0 +1,536 @@
+/* ═══════════════════════════════════════
+   MISSION BOARD — Pixel Art Billboard
+   ═══════════════════════════════════════ */
+
+/* ── Backdrop ── */
+.mission-board-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 70;
+  transition: background var(--transition-normal) ease;
+  pointer-events: none;
+}
+
+.mission-board-backdrop--visible {
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+/* ── Main Panel ── */
+.mission-board {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  opacity: 0;
+  z-index: 71;
+  pointer-events: none;
+  transition: opacity var(--transition-fast) ease,
+              transform var(--transition-fast) var(--ease-out-expo);
+
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 92vw);
+  max-height: min(540px, 85vh);
+
+  /* Billboard frame — dark wood */
+  background: #1a1510;
+  border: 3px solid #2a2218;
+  box-shadow:
+    inset 0 0 0 1px #0d0b08,
+    inset 0 0 0 2px #3a3020,
+    var(--shadow-lg),
+    0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.mission-board--visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+/* ── Pixel corner nails (decorative) ── */
+.mission-board::before,
+.mission-board::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #5a5040;
+  border: 1px solid #3a3020;
+  z-index: 2;
+}
+
+.mission-board::before {
+  top: 6px;
+  left: 6px;
+}
+
+.mission-board::after {
+  top: 6px;
+  right: 6px;
+}
+
+/* ── Header bar ── */
+.mission-board__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: #12100c;
+  border-bottom: 2px solid #2a2218;
+}
+
+.mission-board__title {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--color-scroll);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.mission-board__day {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mission-board__close {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-ink-faint);
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  line-height: 1;
+}
+
+.mission-board__close:hover {
+  color: var(--color-blood);
+  border-color: var(--color-blood-dark);
+}
+
+/* ── Body: split layout ── */
+.mission-board__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Left: mission list (the "billboard") ── */
+.mission-board__list {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #2a2218;
+  overflow-y: auto;
+
+  /* Cork board texture feel */
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(60, 50, 35, 0.08) 3px,
+      rgba(60, 50, 35, 0.08) 4px
+    ),
+    #1e1a14;
+}
+
+/* Custom scrollbar */
+.mission-board__list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mission-board__list::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+.mission-board__list::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+}
+
+/* ── Mission scroll/card ── */
+.mission-board__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(42, 34, 24, 0.6);
+  transition: background var(--transition-fast),
+              transform var(--transition-fast);
+  position: relative;
+}
+
+.mission-board__item:hover {
+  background: rgba(245, 230, 200, 0.04);
+}
+
+.mission-board__item--selected {
+  background: rgba(245, 230, 200, 0.07);
+}
+
+/* Pin/tack decoration for each scroll */
+.mission-board__item::before {
+  content: '';
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  background: #8a7050;
+  border: 1px solid #5a4a30;
+}
+
+.mission-board__item--selected::before {
+  background: var(--color-scroll-dark);
+  border-color: var(--color-scroll);
+}
+
+/* ── Rank badge ── */
+.mission-board__rank {
+  flex-shrink: 0;
+  width: 24px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.mission-board__rank--D {
+  color: #5b8c5a;
+  border-color: #3a5c3a;
+  background: rgba(91, 140, 90, 0.1);
+}
+
+.mission-board__rank--C {
+  color: #4a7fb5;
+  border-color: #2a5080;
+  background: rgba(74, 127, 181, 0.1);
+}
+
+.mission-board__rank--B {
+  color: var(--color-gold);
+  border-color: var(--color-gold-dark);
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.mission-board__rank--A {
+  color: var(--color-blood-bright);
+  border-color: var(--color-blood-dark);
+  background: rgba(178, 34, 52, 0.1);
+}
+
+/* ── Mission title in list ── */
+.mission-board__item-title {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-scroll);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.mission-board__item--locked .mission-board__item-title {
+  color: var(--color-ink-faint);
+}
+
+.mission-board__item--locked .mission-board__rank {
+  opacity: 0.4;
+}
+
+.mission-board__item--locked {
+  cursor: not-allowed;
+}
+
+/* ── Lock icon for locked missions ── */
+.mission-board__lock {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  flex-shrink: 0;
+}
+
+/* Expiry indicator */
+.mission-board__expiry {
+  font-family: var(--font-pixel);
+  font-size: 5px;
+  color: var(--color-ink-faint);
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.mission-board__expiry--urgent {
+  color: var(--color-blood);
+}
+
+/* ── Right: detail panel ── */
+.mission-board__detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: var(--color-bg);
+
+  /* Parchment-like subtle texture */
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 11px,
+      rgba(245, 230, 200, 0.015) 11px,
+      rgba(245, 230, 200, 0.015) 12px
+    ),
+    var(--color-bg);
+}
+
+.mission-board__detail::-webkit-scrollbar {
+  width: 4px;
+}
+
+.mission-board__detail::-webkit-scrollbar-track {
+  background: var(--color-bg-surface);
+}
+
+.mission-board__detail::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+}
+
+/* ── Empty state ── */
+.mission-board__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── Detail: header ── */
+.mission-board__detail-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.mission-board__detail-rank {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid;
+}
+
+.mission-board__detail-rank--D {
+  color: #5b8c5a;
+  border-color: #3a5c3a;
+  background: rgba(91, 140, 90, 0.08);
+}
+
+.mission-board__detail-rank--C {
+  color: #4a7fb5;
+  border-color: #2a5080;
+  background: rgba(74, 127, 181, 0.08);
+}
+
+.mission-board__detail-rank--B {
+  color: var(--color-gold);
+  border-color: var(--color-gold-dark);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.mission-board__detail-rank--A {
+  color: var(--color-blood-bright);
+  border-color: var(--color-blood-dark);
+  background: rgba(178, 34, 52, 0.08);
+}
+
+.mission-board__detail-title {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--color-scroll);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+}
+
+.mission-board__detail-client {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: var(--space-1);
+}
+
+/* ── Detail: sections ── */
+.mission-board__section {
+  margin-bottom: var(--space-4);
+}
+
+.mission-board__section-label {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-gold-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-bg-hover);
+}
+
+.mission-board__section-text {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-ink);
+  line-height: 1.6;
+}
+
+.mission-board__section-text--small {
+  font-size: 11px;
+  color: var(--color-ink-muted);
+}
+
+/* ── Detail: reward row ── */
+.mission-board__rewards {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.mission-board__reward {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mission-board__reward-label {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mission-board__reward-value {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-gold);
+}
+
+/* ── Detail: locked overlay ── */
+.mission-board__locked-reason {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-blood);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-3);
+  border: 1px solid var(--color-blood-dark);
+  background: rgba(178, 34, 52, 0.06);
+  text-align: center;
+  margin-top: var(--space-3);
+}
+
+/* ── Footer: accept button + hint ── */
+.mission-board__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: #12100c;
+  border-top: 2px solid #2a2218;
+}
+
+.mission-board__accept-btn {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: var(--space-2) var(--space-5);
+  background: none;
+  border: 2px solid var(--color-leaf);
+  color: var(--color-leaf);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.mission-board__accept-btn:hover:not(:disabled) {
+  background: rgba(45, 110, 79, 0.15);
+  box-shadow: 0 0 12px rgba(45, 110, 79, 0.2);
+}
+
+.mission-board__accept-btn:disabled {
+  border-color: var(--color-ink-faint);
+  color: var(--color-ink-faint);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.mission-board__hint {
+  font-family: var(--font-pixel);
+  font-size: 5px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Active mission indicator ── */
+.mission-board__active-banner {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-gold-dark);
+  background: rgba(201, 168, 76, 0.06);
+}
+
+/* Bottom nails */
+.mission-board__footer::before,
+.mission-board__footer::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #5a5040;
+  border: 1px solid #3a3020;
+  z-index: 2;
+  bottom: 6px;
+}
+
+.mission-board__footer::before {
+  left: 6px;
+}
+
+.mission-board__footer::after {
+  right: 6px;
+}

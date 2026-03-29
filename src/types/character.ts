@@ -163,9 +163,11 @@ export function computeImprovement(
   currentValue: number,
   baseGain: number,
   curve: number = 2.0,
+  /** Multiplier applied to base gain (e.g., 2 for mission bonus) */
+  multiplier: number = 1,
 ): number {
   const ratio = 1 - currentValue / 100;
-  const diminished = baseGain * Math.pow(Math.max(0, ratio), curve);
+  const diminished = (baseGain * multiplier) * Math.pow(Math.max(0, ratio), curve);
   return Math.min(100, currentValue + diminished);
 }
 

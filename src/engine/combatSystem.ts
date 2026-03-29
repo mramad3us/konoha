@@ -15,6 +15,7 @@ import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkEntityState, applyBleeding, tickBleeding, killEntity as killEntityDirect } from './entityState.ts';
 import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
+import { getMissionXpMultiplier } from './missions.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
@@ -305,8 +306,9 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
         ? SKILL_IMPROVEMENT_RATES.taijutsu_spar
         : SKILL_IMPROVEMENT_RATES.taijutsu_dummy);
 
-    playerSheet.skills.taijutsu = computeImprovement(playerSheet.skills.taijutsu, rate);
-    playerSheet.stats.phy = computeImprovement(playerSheet.stats.phy, STAT_IMPROVEMENT_RATES.phy_combat);
+    const mxp = getMissionXpMultiplier(world.missionLog);
+    playerSheet.skills.taijutsu = computeImprovement(playerSheet.skills.taijutsu, rate, 2.0, mxp);
+    playerSheet.stats.phy = computeImprovement(playerSheet.stats.phy, STAT_IMPROVEMENT_RATES.phy_combat, 2.0, mxp);
   }
 
   // ── Tick conditions down ──

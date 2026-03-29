@@ -17,7 +17,7 @@ interface ObjSpawn {
   blocksMove: boolean; blocksSight: boolean;
   name: string; article: 'a' | 'an' | 'the' | '';
   description: string; category: ObjectCategory;
-  interactType?: 'sleep' | 'examine' | 'talk';
+  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board';
   interactLabel?: string; lightRadius?: number;
 }
 
@@ -146,7 +146,11 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Counter Area (front): x=59-70, y=87-88
   torch(world, 60, 87, 'The mission desk is always busy.');
   counter(world, 64, 87, 'mission counter', 'Stacks of mission scrolls sorted by rank: D, C, B, A, S.');
-  counter(world, 67, 87, 'assignment board', 'A board showing current mission postings and team assignments.');
+  // Mission board — interactable
+  spawn(world, { x: 67, y: 87, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
+    blocksMove: true, blocksSight: false, name: 'Mission Board', article: 'the',
+    description: 'A board showing current mission postings and team assignments. Press F to browse missions.',
+    category: 'object', interactType: 'mission_board', interactLabel: 'Pick Mission' });
   // Back Office: x=59-70, y=90-91
   desk(world, 62, 91, 'filing desk', 'Where completed mission reports are reviewed and archived.');
   shelf(world, 68, 91, 'record shelf', 'Binders of mission completion records sorted by year.');

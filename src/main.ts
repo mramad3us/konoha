@@ -5,6 +5,7 @@ import './styles/animations.css';
 import './styles/components.css';
 import './styles/landing.css';
 import './styles/game.css';
+import './styles/missionBoard.css';
 
 import { screenManager } from './systems/screenManager.ts';
 import { saveSystem } from './systems/saveSystem.ts';

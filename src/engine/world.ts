@@ -2,6 +2,8 @@ import type { EntityId, PositionComponent, RenderableComponent, BlockingComponen
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
+import type { MissionBoard, MissionLog } from './missions.ts';
+import { createMissionBoard, createMissionLog } from './missions.ts';
 
 /**
  * Central game state container.
@@ -35,6 +37,10 @@ export class World {
 
   // Combat intent
   playerKillIntent = false;
+
+  // Mission system
+  missionBoard: MissionBoard = createMissionBoard(1);
+  missionLog: MissionLog = createMissionLog();
 
   // World systems data
   tileMap: TileMap;
@@ -234,6 +240,8 @@ export class World {
       proximityDialogue: serializeMap(this.proximityDialogue),
       doors: serializeMap(this.doors),
       playerKillIntent: this.playerKillIntent,
+      missionBoard: this.missionBoard,
+      missionLog: this.missionLog,
     };
   }
 
@@ -296,6 +304,12 @@ export class World {
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
+    }
+    if (data['missionBoard']) {
+      world.missionBoard = data['missionBoard'] as MissionBoard;
+    }
+    if (data['missionLog']) {
+      world.missionLog = data['missionLog'] as MissionLog;
     }
 
     // Rebuild spatial hash from deserialized positions

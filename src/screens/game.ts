@@ -16,7 +16,9 @@ import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.
 import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
+import { MissionBoardUI } from '../ui/missionBoardUI.ts';
 import { interactWithEntity } from '../engine/turnSystem.ts';
+import { refreshMissionBoard, acceptMission, getGameDay } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -305,11 +307,40 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.currentTick += 1;
     } else if (choice === 'use_sleep') {
       doSleep();
+    } else if (choice === 'use_mission_board') {
+      await openMissionBoard();
     }
 
     hud.update(world);
     timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
   });
+
+  // Mission board UI
+  const missionBoardUI = new MissionBoardUI();
+  const openMissionBoard = async () => {
+    // Refresh board for current day
+    const currentDay = getGameDay(world.gameTimeSeconds);
+    refreshMissionBoard(world.missionBoard, currentDay);
+
+    const playerSheet = world.characterSheets.get(world.playerEntityId);
+    const playerRank = playerSheet?.rank ?? 'genin';
+
+    const chosenId = await missionBoardUI.show(
+      world.missionBoard, world.missionLog, playerRank, world.gameTimeSeconds,
+    );
+
+    if (chosenId) {
+      const mission = acceptMission(world.missionLog, world.missionBoard, chosenId);
+      if (mission) {
+        world.log(`Mission accepted: ${mission.title} (${mission.rank}-Rank)`, 'system');
+        world.log(`Objective: ${mission.objective}`, 'info');
+        world.log('Skill training now grants 2\u00d7 XP.', 'info');
+      }
+    }
+
+    hud.update(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+  };
 
   // Target selector — when multiple interactables are nearby, pick one first
   const targetMenu = new ContextMenu();
@@ -372,6 +403,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         world.gameTimeSeconds += 6; world.currentTick += 1;
       } else if (ctxChoice === 'use_sleep') {
         doSleep();
+      } else if (ctxChoice === 'use_mission_board') {
+        await openMissionBoard();
       }
     }
 
