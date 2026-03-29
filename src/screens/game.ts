@@ -140,7 +140,12 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }, { once: true });
   });
 
-  // Update tick label on each HUD update
+  // Update time label on every HUD update (move, combat, etc.)
+  const origUpdate = hud.update.bind(hud);
+  hud.update = (w: World) => {
+    origUpdate(w);
+    timeLabel.textContent = formatGameTime(w.gameTimeSeconds);
+  };
   const origFullRender = hud.fullRender.bind(hud);
   hud.fullRender = (w: World) => {
     origFullRender(w);
