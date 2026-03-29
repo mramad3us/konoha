@@ -5,7 +5,7 @@
 
 import type { World } from '../engine/world.ts';
 import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
-import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES } from '../sprites/characters.ts';
+import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
@@ -18,7 +18,7 @@ import {
   ACCENTS_MEDIC_1, ACCENTS_MEDIC_2,
   ACCENTS_SHOPKEEPER_1, ACCENTS_SHOPKEEPER_2,
   ACCENTS_CHEF,
-  ALL_CIVILIAN_ACCENTS,
+  ALL_MALE_CIVILIAN_ACCENTS, ALL_FEMALE_CIVILIAN_ACCENTS,
 } from './npcAccents.ts';
 
 interface NpcDef {
@@ -35,6 +35,7 @@ interface NpcDef {
   dialogue: Record<string, string[]>;
   cooldownTicks: number;
   devOnly?: boolean;
+  female?: boolean;
 }
 
 /** Counter for unique NPC sprite prefixes */
@@ -54,7 +55,10 @@ function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
   // If no specific sprite prefix given, generate from accents
   // Civilians use CIVILIAN_BODIES (no headband), merchants too
   const isCivilian = def.charClass === 'civilian' || def.charClass === 'merchant';
-  const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents, isCivilian ? CIVILIAN_BODIES : undefined);
+  const bodyOverride = isCivilian
+    ? (def.female ? FEMALE_CIVILIAN_BODIES : CIVILIAN_BODIES)
+    : undefined;
+  const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents, bodyOverride);
   const id = world.createEntity();
   const hp = computeMaxHp(def.stats);
 
@@ -378,10 +382,10 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   });
 
   // ── Villagers (30+ civilians with varied looks) ──
-  const civilianDefs: Array<{ x: number; y: number; name: string; title: string; desc: string }> = [
+  const civilianDefs: Array<{ x: number; y: number; name: string; title: string; desc: string; female?: boolean }> = [
     // Main avenue (busy thoroughfare)
     { x: 76, y: 95, name: 'Tanaka', title: 'Farmer', desc: 'A weathered farmer heading to market with produce.' },
-    { x: 77, y: 100, name: 'Mrs. Suzuki', title: 'Housewife', desc: 'A mother doing errands in the village.' },
+    { x: 77, y: 100, name: 'Mrs. Suzuki', title: 'Housewife', desc: 'A mother doing errands in the village.', female: true },
     { x: 76, y: 110, name: 'Yamamoto', title: 'Carpenter', desc: 'A carpenter carrying tools to a job site.' },
     { x: 77, y: 120, name: 'Watanabe', title: 'Elder', desc: 'An elderly man taking his daily walk through the village.' },
     { x: 76, y: 130, name: 'Ito', title: 'Merchant', desc: 'A traveling merchant passing through Konoha.' },
@@ -392,43 +396,45 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     { x: 113, y: 80, name: 'Takahashi', title: 'Shopper', desc: 'Comparing prices between stalls.' },
     { x: 123, y: 82, name: 'Kobayashi', title: 'Vendor', desc: 'A food vendor hawking fresh dumplings.' },
     { x: 108, y: 82, name: 'Yoshida', title: 'Baker', desc: 'Delivering fresh bread to the market.' },
-    { x: 118, y: 82, name: 'Mrs. Mori', title: 'Tea Seller', desc: 'Pouring samples of her special blend.' },
+    { x: 118, y: 82, name: 'Mrs. Mori', title: 'Tea Seller', desc: 'Pouring samples of her special blend.', female: true },
     { x: 130, y: 80, name: 'Fujita', title: 'Blacksmith', desc: 'A burly smith taking a break from the forge.' },
 
     // Commercial strip (eating, socializing)
     { x: 72, y: 100, name: 'Hideo', title: 'Regular', desc: 'A ramen regular. He\'s here every day.' },
-    { x: 72, y: 108, name: 'Keiko', title: 'Tea Lady', desc: 'Sipping tea and watching the world go by.' },
+    { x: 72, y: 108, name: 'Keiko', title: 'Tea Lady', desc: 'Sipping tea and watching the world go by.', female: true },
     { x: 82, y: 100, name: 'Riku', title: 'Barber\'s son', desc: 'Sweeping the floor outside his father\'s shop.' },
 
     // Residential west (at home, in yards)
     { x: 18, y: 110, name: 'Grandpa Oda', title: 'Retired', desc: 'An old man sitting outside his home, watching the clouds.' },
-    { x: 32, y: 112, name: 'Mrs. Hayashi', title: 'Gardener', desc: 'Tending to potted plants outside her door.' },
+    { x: 32, y: 112, name: 'Mrs. Hayashi', title: 'Gardener', desc: 'Tending to potted plants outside her door.', female: true },
     { x: 42, y: 110, name: 'Daisuke', title: 'Child', desc: 'A young boy playing with a wooden kunai.' },
-    { x: 24, y: 125, name: 'Emi', title: 'Seamstress', desc: 'Carrying fabric bundles home from the market.' },
+    { x: 24, y: 125, name: 'Emi', title: 'Seamstress', desc: 'Carrying fabric bundles home from the market.', female: true },
     { x: 40, y: 125, name: 'Taro', title: 'Baker', desc: 'Just closed his bakery for the day.' },
 
     // Residential east
     { x: 102, y: 112, name: 'Haruto', title: 'Craftsman', desc: 'A potter heading to his workshop.' },
-    { x: 122, y: 112, name: 'Yuna', title: 'Child', desc: 'A little girl chasing a butterfly.' },
+    { x: 122, y: 112, name: 'Yuna', title: 'Child', desc: 'A little girl chasing a butterfly.', female: true },
     { x: 112, y: 125, name: 'Kaoru', title: 'Artist', desc: 'Sketching the village scenery on a scroll.' },
     { x: 128, y: 125, name: 'Shin', title: 'Fishmonger', desc: 'Smells like fresh catch. Heading home.' },
 
     // Near river (fishermen, walkers)
     { x: 35, y: 63, name: 'Old Jiro', title: 'Fisherman', desc: 'Been fishing this river for forty years.' },
     { x: 85, y: 63, name: 'Masa', title: 'Walker', desc: 'Enjoying a quiet walk along the riverbank.' },
-    { x: 130, y: 63, name: 'Tomoe', title: 'Washerwoman', desc: 'Doing laundry by the river, as her mother did before her.' },
+    { x: 130, y: 63, name: 'Tomoe', title: 'Washerwoman', desc: 'Doing laundry by the river, as her mother did before her.', female: true },
 
     // Near gate (travelers, loiterers)
     { x: 78, y: 145, name: 'Wanderer', title: 'Traveler', desc: 'A dusty traveler who just arrived at Konoha.' },
     { x: 82, y: 144, name: 'Koji', title: 'Cart Driver', desc: 'Waiting for his supply cart to be unloaded.' },
 
     // Near hospital
-    { x: 36, y: 85, name: 'Mrs. Toda', title: 'Visitor', desc: 'Visiting a family member at the hospital.' },
+    { x: 36, y: 85, name: 'Mrs. Toda', title: 'Visitor', desc: 'Visiting a family member at the hospital.', female: true },
   ];
 
   for (let i = 0; i < civilianDefs.length; i++) {
     const d = civilianDefs[i];
-    const accent = ALL_CIVILIAN_ACCENTS[i % ALL_CIVILIAN_ACCENTS.length];
+    const accent = d.female
+      ? ALL_FEMALE_CIVILIAN_ACCENTS[i % ALL_FEMALE_CIVILIAN_ACCENTS.length]
+      : ALL_MALE_CIVILIAN_ACCENTS[i % ALL_MALE_CIVILIAN_ACCENTS.length];
     // Random stats 1-10
     const rng = cellHash(d.x, d.y);
     spawnNpc(world, {
@@ -443,6 +449,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       },
       description: d.desc,
       dialogue: VILLAGER_DIALOGUE, cooldownTicks: 25,
+      female: d.female,
     });
   }
 

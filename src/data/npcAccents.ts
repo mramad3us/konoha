@@ -255,11 +255,69 @@ export const ACCENTS_CIV_GARDENER: CharacterAccents = {
   outfitDark: [45, 80, 38], outfitMid: [58, 95, 48], outfitShadow: [35, 65, 28], // green work clothes
 };
 
-/** All civilian accent presets for random selection */
+// ══════════════════════════════════════════
+//  FEMALE CIVILIAN ACCENTS — colorful hair + eye variations
+//  These use FEMALE_CIVILIAN_BODIES (longer hair)
+// ══════════════════════════════════════════
+
+export const ACCENTS_CIV_F_PURPLE: CharacterAccents = {
+  hair: [120, 60, 140], headband: [120, 60, 140], pupil: [60, 100, 180], // blue eyes
+  belt: [100, 80, 120], beltHighlight: [120, 100, 140],
+  outfitDark: [80, 50, 95], outfitMid: [100, 68, 115], outfitShadow: [62, 38, 75],
+};
+
+export const ACCENTS_CIV_F_PINK: CharacterAccents = {
+  hair: [210, 130, 150], headband: [210, 130, 150], pupil: [50, 140, 80], // green eyes
+  belt: [160, 90, 110], beltHighlight: [180, 110, 130],
+  outfitDark: [140, 65, 80], outfitMid: [160, 82, 98], outfitShadow: [115, 50, 62],
+};
+
+export const ACCENTS_CIV_F_BLUE: CharacterAccents = {
+  hair: [70, 100, 170], headband: [70, 100, 170], pupil: [50, 140, 80], // green eyes
+  belt: [60, 80, 130], beltHighlight: [80, 100, 150],
+  outfitDark: [45, 60, 100], outfitMid: [58, 75, 118], outfitShadow: [32, 45, 78],
+};
+
+export const ACCENTS_CIV_F_BLONDE: CharacterAccents = {
+  hair: [210, 190, 120], headband: [210, 190, 120], pupil: [60, 100, 180], // blue eyes
+  belt: [170, 140, 80], beltHighlight: [190, 160, 100],
+  outfitDark: [130, 50, 60], outfitMid: [150, 68, 78], outfitShadow: [105, 38, 45],
+};
+
+export const ACCENTS_CIV_F_RED: CharacterAccents = {
+  hair: [170, 55, 40], headband: [170, 55, 40], pupil: [50, 120, 60], // green eyes
+  belt: [120, 40, 35], beltHighlight: [145, 60, 52],
+  outfitDark: [85, 70, 50], outfitMid: [102, 85, 62], outfitShadow: [68, 55, 38],
+};
+
+export const ACCENTS_CIV_F_SILVER: CharacterAccents = {
+  hair: [180, 180, 190], headband: [180, 180, 190], pupil: [100, 60, 140], // purple eyes
+  belt: [130, 120, 140], beltHighlight: [150, 140, 160],
+  outfitDark: [70, 60, 80], outfitMid: [88, 76, 98], outfitShadow: [55, 46, 64],
+};
+
+export const ACCENTS_CIV_F_TEAL: CharacterAccents = {
+  hair: [60, 160, 150], headband: [60, 160, 150], pupil: [180, 120, 60], // amber eyes
+  belt: [50, 120, 110], beltHighlight: [70, 140, 130],
+  outfitDark: [60, 80, 55], outfitMid: [76, 98, 70], outfitShadow: [45, 62, 40],
+};
+
+/** All MALE civilian accents */
+export const ALL_MALE_CIVILIAN_ACCENTS: CharacterAccents[] = [
+  ACCENTS_CIV_FARMER, ACCENTS_CIV_ELDER_M, ACCENTS_CIV_YOUNG_M,
+  ACCENTS_CIV_MERCHANT, ACCENTS_CIV_FISHERMAN, ACCENTS_CIV_ARTISAN,
+  ACCENTS_CIV_INNKEEPER, ACCENTS_CIV_BAKER, ACCENTS_CIV_GARDENER,
+];
+
+/** All FEMALE civilian accents (colorful hair + eye variations) */
+export const ALL_FEMALE_CIVILIAN_ACCENTS: CharacterAccents[] = [
+  ACCENTS_CIV_ELDER_F, ACCENTS_CIV_YOUNG_F, ACCENTS_CIV_MOTHER,
+  ACCENTS_CIV_VENDOR_F, ACCENTS_CIV_TAILOR,
+  ACCENTS_CIV_F_PURPLE, ACCENTS_CIV_F_PINK, ACCENTS_CIV_F_BLUE,
+  ACCENTS_CIV_F_BLONDE, ACCENTS_CIV_F_RED, ACCENTS_CIV_F_SILVER, ACCENTS_CIV_F_TEAL,
+];
+
+/** Combined for backward compat */
 export const ALL_CIVILIAN_ACCENTS: CharacterAccents[] = [
-  ACCENTS_CIV_FARMER, ACCENTS_CIV_ELDER_M, ACCENTS_CIV_ELDER_F,
-  ACCENTS_CIV_YOUNG_M, ACCENTS_CIV_YOUNG_F, ACCENTS_CIV_MERCHANT,
-  ACCENTS_CIV_FISHERMAN, ACCENTS_CIV_ARTISAN, ACCENTS_CIV_MOTHER,
-  ACCENTS_CIV_CHILD, ACCENTS_CIV_VENDOR_F, ACCENTS_CIV_INNKEEPER,
-  ACCENTS_CIV_BAKER, ACCENTS_CIV_TAILOR, ACCENTS_CIV_GARDENER,
+  ...ALL_MALE_CIVILIAN_ACCENTS, ...ALL_FEMALE_CIVILIAN_ACCENTS,
 ];
