@@ -421,8 +421,8 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
 
   const playerSheet = devMode
     ? { class: 'shinobi' as const, rank: 'jounin' as const, title: 'Elite Shinobi',
-        skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70, med: 70 },
-        stats: { phy: 70, cha: 70, men: 70, soc: 70 }, learnedJutsus: ['substitution'] }
+        skills: { taijutsu: 90, bukijutsu: 90, ninjutsu: 90, genjutsu: 90, med: 90 },
+        stats: { phy: 90, cha: 90, men: 90, soc: 90 }, learnedJutsus: ['substitution'] }
     : { ...DEFAULT_SHINOBI_SHEET, title: 'Academy Graduate' };
   world.characterSheets.set(playerId, playerSheet);
 
