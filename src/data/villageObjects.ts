@@ -67,9 +67,20 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // --- Hokage Tower (58-73, 72-79) ---
   torch(world, 60, 74, 'The Hokage Tower interior glows with warm light.');
   torch(world, 72, 74, 'A torch flanking the Hokage\'s seat.');
+  torch(world, 60, 78, 'A torch in the lower hall.');
+  torch(world, 72, 78, 'A torch in the lower hall.');
   spawn(world, { x: 65, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
     blocksMove: true, blocksSight: false, name: 'Hokage\'s desk', article: 'the',
     description: 'The desk where the Hokage reviews missions and signs orders. Scrolls are piled high.', category: 'object' });
+  spawn(world, { x: 68, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'war table', article: 'a',
+    description: 'A large table with a map of the shinobi nations. Pins mark known threats.', category: 'object' });
+  spawn(world, { x: 62, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'scroll shelf', article: 'a',
+    description: 'Village records and sealed documents dating back generations.', category: 'object' });
+  spawn(world, { x: 70, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'weapons rack', article: 'a',
+    description: 'Ceremonial weapons displayed on the wall. Each has a story.', category: 'object' });
 
   // --- Mission Desk (60-71, 83-87) ---
   torch(world, 62, 85, 'The mission desk is always busy.');
@@ -193,6 +204,76 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   spawn(world, { x: 51, y: 59, spriteId: 'obj_rock_large', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'Memorial Stone', article: 'the',
     description: 'A polished monument inscribed with names of fallen shinobi. Fresh flowers rest at its base.', category: 'object' });
+
+  // --- Council Room interior (60-67, 92-96) ---
+  torch(world, 62, 93, 'Council room torch.');
+  spawn(world, { x: 64, y: 93, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'council table', article: 'the',
+    description: 'A round table where village elders debate policy and strategy.', category: 'object' });
+
+  // --- Clinic interior (18-25, 94-98) ---
+  bed(world, 20, 95);
+  torch(world, 24, 96, 'Clinic examination lamp.', 3);
+  spawn(world, { x: 22, y: 95, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'herb cabinet', article: 'an',
+    description: 'Dried medicinal herbs organized by ailment. The sharp scent is therapeutic.', category: 'object' });
+
+  // --- Shrine interior (143-148, 73-77) ---
+  torch(world, 145, 75, 'A sacred flame that never goes out.', 5);
+  spawn(world, { x: 147, y: 75, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -8,
+    blocksMove: true, blocksSight: false, name: 'offering stone', article: 'an',
+    description: 'A smooth stone altar for offerings to the village spirits.', category: 'object' });
+
+  // --- Dango Shop interior (80-86, 104-108) ---
+  torch(world, 82, 106, 'Sweet shop lantern. Smells of dango and syrup.', 3);
+
+  // --- General Store interior (80-86, 111-115) ---
+  torch(world, 82, 113, 'General store lamp.', 3);
+  spawn(world, { x: 84, y: 113, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'supply shelf', article: 'a',
+    description: 'Everything a shinobi or civilian might need: rope, oil, paper, ink.', category: 'object' });
+
+  // --- North park decorations (42-55, 8-17) ---
+  tree(world, 44, 10);
+  tree(world, 50, 12);
+  tree(world, 48, 16);
+  bush(world, 43, 14);
+  bush(world, 53, 14);
+  spawn(world, { x: 46, y: 15, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+    blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
+    description: 'A stone bench under the trees. A nice spot to rest.', category: 'object' });
+
+  // --- South park decorations (55-74, 130-139) ---
+  tree(world, 58, 131);
+  tree(world, 65, 135);
+  tree(world, 72, 132);
+  tree(world, 68, 138);
+  bush(world, 56, 134);
+  bush(world, 73, 134);
+  spawn(world, { x: 63, y: 136, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+    blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
+    description: 'A bench overlooking the small pond. Peaceful.', category: 'object' });
+
+  // --- Farm plots decorations (6-13, 100-126) ---
+  spawn(world, { x: 8, y: 105, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'scarecrow', article: 'a',
+    description: 'A scarecrow dressed in old shinobi gear. Effective, in a creepy sort of way.', category: 'object' });
+  spawn(world, { x: 10, y: 120, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'water barrel', article: 'a',
+    description: 'A barrel collecting rainwater for the farm plots.', category: 'object' });
+
+  // --- Market plaza open area decorations ---
+  spawn(world, { x: 110, y: 79, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+    blocksMove: true, blocksSight: false, name: 'market well', article: 'the',
+    description: 'A stone well in the center of the market. Fresh water for all.', category: 'object' });
+  spawn(world, { x: 120, y: 79, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+    blocksMove: false, blocksSight: false, name: 'market bench', article: 'a',
+    description: 'A bench for tired shoppers.', category: 'object' });
+
+  // --- Well plaza at crossroads (73-79, 78-82) ---
+  spawn(world, { x: 76, y: 79, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -8,
+    blocksMove: true, blocksSight: false, name: 'village well', article: 'the',
+    description: 'The main village well. A gathering point for gossip and news.', category: 'object' });
 
   // --- Rocks near river ---
   spawn(world, { x: 50, y: 63, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -8, blocksMove: true, blocksSight: false, name: 'river stone', article: 'a', description: 'A smooth stone by the water.', category: 'terrain' });

@@ -14,7 +14,7 @@ interface Zone {
 const ZONES: Zone[] = [
   // Specific buildings first
   { name: 'Hokage Tower', x1: 58, y1: 72, x2: 74, y2: 80 },
-  { name: 'Mission Desk', x1: 60, y1: 83, x2: 72, y2: 88 },
+  { name: 'Mission Desk', x1: 60, y1: 85, x2: 72, y2: 90 },
   { name: 'Academy', x1: 58, y1: 12, x2: 74, y2: 20 },
   { name: 'Academy Yard', x1: 58, y1: 21, x2: 76, y2: 29 },
   { name: 'Library', x1: 78, y1: 12, x2: 86, y2: 18 },

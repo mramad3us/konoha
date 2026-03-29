@@ -252,7 +252,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Mission Desk Chunin ──
   spawnNpc(world, {
-    x: 65, y: 85, name: 'Iruma', accents: ACCENTS_CHUNIN_1,
+    x: 65, y: 87, name: 'Iruma', accents: ACCENTS_CHUNIN_1,
     rank: 'chuunin', title: 'Mission Desk Operator', charClass: 'shinobi',
     skills: { taijutsu: 35, bukijutsu: 30, ninjutsu: 25, genjutsu: 15, med: 10 },
     stats: { phy: 25, cha: 20, men: 20, soc: 40 },

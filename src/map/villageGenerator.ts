@@ -154,19 +154,23 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
 
   // --- GOVERNMENT QUARTER (stone, south of river, west of main avenue) ---
   stampBuilding(tileMap, { x: 58, y: 72, w: 16, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 8, label: 'Hokage Tower' });
-  stampBuilding(tileMap, { x: 60, y: 83, w: 12, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Mission Desk' });
-  stampBuilding(tileMap, { x: 60, y: 90, w: 8, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Council Room' });
+  stampBuilding(tileMap, { x: 60, y: 85, w: 12, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Mission Desk' });
+  stampBuilding(tileMap, { x: 60, y: 92, w: 8, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Council Room' });
 
   // --- ACADEMY DISTRICT (north, near main avenue) ---
   stampBuilding(tileMap, { x: 58, y: 12, w: 16, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 8, label: 'Academy' });
   stampBuilding(tileMap, { x: 78, y: 12, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 's', doorOffset: 4, label: 'Library' });
   stampBuilding(tileMap, { x: 58, y: 32, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 2, label: 'Instructor Office' });
 
-  // --- COMMERCIAL STRIP (east of main avenue, south of market road) ---
+  // --- COMMERCIAL STRIP (both sides of main avenue) ---
+  // West side of avenue — doors face east toward the road
   stampBuilding(tileMap, { x: 62, y: 97, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Konoha Kitchen' });
   stampBuilding(tileMap, { x: 62, y: 105, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 2, label: 'Tea House' });
   stampBuilding(tileMap, { x: 62, y: 112, w: 8, h: 6, floorType: 'wooden_floor', doorSide: 'e', doorOffset: 3, label: 'Inn' });
+  // East side of avenue — doors face west toward the road
   stampBuilding(tileMap, { x: 80, y: 97, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'Barbershop' });
+  stampBuilding(tileMap, { x: 80, y: 104, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'Dango Shop' });
+  stampBuilding(tileMap, { x: 80, y: 111, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 2, label: 'General Store' });
 
   // --- MARKET PLAZA (east side, buildings face the square) ---
   stampBuilding(tileMap, { x: 98, y: 72, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 's', doorOffset: 3, label: 'Weapons Shop' });
@@ -237,6 +241,32 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   // --- GATE GUARD POSTS ---
   stampBuilding(tileMap, { x: 68, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Guard Post' });
   stampBuilding(tileMap, { x: 88, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'w', doorOffset: 2, label: 'Guard Post' });
+
+  // --- FILL DEAD ZONES ---
+  // North park (between compounds and academy)
+  fillRect(tileMap, 42, 8, 14, 10, 'dirt'); // park ground
+  fillRect(tileMap, 45, 10, 3, 3, 'water'); // small pond in park
+  stampRoad(tileMap, 42, 18, 55, 18, 2); // park path connecting to academy road
+
+  // South park (between residential and gate)
+  fillRect(tileMap, 55, 130, 20, 10, 'dirt'); // open park
+  fillRect(tileMap, 60, 133, 4, 3, 'water'); // park pond
+
+  // Shrine area (east, between river and market)
+  fillRect(tileMap, 142, 72, 8, 8, 'stone'); // shrine platform
+  stampBuilding(tileMap, { x: 143, y: 73, w: 6, h: 5, floorType: 'stone', doorSide: 's', doorOffset: 3, label: 'Shrine' });
+
+  // Farm plots (southwest, near residential)
+  fillRect(tileMap, 6, 100, 8, 12, 'dirt'); // farm field
+  fillRect(tileMap, 6, 115, 8, 12, 'dirt'); // farm field 2
+
+  // Well plaza (intersection of main roads)
+  fillRect(tileMap, 73, 78, 7, 5, 'stone'); // small plaza at crossroads
+
+  // Additional connecting roads
+  stampRoad(tileMap, 42, 30, 55, 30, 2); // park to academy
+  stampRoad(tileMap, 90, 80, 98, 80, 2); // avenue to market
+  stampRoad(tileMap, 50, 100, 60, 100, 2); // residential to commercial
 
   // ╔══════════════════════════════════════╗
   // ║  CREATE WORLD + PLAYER               ║
