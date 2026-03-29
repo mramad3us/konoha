@@ -180,7 +180,7 @@ interface MissionTemplate {
 const D_RANK_DELIVERY: MissionTemplate = {
   rank: 'D',
   titles: ['Package Delivery', 'Urgent Delivery', 'Supply Run', 'Medicine Delivery', 'Scroll Courier'],
-  clients: ['Postal Service', 'Konoha Hospital', 'Academy Admin', 'Market Association', 'Village Elder'],
+  clients: ['Mrs. Tanaka, a villager', 'Konoha Hospital clerk', 'Academy errand office', 'A market stall owner', 'Old man from the east district'],
   descriptions: [
     'A package needs to be delivered across the village.',
     'Medical supplies must reach their destination promptly.',
@@ -207,7 +207,7 @@ const D_RANK_DELIVERY: MissionTemplate = {
 const D_RANK_SEARCH: MissionTemplate = {
   rank: 'D',
   titles: ['Lost & Found', 'Missing Pet', 'Item Recovery', 'The Runaway', 'Search & Retrieve'],
-  clients: ['Worried Villager', 'Elderly Resident', 'Academy Student', 'Shop Owner', 'Farmer'],
+  clients: ['A worried mother', 'Grandpa from the riverside', 'An academy student\'s parent', 'A shop owner on Market Road', 'A farmer near the west gate'],
   descriptions: [
     'Something precious has gone missing in the village.',
     'A beloved pet has escaped and needs to be found.',
@@ -247,7 +247,7 @@ const D_RANK_SEARCH: MissionTemplate = {
 const D_RANK_PATROL: MissionTemplate = {
   rank: 'D',
   titles: ['Guard Duty', 'Patrol Assignment', 'Night Watch', 'Village Patrol', 'Perimeter Check'],
-  clients: ['Gate Command', 'Village Security', 'Merchant Guild', 'Hokage Office', 'Hospital Admin'],
+  clients: ['Gate duty roster', 'Village watch office', 'A merchant guild clerk', 'Hokage Tower admin desk', 'Hospital security'],
   descriptions: [
     'A routine patrol of a village district is needed.',
     'The night watch is short-staffed and needs an extra set of eyes.',
@@ -274,7 +274,7 @@ const D_RANK_PATROL: MissionTemplate = {
 const C_RANK_PLACEHOLDER: MissionTemplate = {
   rank: 'C',
   titles: ['Bandit Deterrence', 'Road Security', 'Trade Route Patrol', 'Outskirts Sweep', 'Threat Assessment'],
-  clients: ['Trade Council', 'Border Patrol', 'Merchant Caravan', 'Village Defense', 'Intelligence Division'],
+  clients: ['A trade official from the capital', 'Village border patrol office', 'A merchant caravan leader', 'Lord Matsuda, a minor provincial lord', 'A tax collector from the eastern towns'],
   descriptions: [
     'Bandits have been spotted near the trade routes.',
     'The roads outside the village need to be secured.',
@@ -290,7 +290,7 @@ const C_RANK_PLACEHOLDER: MissionTemplate = {
 const B_RANK_PLACEHOLDER: MissionTemplate = {
   rank: 'B',
   titles: ['Infiltration Op', 'Asset Recovery', 'High-Value Escort', 'Enemy Encampment', 'Sabotage Mission'],
-  clients: ['ANBU Liaison', 'Hokage Office', 'Intelligence Division', 'Defense Council', 'Allied Village'],
+  clients: ['Classified', 'Lord Nobunaga, governor of the northern province', 'Classified', 'The Fire Daimyo\'s trade minister', 'An allied village liaison'],
   descriptions: [
     'A covert operation requiring skill and discretion.',
     'An enemy encampment has been located.',
@@ -305,7 +305,7 @@ const B_RANK_PLACEHOLDER: MissionTemplate = {
 const A_RANK_PLACEHOLDER: MissionTemplate = {
   rank: 'A',
   titles: ['Threat Response', 'Border Crisis', 'Assassination Prevention', 'Village Defense Op', 'Allied Reinforcement'],
-  clients: ['Hokage', 'ANBU Commander', 'Defense Council', 'Allied Kage', 'Intelligence Chief'],
+  clients: ['Classified', 'Classified', 'Classified', 'The Fire Daimyo himself', 'Classified'],
   descriptions: [
     'A grave threat to the village requires the strongest shinobi.',
     'The village faces a direct threat requiring organized defense.',
