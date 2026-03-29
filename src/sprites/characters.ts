@@ -74,6 +74,15 @@ export const ACCENTS_KASURA: CharacterAccents = {
   beltHighlight: [160, 55, 40],
 };
 
+/** Takeshi (training grounds sparring partner): spiky brown hair, green headband */
+export const ACCENTS_TAKESHI: CharacterAccents = {
+  hair: [90, 60, 30],
+  headband: [30, 80, 50],
+  pupil: [50, 40, 30],
+  belt: [80, 100, 60],
+  beltHighlight: [100, 120, 75],
+};
+
 /** Generic NPC shinobi: brown hair, blue headband */
 export const ACCENTS_GENERIC_SHINOBI: CharacterAccents = {
   hair: [70, 50, 35],
@@ -233,3 +242,10 @@ export const CHAR_KUNOICHI_N = kasura.n;
 export const CHAR_KUNOICHI_E = kasura.e;
 export const CHAR_KUNOICHI_W = kasura.w;
 export const CHAR_KUNOICHI_PRONE = kasura.prone;
+
+const takeshi = generateCharacterSprites(ACCENTS_TAKESHI);
+export const CHAR_TAKESHI_S = takeshi.s;
+export const CHAR_TAKESHI_N = takeshi.n;
+export const CHAR_TAKESHI_E = takeshi.e;
+export const CHAR_TAKESHI_W = takeshi.w;
+export const CHAR_TAKESHI_PRONE = takeshi.prone;

@@ -142,7 +142,7 @@ const SPAWN_CONFIG: Record<SpawnType, {
   sparring?: boolean;
 }> = {
   dummy:           { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true },
-  sparring_partner:{ spriteId: 'char_shinobi_s',  offsetY: -16, blocksMove: true,  blocksSight: false, displayName: 'sparring partner', article: 'a', sparring: true },
+  sparring_partner:{ spriteId: 'char_takeshi_s',  offsetY: -16, blocksMove: true,  blocksSight: false, displayName: 'sparring partner', article: 'a', sparring: true },
   tree_small:  { spriteId: 'obj_tree_small',  offsetY: -28, blocksMove: true,  blocksSight: true,  displayName: 'tree', article: 'a' },
   tree_large:  { spriteId: 'obj_tree_large',  offsetY: -36, blocksMove: true,  blocksSight: true,  displayName: 'large tree', article: 'a' },
   tree_willow: { spriteId: 'obj_tree_willow', offsetY: -32, blocksMove: true,  blocksSight: true,  displayName: 'willow tree', article: 'a' },

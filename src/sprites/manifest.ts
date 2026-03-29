@@ -11,6 +11,7 @@ import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
   CHAR_KUNOICHI_S, CHAR_KUNOICHI_N, CHAR_KUNOICHI_E, CHAR_KUNOICHI_W,
   CHAR_SHINOBI_PRONE, CHAR_KUNOICHI_PRONE,
+  CHAR_TAKESHI_S, CHAR_TAKESHI_N, CHAR_TAKESHI_E, CHAR_TAKESHI_W, CHAR_TAKESHI_PRONE,
 } from './characters.ts';
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 
@@ -73,6 +74,13 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_kunoichi_n', pattern: CHAR_KUNOICHI_N, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_e', pattern: CHAR_KUNOICHI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_w', pattern: CHAR_KUNOICHI_W, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // Takeshi (sparring partner)
+  { id: 'char_takeshi_s', pattern: CHAR_TAKESHI_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_n', pattern: CHAR_TAKESHI_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_e', pattern: CHAR_TAKESHI_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_w', pattern: CHAR_TAKESHI_W, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_prone', pattern: CHAR_TAKESHI_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Prone / unconscious
   { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },
