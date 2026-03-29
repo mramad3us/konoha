@@ -200,9 +200,39 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   stampBuilding(tileMap, { x: 110, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
   stampBuilding(tileMap, { x: 124, y: 117, w: 7, h: 6, floorType: 'wooden_floor', doorSide: 'w', doorOffset: 3, label: 'House' });
 
-  // --- CLAN COMPOUNDS (north, walled) ---
-  stampBuilding(tileMap, { x: 10, y: 8, w: 20, h: 10, floorType: 'stone', doorSide: 's', doorOffset: 10, label: 'Hyuga Compound' });
-  stampBuilding(tileMap, { x: 110, y: 8, w: 22, h: 10, floorType: 'stone', doorSide: 's', doorOffset: 11, label: 'Uchiha Compound' });
+  // --- HYUGA COMPOUND (northwest, mini-village) ---
+  // Outer wall
+  fillRect(tileMap, 8, 6, 32, 24, 'stone'); // stone ground for entire compound
+  // Main hall
+  stampBuilding(tileMap, { x: 12, y: 8, w: 12, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 6, label: 'Hyuga Main Hall' });
+  // Training dojo
+  stampBuilding(tileMap, { x: 26, y: 8, w: 10, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 5, label: 'Hyuga Dojo' });
+  // Residences
+  stampBuilding(tileMap, { x: 12, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Hyuga House' });
+  stampBuilding(tileMap, { x: 22, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Hyuga House' });
+  // Pond (decorative water feature)
+  fillRect(tileMap, 32, 16, 6, 4, 'water');
+  // Internal paths
+  stampRoad(tileMap, 18, 16, 30, 16, 2);
+  // Sand training area
+  fillRect(tileMap, 26, 15, 8, 4, 'sand');
+
+  // --- UCHIHA COMPOUND (northeast, mini-village) ---
+  fillRect(tileMap, 108, 6, 32, 24, 'stone');
+  // Main hall (larger)
+  stampBuilding(tileMap, { x: 112, y: 8, w: 14, h: 8, floorType: 'stone', doorSide: 's', doorOffset: 7, label: 'Uchiha Main Hall' });
+  // Armory
+  stampBuilding(tileMap, { x: 128, y: 8, w: 8, h: 6, floorType: 'stone', doorSide: 's', doorOffset: 4, label: 'Uchiha Armory' });
+  // Residences
+  stampBuilding(tileMap, { x: 112, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
+  stampBuilding(tileMap, { x: 122, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
+  stampBuilding(tileMap, { x: 132, y: 20, w: 7, h: 5, floorType: 'wooden_floor', doorSide: 'n', doorOffset: 3, label: 'Uchiha House' });
+  // Training yard
+  fillRect(tileMap, 128, 16, 8, 4, 'sand');
+  // Internal paths
+  stampRoad(tileMap, 118, 16, 136, 16, 2);
+  // Decorative pond
+  fillRect(tileMap, 110, 18, 4, 3, 'water');
 
   // --- GATE GUARD POSTS ---
   stampBuilding(tileMap, { x: 68, y: 147, w: 5, h: 4, floorType: 'stone', doorSide: 'e', doorOffset: 2, label: 'Guard Post' });

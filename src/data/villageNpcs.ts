@@ -5,19 +5,20 @@
 
 import type { World } from '../engine/world.ts';
 import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
-import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES } from '../sprites/characters.ts';
+import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
+import { cellHash } from '../sprites/pixelPatterns.ts';
 import { TG_OFFSET_X, TG_OFFSET_Y } from '../core/constants.ts';
 import {
   ACCENTS_HOKAGE, ACCENTS_CHUNIN_1, ACCENTS_CHUNIN_2,
   ACCENTS_JONIN_1, ACCENTS_JONIN_2, ACCENTS_JONIN_3,
   ACCENTS_STUDENT_1, ACCENTS_STUDENT_2, ACCENTS_STUDENT_3,
-  ACCENTS_CIVILIAN_1, ACCENTS_CIVILIAN_2, ACCENTS_CIVILIAN_3, ACCENTS_CIVILIAN_4,
   ACCENTS_MEDIC_1, ACCENTS_MEDIC_2,
   ACCENTS_SHOPKEEPER_1, ACCENTS_SHOPKEEPER_2,
   ACCENTS_CHEF,
+  ALL_CIVILIAN_ACCENTS,
 } from './npcAccents.ts';
 
 interface NpcDef {
@@ -51,7 +52,9 @@ function registerNpcAccentSprites(accents: CharacterAccents, overrides?: BodyOve
 
 function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
   // If no specific sprite prefix given, generate from accents
-  const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents);
+  // Civilians use CIVILIAN_BODIES (no headband), merchants too
+  const isCivilian = def.charClass === 'civilian' || def.charClass === 'merchant';
+  const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents, isCivilian ? CIVILIAN_BODIES : undefined);
   const id = world.createEntity();
   const hp = computeMaxHp(def.stats);
 
@@ -374,30 +377,121 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     dialogue: CHEF_DIALOGUE, cooldownTicks: 12,
   });
 
-  // ── Villagers ──
-  const villagerPos = [
-    // Along main avenue
-    { x: 76, y: 100 }, { x: 77, y: 120 }, { x: 76, y: 130 },
-    // Market area
-    { x: 105, y: 80 }, { x: 115, y: 80 }, { x: 125, y: 82 },
-    // Commercial strip
-    { x: 63, y: 100 }, { x: 77, y: 105 },
-    // Residential west
-    { x: 30, y: 108 }, { x: 30, y: 123 },
+  // ── Villagers (30+ civilians with varied looks) ──
+  const civilianDefs: Array<{ x: number; y: number; name: string; title: string; desc: string }> = [
+    // Main avenue (busy thoroughfare)
+    { x: 76, y: 95, name: 'Tanaka', title: 'Farmer', desc: 'A weathered farmer heading to market with produce.' },
+    { x: 77, y: 100, name: 'Mrs. Suzuki', title: 'Housewife', desc: 'A mother doing errands in the village.' },
+    { x: 76, y: 110, name: 'Yamamoto', title: 'Carpenter', desc: 'A carpenter carrying tools to a job site.' },
+    { x: 77, y: 120, name: 'Watanabe', title: 'Elder', desc: 'An elderly man taking his daily walk through the village.' },
+    { x: 76, y: 130, name: 'Ito', title: 'Merchant', desc: 'A traveling merchant passing through Konoha.' },
+    { x: 77, y: 138, name: 'Sato', title: 'Fisherman', desc: 'Heading to the river with his rod and tackle.' },
+
+    // Market plaza (shoppers and browsers)
+    { x: 103, y: 80, name: 'Nakamura', title: 'Shopper', desc: 'Examining weapons at the market.' },
+    { x: 113, y: 80, name: 'Takahashi', title: 'Shopper', desc: 'Comparing prices between stalls.' },
+    { x: 123, y: 82, name: 'Kobayashi', title: 'Vendor', desc: 'A food vendor hawking fresh dumplings.' },
+    { x: 108, y: 82, name: 'Yoshida', title: 'Baker', desc: 'Delivering fresh bread to the market.' },
+    { x: 118, y: 82, name: 'Mrs. Mori', title: 'Tea Seller', desc: 'Pouring samples of her special blend.' },
+    { x: 130, y: 80, name: 'Fujita', title: 'Blacksmith', desc: 'A burly smith taking a break from the forge.' },
+
+    // Commercial strip (eating, socializing)
+    { x: 72, y: 100, name: 'Hideo', title: 'Regular', desc: 'A ramen regular. He\'s here every day.' },
+    { x: 72, y: 108, name: 'Keiko', title: 'Tea Lady', desc: 'Sipping tea and watching the world go by.' },
+    { x: 82, y: 100, name: 'Riku', title: 'Barber\'s son', desc: 'Sweeping the floor outside his father\'s shop.' },
+
+    // Residential west (at home, in yards)
+    { x: 18, y: 110, name: 'Grandpa Oda', title: 'Retired', desc: 'An old man sitting outside his home, watching the clouds.' },
+    { x: 32, y: 112, name: 'Mrs. Hayashi', title: 'Gardener', desc: 'Tending to potted plants outside her door.' },
+    { x: 42, y: 110, name: 'Daisuke', title: 'Child', desc: 'A young boy playing with a wooden kunai.' },
+    { x: 24, y: 125, name: 'Emi', title: 'Seamstress', desc: 'Carrying fabric bundles home from the market.' },
+    { x: 40, y: 125, name: 'Taro', title: 'Baker', desc: 'Just closed his bakery for the day.' },
+
     // Residential east
-    { x: 120, y: 108 }, { x: 120, y: 123 },
+    { x: 102, y: 112, name: 'Haruto', title: 'Craftsman', desc: 'A potter heading to his workshop.' },
+    { x: 122, y: 112, name: 'Yuna', title: 'Child', desc: 'A little girl chasing a butterfly.' },
+    { x: 112, y: 125, name: 'Kaoru', title: 'Artist', desc: 'Sketching the village scenery on a scroll.' },
+    { x: 128, y: 125, name: 'Shin', title: 'Fishmonger', desc: 'Smells like fresh catch. Heading home.' },
+
+    // Near river (fishermen, walkers)
+    { x: 35, y: 63, name: 'Old Jiro', title: 'Fisherman', desc: 'Been fishing this river for forty years.' },
+    { x: 85, y: 63, name: 'Masa', title: 'Walker', desc: 'Enjoying a quiet walk along the riverbank.' },
+    { x: 130, y: 63, name: 'Tomoe', title: 'Washerwoman', desc: 'Doing laundry by the river, as her mother did before her.' },
+
+    // Near gate (travelers, loiterers)
+    { x: 78, y: 145, name: 'Wanderer', title: 'Traveler', desc: 'A dusty traveler who just arrived at Konoha.' },
+    { x: 82, y: 144, name: 'Koji', title: 'Cart Driver', desc: 'Waiting for his supply cart to be unloaded.' },
+
+    // Near hospital
+    { x: 36, y: 85, name: 'Mrs. Toda', title: 'Visitor', desc: 'Visiting a family member at the hospital.' },
   ];
-  const civAccents = [ACCENTS_CIVILIAN_1, ACCENTS_CIVILIAN_2, ACCENTS_CIVILIAN_3, ACCENTS_CIVILIAN_4];
-  const civNames = ['Tanaka', 'Suzuki', 'Yamamoto', 'Watanabe', 'Ito', 'Nakamura', 'Sato', 'Takahashi', 'Kobayashi', 'Yoshida', 'Mori', 'Fujita'];
-  for (let i = 0; i < villagerPos.length; i++) {
+
+  for (let i = 0; i < civilianDefs.length; i++) {
+    const d = civilianDefs[i];
+    const accent = ALL_CIVILIAN_ACCENTS[i % ALL_CIVILIAN_ACCENTS.length];
+    // Random stats 1-10
+    const rng = cellHash(d.x, d.y);
     spawnNpc(world, {
-      x: villagerPos[i].x, y: villagerPos[i].y,
-      name: civNames[i], accents: civAccents[i % civAccents.length],
-      rank: 'genin', title: 'Villager', charClass: 'civilian',
-      skills: { taijutsu: 3, bukijutsu: 2, ninjutsu: 0, genjutsu: 0, med: 2 },
-      stats: { phy: 10, cha: 5, men: 8, soc: 25 },
-      description: 'A resident of Konoha going about their daily life.',
-      dialogue: VILLAGER_DIALOGUE, cooldownTicks: 20,
+      x: d.x, y: d.y, name: d.name, accents: accent,
+      rank: 'genin', title: d.title, charClass: 'civilian',
+      skills: { taijutsu: 1, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: (rng % 3) },
+      stats: {
+        phy: 1 + (rng % 10),
+        cha: 1 + ((rng >> 4) % 5),
+        men: 1 + ((rng >> 8) % 8),
+        soc: 3 + ((rng >> 12) % 10),
+      },
+      description: d.desc,
+      dialogue: VILLAGER_DIALOGUE, cooldownTicks: 25,
+    });
+  }
+
+  // ── Hyuga Clan Members ──
+  const hyugaAccent: CharacterAccents = {
+    hair: [35, 30, 50], headband: [200, 195, 210], pupil: [200, 195, 210], // lavender eyes
+    belt: [100, 95, 110], beltHighlight: [120, 115, 130],
+  };
+  const hyugaNames = ['Hiashi', 'Neji', 'Hanabi', 'Ko'];
+  const hyugaPos = [{ x: 16, y: 12 }, { x: 28, y: 12 }, { x: 14, y: 22 }, { x: 24, y: 22 }];
+  for (let i = 0; i < hyugaNames.length; i++) {
+    spawnNpc(world, {
+      x: hyugaPos[i].x, y: hyugaPos[i].y, name: hyugaNames[i], accents: hyugaAccent,
+      rank: i === 0 ? 'jounin' : 'chuunin', title: 'Hyuga Clan', charClass: 'shinobi',
+      skills: { taijutsu: 40 + i * 10, bukijutsu: 20, ninjutsu: 30, genjutsu: 35, med: 5 },
+      stats: { phy: 30 + i * 5, cha: 25, men: 35, soc: 20 },
+      description: `A member of the Hyuga clan. Their Byakugan allows them to see chakra flow.`,
+      dialogue: { idle: [
+        'The Byakugan sees all. Do not forget that.',
+        'Our clan\'s gentle fist is the strongest taijutsu.',
+        'Train hard. The Hyuga name demands excellence.',
+        'Fate is absolute. But effort shapes its edges.',
+      ], night: ['Even at night, these eyes see clearly.'] },
+      cooldownTicks: 30,
+    });
+  }
+
+  // ── Uchiha Clan Members ──
+  const uchihaAccent: CharacterAccents = {
+    hair: [25, 22, 30], headband: [26, 58, 92], pupil: [180, 30, 30], // red eyes (Sharingan feel)
+    belt: [50, 45, 60], beltHighlight: [70, 65, 80],
+  };
+  const uchihaNames = ['Fugaku', 'Itachi', 'Shisui', 'Tekka', 'Yashiro'];
+  const uchihaPos = [{ x: 118, y: 12 }, { x: 130, y: 12 }, { x: 114, y: 22 }, { x: 124, y: 22 }, { x: 134, y: 22 }];
+  for (let i = 0; i < uchihaNames.length; i++) {
+    spawnNpc(world, {
+      x: uchihaPos[i].x, y: uchihaPos[i].y, name: uchihaNames[i], accents: uchihaAccent,
+      rank: i === 0 ? 'jounin' : 'chuunin', title: 'Uchiha Clan', charClass: 'shinobi',
+      skills: { taijutsu: 35 + i * 8, bukijutsu: 30 + i * 5, ninjutsu: 40 + i * 8, genjutsu: 30, med: 5 },
+      stats: { phy: 28 + i * 5, cha: 35, men: 30, soc: 15 },
+      description: `A member of the Uchiha clan. Their Sharingan is feared across the shinobi world.`,
+      dialogue: { idle: [
+        'The Sharingan copies what it sees. Remember that.',
+        'Fire Release is our clan\'s birthright.',
+        'Don\'t underestimate an Uchiha.',
+        'Strength comes from bonds. And from vengeance.',
+        'Our police force keeps this village safe.',
+      ], night: ['The Uchiha never sleep soundly. We\'re always watching.'] },
+      cooldownTicks: 30,
     });
   }
 
