@@ -9,6 +9,7 @@ export interface DrawCommand {
   layer: RenderLayer;
   alpha: number;
   offsetY: number;
+  shadowTint?: boolean; // if true, draw with dark shadow overlay (invisible-but-detected)
 }
 
 /** Sort draw commands back-to-front for correct isometric rendering */

@@ -67,6 +67,8 @@ export function findAdjacentTarget(world: World): EntityId | null {
         if (eid === world.playerEntityId) continue;
         // Skip unconscious and dead entities — can't fight them
         if (world.unconscious.has(eid) || world.dead.has(eid)) continue;
+        // Skip entities invisible to the player
+        if (world.isInvisibleToPlayer(eid)) continue;
         if (world.combatStats.has(eid) || world.healths.has(eid)) return eid;
       }
     }
@@ -90,6 +92,12 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   if (targetId === null) {
     world.log('No one within striking distance.', 'info');
     return false;
+  }
+
+  // Attacking dispels invisibility
+  if (world.invisible.has(playerId)) {
+    world.invisible.delete(playerId);
+    world.log('Your invisibility fades as you engage in combat.', 'info');
   }
 
   const eng = getOrCreateEngagement(world, playerId, targetId);

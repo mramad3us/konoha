@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -37,6 +37,7 @@ export class World {
   anchors = new Map<EntityId, AnchorComponent>();
   npcLifecycles = new Map<EntityId, NpcLifecycleComponent>();
   aggros = new Map<EntityId, AggroComponent>();
+  invisible = new Map<EntityId, InvisibleComponent>();
 
   // Combat intent
   playerKillIntent = false;
@@ -163,6 +164,7 @@ export class World {
     this.anchors.delete(id);
     this.npcLifecycles.delete(id);
     this.aggros.delete(id);
+    this.invisible.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -191,6 +193,18 @@ export class World {
     return false;
   }
 
+  /** Check if a tile is blocked by an entity visible to the player */
+  isBlockedByVisibleEntity(x: number, y: number): boolean {
+    const set = this.entityGrid.get(this.gridKey(x, y));
+    if (!set) return false;
+    for (const id of set) {
+      if (this.isInvisibleToPlayer(id)) continue;
+      const blocking = this.blockings.get(id);
+      if (blocking?.blocksMovement) return true;
+    }
+    return false;
+  }
+
   /** Get blocking entity at position — O(k) where k = entities at tile */
   getBlockingEntityAt(x: number, y: number): EntityId | null {
     const set = this.entityGrid.get(this.gridKey(x, y));
@@ -208,6 +222,32 @@ export class World {
     if (this.gameLog.length > MAX_LOG_ENTRIES) {
       this.gameLog.length = MAX_LOG_ENTRIES;
     }
+  }
+
+  /**
+   * Check if a given entity is invisible to the player.
+   * An entity with InvisibleComponent requires the observer to have
+   * ninjutsu >= casterNinjutsu + 5 to detect them.
+   * Returns true if the entity CANNOT be seen by the player.
+   */
+  isInvisibleToPlayer(entityId: EntityId): boolean {
+    const inv = this.invisible.get(entityId);
+    if (!inv) return false;
+    const playerSheet = this.characterSheets.get(this.playerEntityId);
+    const playerNinjutsu = playerSheet?.skills.ninjutsu ?? 0;
+    return playerNinjutsu < inv.casterNinjutsu + 5;
+  }
+
+  /**
+   * Check if a given entity is invisible but DETECTABLE by the player.
+   * The player can see them but they appear shrouded.
+   */
+  isInvisibleButDetected(entityId: EntityId): boolean {
+    const inv = this.invisible.get(entityId);
+    if (!inv) return false;
+    const playerSheet = this.characterSheets.get(this.playerEntityId);
+    const playerNinjutsu = playerSheet?.skills.ninjutsu ?? 0;
+    return playerNinjutsu >= inv.casterNinjutsu + 5;
   }
 
   /** FOV helpers */
@@ -263,6 +303,7 @@ export class World {
       anchors: serializeMap(this.anchors),
       npcLifecycles: serializeMap(this.npcLifecycles),
       aggros: serializeMap(this.aggros),
+      invisible: serializeMap(this.invisible),
       playerKillIntent: this.playerKillIntent,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
@@ -339,6 +380,9 @@ export class World {
     }
     if (data['aggros']) {
       deserializeMap(world.aggros, data['aggros'] as Record<string, AggroComponent>);
+    }
+    if (data['invisible']) {
+      deserializeMap(world.invisible, data['invisible'] as Record<string, InvisibleComponent>);
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;

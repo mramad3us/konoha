@@ -163,5 +163,12 @@ export interface ProximityDialogueComponent {
   cooldownTicks: number;
 }
 
+// ── Invisibility ──
+
+export interface InvisibleComponent {
+  /** Ninjutsu skill of the caster — detection threshold = this + 5 */
+  casterNinjutsu: number;
+}
+
 // Re-export CharacterSheet as a component type
 export type { CharacterSheet } from './character.ts';

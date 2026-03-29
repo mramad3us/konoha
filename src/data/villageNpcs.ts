@@ -6,12 +6,12 @@
 import type { World } from '../engine/world.ts';
 import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
 import type { NpcCategory } from '../types/ecs.ts';
-import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES } from '../sprites/characters.ts';
+import { ACCENTS_TAKESHI, ACCENTS_ANBU, ACCENTS_ANBU_2, ACCENTS_ANBU_3, ACCENTS_ANBU_4, ACCENTS_ANBU_5, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
-import { TG_OFFSET_X, TG_OFFSET_Y, NPC_WANDER_RADIUS, NPC_WANDER_INTERVAL_MIN, NPC_WANDER_INTERVAL_MAX } from '../core/constants.ts';
+import { TG_OFFSET_X, TG_OFFSET_Y, NPC_WANDER_RADIUS, NPC_WANDER_INTERVAL_MIN, NPC_WANDER_INTERVAL_MAX, VILLAGE_WIDTH, VILLAGE_HEIGHT } from '../core/constants.ts';
 import {
   ACCENTS_HOKAGE, ACCENTS_CHUNIN_1, ACCENTS_CHUNIN_2,
   ACCENTS_JONIN_1, ACCENTS_JONIN_2, ACCENTS_JONIN_3,
@@ -54,7 +54,7 @@ function registerNpcAccentSprites(accents: CharacterAccents, overrides?: BodyOve
   return prefix;
 }
 
-function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
+function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): number {
   // If no specific sprite prefix given, generate from accents
   // Civilians use CIVILIAN_BODIES (no headband), merchants too
   const isCivilian = def.charClass === 'civilian' || def.charClass === 'merchant';
@@ -135,6 +135,8 @@ function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
     state: 'idle',
     fleeHpThreshold: isNinja ? 0.20 : 0.40,
   });
+
+  return id;
 }
 
 /** Re-export for lifecycle system to respawn despawned NPCs */
@@ -607,7 +609,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     category: 'fixed',
   }, 'char_takeshi');
 
-  // ── ANBU (dev mode) ──
+  // ── ANBU (dev mode — extra one in training grounds) ──
   if (devMode) {
     spawnNpc(world, {
       x: ox + 20, y: oy + 3, name: 'ANBU Operative', accents: ACCENTS_ANBU,
@@ -616,6 +618,131 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 60, cha: 55, men: 50, soc: 30 },
       description: 'A masked ANBU operative. Their presence is unsettling.',
       dialogue: ANBU_DIALOGUE, cooldownTicks: 20,
+      category: 'fixed',
     }, registerNpcAccentSprites(ACCENTS_ANBU, ANBU_BODIES));
+  }
+
+  // ── ANBU Elite (10 invisible operatives) ──
+  spawnAnbuOperatives(world);
+}
+
+// ── ANBU SPAWN SYSTEM ──
+
+const ANBU_ELITE_DIALOGUE: Record<string, string[]> = {
+  idle: [
+    '...',
+    'You shouldn\'t be able to see me.',
+    'The shadows have eyes.',
+    'Move along.',
+    'Lord Hokage\'s orders. Nothing more to say.',
+    'If you can perceive me, you\'re either very skilled or very lucky.',
+  ],
+  night: [
+    'The night is our domain.',
+    'The village sleeps. We do not.',
+  ],
+};
+
+const ANBU_NAMES = [
+  'Cat', 'Hawk', 'Bear', 'Fox', 'Crow',
+  'Wolf', 'Boar', 'Rat', 'Tiger', 'Hound',
+];
+
+const ANBU_ACCENT_POOL = [
+  ACCENTS_ANBU, ACCENTS_ANBU_2, ACCENTS_ANBU_3, ACCENTS_ANBU_4, ACCENTS_ANBU_5,
+];
+
+function spawnAnbuOperatives(world: World): void {
+  // 2 fixed in Hokage office corners (Hokage Tower interior: x=56-73, y=73-82)
+  const fixedPositions = [
+    { x: 57, y: 73 },  // NW corner of Hokage Tower
+    { x: 73, y: 73 },  // NE corner of Hokage Tower
+  ];
+
+  for (let i = 0; i < fixedPositions.length; i++) {
+    const ninjutsuSkill = 70 + Math.floor(Math.random() * 15); // 70-84
+    const accents = ANBU_ACCENT_POOL[i % ANBU_ACCENT_POOL.length];
+    const prefix = registerNpcAccentSprites(accents, ANBU_BODIES);
+
+    const def: NpcDef = {
+      x: fixedPositions[i].x,
+      y: fixedPositions[i].y,
+      name: ANBU_NAMES[i],
+      accents,
+      rank: 'anbu',
+      title: 'ANBU Black Ops',
+      charClass: 'shinobi',
+      skills: {
+        taijutsu: 60 + Math.floor(Math.random() * 20),
+        bukijutsu: 55 + Math.floor(Math.random() * 20),
+        ninjutsu: ninjutsuSkill,
+        genjutsu: 40 + Math.floor(Math.random() * 20),
+        med: 15 + Math.floor(Math.random() * 10),
+      },
+      stats: {
+        phy: 55 + Math.floor(Math.random() * 15),
+        cha: 50 + Math.floor(Math.random() * 15),
+        men: 50 + Math.floor(Math.random() * 15),
+        soc: 15 + Math.floor(Math.random() * 10),
+      },
+      description: 'A masked ANBU operative standing perfectly still. Their presence is barely perceptible.',
+      dialogue: ANBU_ELITE_DIALOGUE,
+      cooldownTicks: 40,
+      category: 'fixed',
+    };
+
+    const anbuId = spawnNpc(world, def, prefix);
+    world.invisible.set(anbuId, { casterNinjutsu: ninjutsuSkill });
+  }
+
+  // 8 randomly placed across the map
+  for (let i = 2; i < 10; i++) {
+    const ninjutsuSkill = 65 + Math.floor(Math.random() * 20); // 65-84
+    const accents = ANBU_ACCENT_POOL[i % ANBU_ACCENT_POOL.length];
+    const prefix = registerNpcAccentSprites(accents, ANBU_BODIES);
+
+    // Find a random walkable position
+    let spawnX = 80;
+    let spawnY = 80;
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const rx = 10 + Math.floor(Math.random() * (VILLAGE_WIDTH - 20));
+      const ry = 10 + Math.floor(Math.random() * (VILLAGE_HEIGHT - 20));
+      if (world.tileMap.isWalkable(rx, ry) && !world.isBlockedByEntity(rx, ry)) {
+        spawnX = rx;
+        spawnY = ry;
+        break;
+      }
+    }
+
+    const def: NpcDef = {
+      x: spawnX,
+      y: spawnY,
+      name: ANBU_NAMES[i],
+      accents,
+      rank: 'anbu',
+      title: 'ANBU Black Ops',
+      charClass: 'shinobi',
+      skills: {
+        taijutsu: 55 + Math.floor(Math.random() * 25),
+        bukijutsu: 50 + Math.floor(Math.random() * 25),
+        ninjutsu: ninjutsuSkill,
+        genjutsu: 35 + Math.floor(Math.random() * 25),
+        med: 10 + Math.floor(Math.random() * 15),
+      },
+      stats: {
+        phy: 50 + Math.floor(Math.random() * 20),
+        cha: 45 + Math.floor(Math.random() * 20),
+        men: 45 + Math.floor(Math.random() * 20),
+        soc: 10 + Math.floor(Math.random() * 15),
+      },
+      description: 'A masked ANBU operative watching from the shadows. You can barely make out their form.',
+      dialogue: ANBU_ELITE_DIALOGUE,
+      cooldownTicks: 50,
+      category: 'fixed',
+      despawnAtNight: false,
+    };
+
+    const anbuId = spawnNpc(world, def, prefix);
+    world.invisible.set(anbuId, { casterNinjutsu: ninjutsuSkill });
   }
 }

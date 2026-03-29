@@ -160,12 +160,13 @@ export function executeTurn(action: GameAction, world: World): boolean {
       }
 
       // ── Normal movement (no combat) ──
-      // Check for blocking entity — no bump-to-attack, use combat keys instead
+      // Check for blocking entity — skip invisible ones, no bump-to-attack
       const blockingEntity = world.getBlockingEntityAt(newX, newY);
-      if (blockingEntity !== null && blockingEntity !== playerId) {
-        const name = world.names.get(blockingEntity);
+      const isBlockedByVisible = blockingEntity !== null && blockingEntity !== playerId && !world.isInvisibleToPlayer(blockingEntity);
+      if (isBlockedByVisible) {
+        const name = world.names.get(blockingEntity!);
         const desc = name ? `${name.article ? name.article + ' ' : ''}${name.display}` : 'something';
-        const isCombatTarget = world.combatStats.has(blockingEntity) || world.healths.has(blockingEntity);
+        const isCombatTarget = world.combatStats.has(blockingEntity!) || world.healths.has(blockingEntity!);
         if (isCombatTarget) {
           world.log(`You face ${desc}. Use attack keys (a/z/e) to engage.`, 'info');
         } else {
@@ -260,6 +261,12 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'interact': {
+      // Interacting dispels player's own invisibility
+      if (world.invisible.has(playerId)) {
+        world.invisible.delete(playerId);
+        world.log('Your invisibility fades as you interact.', 'info');
+      }
+
       // Collect ALL interactable adjacent entities
       const candidates: number[] = [];
       for (let dx = -1; dx <= 1; dx++) {
@@ -268,6 +275,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
           const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
           for (const eid of entities) {
             if (eid === playerId) continue;
+            // Skip entities invisible to player
+            if (world.isInvisibleToPlayer(eid)) continue;
             const isDoor = world.doors.has(eid);
             const hasObjectSheet = world.objectSheets.has(eid);
             const hasCharSheet = world.characterSheets.has(eid);

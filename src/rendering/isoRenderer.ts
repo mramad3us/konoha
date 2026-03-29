@@ -17,6 +17,10 @@ export class IsoRenderer {
   private camera: Camera;
   private dpr: number;
 
+  /** Offscreen canvas for shadow tint compositing */
+  private shadowCanvas: OffscreenCanvas;
+  private shadowCtx: OffscreenCanvasRenderingContext2D;
+
   constructor(canvas: HTMLCanvasElement, camera: Camera) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -24,6 +28,10 @@ export class IsoRenderer {
     this.dpr = window.devicePixelRatio || 1;
 
     this.ctx.imageSmoothingEnabled = false;
+
+    // Shadow tint buffer (large enough for biggest sprite)
+    this.shadowCanvas = new OffscreenCanvas(64, 64);
+    this.shadowCtx = this.shadowCanvas.getContext('2d')!;
   }
 
   /** Resize canvas buffer to match container */
@@ -94,6 +102,11 @@ export class IsoRenderer {
           const renderable = world.renderables.get(eid);
           if (!renderable) continue;
 
+          // Skip entities that are invisible to the player
+          if (world.isInvisibleToPlayer(eid)) continue;
+
+          const isShadowed = world.isInvisibleButDetected(eid);
+
           drawCommands.push({
             screenX: sx,
             screenY: sy,
@@ -102,6 +115,7 @@ export class IsoRenderer {
             layer: renderable.layer,
             alpha: isVisible ? 1.0 : 0.25,
             offsetY: renderable.offsetY,
+            shadowTint: isShadowed,
           });
         }
       }
@@ -123,7 +137,26 @@ export class IsoRenderer {
         // Objects/characters center horizontally on tile, offset vertically
         const drawX = cmd.screenX + (TILE_WIDTH - sprite.width) / 2;
         const drawY = cmd.screenY + cmd.offsetY;
-        ctx.drawImage(sprite, drawX, drawY, sprite.width, sprite.height);
+
+        if (cmd.shadowTint) {
+          // Draw to offscreen buffer, apply dark tint, then composite to main canvas
+          const sw = sprite.width;
+          const sh = sprite.height;
+          if (this.shadowCanvas.width < sw || this.shadowCanvas.height < sh) {
+            this.shadowCanvas.width = sw;
+            this.shadowCanvas.height = sh;
+          }
+          const sctx = this.shadowCtx;
+          sctx.clearRect(0, 0, sw, sh);
+          sctx.drawImage(sprite, 0, 0, sw, sh);
+          sctx.globalCompositeOperation = 'source-atop';
+          sctx.fillStyle = 'rgba(10, 8, 20, 0.55)';
+          sctx.fillRect(0, 0, sw, sh);
+          sctx.globalCompositeOperation = 'source-over';
+          ctx.drawImage(this.shadowCanvas, 0, 0, sw, sh, drawX, drawY, sw, sh);
+        } else {
+          ctx.drawImage(sprite, drawX, drawY, sprite.width, sprite.height);
+        }
       }
     }
 

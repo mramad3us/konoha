@@ -20,6 +20,9 @@ export function tickProximityDialogue(world: World): void {
   for (const [entityId, dialogue] of world.proximityDialogue) {
     if (isDead(world, entityId)) continue;
 
+    // Invisible NPCs don't speak to those who can't see them
+    if (world.isInvisibleToPlayer(entityId)) continue;
+
     // Cooldown check
     if (world.currentTick - dialogue.lastSpokeTick < dialogue.cooldownTicks) continue;
 
