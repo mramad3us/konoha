@@ -31,6 +31,15 @@ class SpriteCache {
     return this.cache.has(spriteId);
   }
 
+  /** Register a single sprite at runtime (for dynamically generated NPC sprites) */
+  registerDynamic(id: string, pattern: import('../sprites/pixelPatterns.ts').PixelPattern, width: number, height: number, outline: boolean = true): void {
+    if (this.cache.has(id)) return;
+    const canvas = outline
+      ? rasterizeWithOutline(pattern, width, height)
+      : rasterizePattern(pattern, width, height);
+    this.cache.set(id, canvas);
+  }
+
   /** Get total loaded sprite count */
   get size(): number {
     return this.cache.size;

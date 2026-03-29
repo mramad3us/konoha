@@ -4,10 +4,11 @@
  */
 
 import type { World } from '../engine/world.ts';
-import type { CharacterAccents } from '../sprites/characters.ts';
-import { ACCENTS_TAKESHI, ACCENTS_ANBU } from '../sprites/characters.ts';
+import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
+import { ACCENTS_TAKESHI, ACCENTS_ANBU, generateCharacterSprites, ANBU_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
+import { spriteCache } from '../rendering/spriteCache.ts';
 import { TG_OFFSET_X, TG_OFFSET_Y } from '../core/constants.ts';
 import {
   ACCENTS_HOKAGE, ACCENTS_CHUNIN_1, ACCENTS_CHUNIN_2,
@@ -35,12 +36,27 @@ interface NpcDef {
   devOnly?: boolean;
 }
 
-function spawnNpc(world: World, def: NpcDef, spritePrefix: string): void {
+/** Counter for unique NPC sprite prefixes */
+let npcSpriteCounter = 0;
+
+/** Generate a unique sprite set for an NPC from their accents and register in cache */
+function registerNpcAccentSprites(accents: CharacterAccents, overrides?: BodyOverrides): string {
+  const prefix = `npc_${npcSpriteCounter++}`;
+  const sprites = generateCharacterSprites(accents, overrides);
+  for (const [dir, pattern] of Object.entries(sprites)) {
+    spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
+  }
+  return prefix;
+}
+
+function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): void {
+  // If no specific sprite prefix given, generate from accents
+  const actualPrefix = spritePrefix ?? registerNpcAccentSprites(def.accents);
   const id = world.createEntity();
   const hp = computeMaxHp(def.stats);
 
   world.setPosition(id, { x: def.x, y: def.y, facing: 's' });
-  world.renderables.set(id, { spriteId: `${spritePrefix}_s`, layer: 'character', offsetY: -16 });
+  world.renderables.set(id, { spriteId: `${actualPrefix}_s`, layer: 'character', offsetY: -16 });
   world.blockings.set(id, { blocksMovement: true, blocksSight: false });
   world.healths.set(id, { current: hp, max: hp });
   world.combatStats.set(id, {
@@ -229,7 +245,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 55, cha: 90, men: 85, soc: 90 },
     description: 'The Third Hokage, Lord Hirotaka. His kind eyes belie decades of combat experience.',
     dialogue: HOKAGE_DIALOGUE, cooldownTicks: 25,
-  }, 'char_shinobi'); // Uses generic shinobi sprite for now — TODO: dynamic sprite gen
+  }); // Uses generic shinobi sprite for now — TODO: dynamic sprite gen
 
   // ── Mission Desk Chunin ──
   spawnNpc(world, {
@@ -239,7 +255,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 25, cha: 20, men: 20, soc: 40 },
     description: 'A chunin staffing the mission desk. They process assignments for all ranks.',
     dialogue: MISSION_DESK_DIALOGUE, cooldownTicks: 15,
-  }, 'char_shinobi');
+  });
 
   // ── Gate Guards ──
   spawnNpc(world, {
@@ -249,7 +265,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 35, cha: 18, men: 15, soc: 20 },
     description: 'One of the village gate guards. Perpetually bored but always vigilant.',
     dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
-  }, 'char_shinobi');
+  });
 
   spawnNpc(world, {
     x: 86, y: 150, name: 'Izumo', accents: ACCENTS_CHUNIN_2,
@@ -258,7 +274,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 32, cha: 20, men: 18, soc: 22 },
     description: 'The other gate guard. More talkative than his partner.',
     dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
-  }, 'char_shinobi');
+  });
 
   // ── Academy Instructor ──
   spawnNpc(world, {
@@ -268,7 +284,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 35, cha: 40, men: 35, soc: 50 },
     description: 'The academy instructor. A scar runs across his nose — proof of real combat experience.',
     dialogue: ACADEMY_INSTRUCTOR_DIALOGUE, cooldownTicks: 20,
-  }, 'char_shinobi');
+  });
 
   // ── Academy Students ──
   const studentPos = [
@@ -286,7 +302,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 8 + i, cha: 5, men: 4, soc: 8 },
       description: 'A young academy student, eager to learn the ways of the shinobi.',
       dialogue: STUDENT_DIALOGUE, cooldownTicks: 12,
-    }, 'char_shinobi');
+    });
   }
 
   // ── Jonin ──
@@ -298,7 +314,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     description: 'A silver-haired jonin with a calm demeanor. Rumored to know over a thousand jutsu.',
     dialogue: { idle: ['Hmm? Oh, don\'t mind me. Just thinking.', 'The village is quiet today. That\'s usually when things happen.', 'You\'ve got potential. Keep training.'] },
     cooldownTicks: 25,
-  }, 'char_shinobi');
+  });
 
   spawnNpc(world, {
     x: 55, y: 80, name: 'Asuka', accents: ACCENTS_JONIN_2,
@@ -308,7 +324,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     description: 'A jonin specializing in genjutsu. Her red eyes are said to see through any illusion.',
     dialogue: { idle: ['Reality is more fragile than you think.', 'Genjutsu is the art of truth and lies.', 'Don\'t trust everything you see.'] },
     cooldownTicks: 25,
-  }, 'char_shinobi');
+  });
 
   // ── Shopkeepers ──
   const shopDefs = [
@@ -326,7 +342,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 12, cha: 8, men: 10, soc: 45 },
       description: shopDefs[i].desc,
       dialogue: SHOPKEEPER_DIALOGUE, cooldownTicks: 15,
-    }, 'char_shinobi');
+    });
   }
 
   // ── Medical Ninja ──
@@ -337,7 +353,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 50, men: 45, soc: 35 },
     description: 'The head medic of Konoha Hospital. Stern but caring.',
     dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
-  }, 'char_shinobi');
+  });
 
   spawnNpc(world, {
     x: 40, y: 88, name: 'Nurse Kabuki', accents: ACCENTS_MEDIC_2,
@@ -346,7 +362,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 18, cha: 35, men: 30, soc: 30 },
     description: 'A medical ninja assisting at the hospital. Quick hands, steady nerves.',
     dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
-  }, 'char_shinobi');
+  });
 
   // ── Ramen Chef ──
   spawnNpc(world, {
@@ -356,7 +372,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 20, cha: 5, men: 15, soc: 55 },
     description: 'The legendary ramen chef of Konoha Kitchen. His noodles are the stuff of myth.',
     dialogue: CHEF_DIALOGUE, cooldownTicks: 12,
-  }, 'char_shinobi');
+  });
 
   // ── Villagers ──
   const villagerPos = [
@@ -376,7 +392,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 10, cha: 5, men: 8, soc: 25 },
       description: 'A resident of Konoha going about their daily life.',
       dialogue: VILLAGER_DIALOGUE, cooldownTicks: 20,
-    }, 'char_shinobi');
+    });
   }
 
   // ── Training Grounds: Takeshi ──
@@ -398,6 +414,6 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       stats: { phy: 60, cha: 55, men: 50, soc: 30 },
       description: 'A masked ANBU operative. Their presence is unsettling.',
       dialogue: ANBU_DIALOGUE, cooldownTicks: 20,
-    }, 'char_anbu');
+    }, registerNpcAccentSprites(ACCENTS_ANBU, ANBU_BODIES));
   }
 }

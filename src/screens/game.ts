@@ -26,6 +26,7 @@ import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
 import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS } from '../core/constants.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
+import { getZoneName } from '../engine/zones.ts';
 
 export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Loading overlay ──
@@ -76,7 +77,9 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const topbar = createElement('div', { className: 'game-topbar' });
 
   const topbarLeft = createElement('div', { className: 'game-topbar__left' });
-  const zoneLabel = createElement('span', { className: 'game-topbar__zone', text: 'Training Grounds' });
+  const playerP = world.positions.get(world.playerEntityId);
+  const initialZone = playerP ? getZoneName(playerP.x, playerP.y) : 'Konoha Village';
+  const zoneLabel = createElement('span', { className: 'game-topbar__zone', text: initialZone });
   const timeLabel = createElement('span', { className: 'game-topbar__tick', text: formatGameTime(world.gameTimeSeconds) });
   const saveFlash = createElement('span', { className: 'game-topbar__save-flash', text: 'Saved' });
   topbarLeft.appendChild(zoneLabel);
@@ -156,6 +159,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   hud.update = (w: World) => {
     origUpdate(w);
     timeLabel.textContent = formatGameTime(w.gameTimeSeconds);
+    const pp = w.positions.get(w.playerEntityId);
+    if (pp) zoneLabel.textContent = getZoneName(pp.x, pp.y);
   };
   const origFullRender = hud.fullRender.bind(hud);
   hud.fullRender = (w: World) => {

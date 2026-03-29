@@ -296,7 +296,7 @@ export const CHAR_KUNOICHI_PRONE = kasura.prone;
 
 // ANBU body overrides — same as regular but face is solid mask (K), no eyes/chin/ears
 // Hair and headband stay. Face area = solid porcelain white.
-const ANBU_BODIES: BodyOverrides = {
+export const ANBU_BODIES: BodyOverrides = {
   s: [
     '................',
     '....hhhhhh......',
