@@ -267,15 +267,15 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
     description: 'A bench overlooking the small pond. Peaceful.', category: 'object' });
 
   // --- Farm plots decorations (6-13, 100-126) ---
-  spawn(world, { x: 8, y: 105, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 8, y: 105, spriteId: 'obj_scarecrow', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'scarecrow', article: 'a',
     description: 'A scarecrow dressed in old shinobi gear. Effective, in a creepy sort of way.', category: 'object' });
-  spawn(world, { x: 10, y: 120, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 10, y: 120, spriteId: 'obj_barrel', layer: 'object', offsetY: -18,
     blocksMove: true, blocksSight: false, name: 'water barrel', article: 'a',
     description: 'A barrel collecting rainwater for the farm plots.', category: 'object' });
 
   // --- Market plaza open area decorations ---
-  spawn(world, { x: 110, y: 79, spriteId: 'obj_rock_small', layer: 'object', offsetY: -38,
+  spawn(world, { x: 110, y: 79, spriteId: 'obj_well', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'market well', article: 'the',
     description: 'A stone well in the center of the market. Fresh water for all.', category: 'object' });
   spawn(world, { x: 120, y: 79, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -22,
@@ -283,7 +283,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
     description: 'A bench for tired shoppers.', category: 'object' });
 
   // --- Well plaza at crossroads (73-79, 78-82) ---
-  spawn(world, { x: 76, y: 79, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -30,
+  spawn(world, { x: 76, y: 79, spriteId: 'obj_well', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'village well', article: 'the',
     description: 'The main village well. A gathering point for gossip and news.', category: 'object' });
 

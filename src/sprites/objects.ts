@@ -687,3 +687,104 @@ export const OBJ_MEDICINE_CABINET: PixelPattern = {
     '................',
   ],
 };
+
+// ── WELL (stone circle with wooden frame + rope) ──
+const WELL_PAL: Record<string, [number, number, number]> = {
+  s: [90, 88, 85],      // stone
+  S: [110, 108, 104],   // stone highlight
+  d: [70, 68, 65],      // stone dark
+  w: [100, 72, 38],     // wood beam
+  W: [120, 90, 50],     // wood highlight
+  r: [80, 65, 50],      // rope
+  b: [30, 50, 80],      // water inside
+};
+
+export const OBJ_WELL: PixelPattern = {
+  width: 16, height: 16,
+  palette: WELL_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.......Wr.......',
+    '.......Wr.......',
+    '.......Wr.......',
+    '......WwwW......',
+    '.....dSSSSd.....',
+    '....dSbbbbSd....',
+    '...dSbbbbbbSd...',
+    '...dSbbbbbbSd...',
+    '....dSbbbbSd....',
+    '.....dSSSSd.....',
+    '......dddd......',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── WATER BARREL (wooden barrel with metal bands) ──
+const BARREL_PAL: Record<string, [number, number, number]> = {
+  w: [100, 70, 35],     // wood stave
+  W: [120, 88, 48],     // highlight
+  d: [78, 55, 28],      // dark
+  m: [80, 82, 85],      // metal band
+  M: [100, 102, 105],   // metal highlight
+  b: [30, 50, 80],      // water top
+};
+
+export const OBJ_BARREL: PixelPattern = {
+  width: 16, height: 16,
+  palette: BARREL_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '......bbbb......',
+    '.....dwWWwd.....',
+    '.....mMMMMm.....',
+    '.....dwWWwd.....',
+    '.....dwwwwd.....',
+    '.....mMMMMm.....',
+    '.....dwWWwd.....',
+    '.....dwwwwd.....',
+    '.....mMMMMm.....',
+    '......dddd......',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── SCARECROW (straw figure on a wooden cross) ──
+const SCARECROW_PAL: Record<string, [number, number, number]> = {
+  w: [90, 65, 30],      // wood pole
+  W: [110, 82, 42],     // pole highlight
+  s: [190, 165, 100],   // straw body
+  S: [170, 145, 85],    // straw dark
+  h: [160, 140, 80],    // straw hat
+  H: [180, 160, 95],    // hat highlight
+  c: [40, 55, 80],      // cloth scraps
+};
+
+export const OBJ_SCARECROW: PixelPattern = {
+  width: 16, height: 16,
+  palette: SCARECROW_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.......HH.......',
+    '......hHHh......',
+    '......sSSs......',
+    '.....csSSSc.....',
+    '....cssSSSsc....',
+    '......sSSs......',
+    '.......Ws.......',
+    '.......Ww.......',
+    '.......Ww.......',
+    '.......Ww.......',
+    '.......Ww.......',
+    '......wwww......',
+    '................',
+    '................',
+  ],
+};
