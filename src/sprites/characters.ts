@@ -31,6 +31,8 @@ export interface CharacterAccents {
   beltHighlight: RGB;
   /** Optional special overlay color (ANBU mask, Kage hat) */
   special?: RGB;
+  /** Override skin color (e.g. porcelain white for ANBU mask) */
+  skinOverride?: RGB;
 }
 
 // ── BASE PALETTE (shared black outfit) ──
@@ -40,7 +42,7 @@ function buildPalette(accents: CharacterAccents): Record<string, RGB> {
     o: [26, 26, 38],       // outfit dark
     O: [34, 34, 48],       // outfit mid
     S: [18, 18, 28],       // outfit shadow
-    s: [212, 165, 116],    // skin
+    s: accents.skinOverride ?? [212, 165, 116],    // skin (or mask)
     h: accents.hair,
     b: accents.headband,
     m: [112, 128, 144],    // metal plate
@@ -92,14 +94,15 @@ export const ACCENTS_GENERIC_SHINOBI: CharacterAccents = {
   beltHighlight: [120, 100, 65],
 };
 
-/** ANBU: grey hair, blank mask (special slot = white mask) */
+/** ANBU: grey hair, porcelain mask (skin replaced with white mask color) */
 export const ACCENTS_ANBU: CharacterAccents = {
   hair: [80, 80, 90],
   headband: [40, 40, 50],
-  pupil: [20, 20, 25],
+  pupil: [30, 10, 10],       // dark red slits for mask eyes
   belt: [60, 60, 70],
   beltHighlight: [80, 80, 90],
   special: [220, 215, 210],  // white mask
+  skinOverride: [225, 220, 215], // porcelain white replaces skin = mask
 };
 
 /** Kage: white robes accent (special = hat color) */
