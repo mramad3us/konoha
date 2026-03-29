@@ -31,6 +31,18 @@ export const TILE_HEIGHT = 32;
 
 export const TRAINING_GROUNDS_WIDTH = 40;
 export const TRAINING_GROUNDS_HEIGHT = 40;
+
+// ── Village ──
+export const VILLAGE_WIDTH = 160;
+export const VILLAGE_HEIGHT = 160;
+export const VILLAGE_PLAYER_START_X = 80;
+export const VILLAGE_PLAYER_START_Y = 140;
+
+// Training grounds offset within village
+export const TG_OFFSET_X = 6;
+export const TG_OFFSET_Y = 16;
+
+// Legacy (for training grounds standalone)
 export const PLAYER_START_X = 20;
 export const PLAYER_START_Y = 37;
 

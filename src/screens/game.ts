@@ -21,7 +21,7 @@ import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../en
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
 import { computeFOV } from '../engine/fov.ts';
-import { generateTrainingGrounds } from '../map/mapGenerator.ts';
+import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
 import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS } from '../core/constants.ts';
@@ -52,14 +52,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world = World.deserialize(save.data as Record<string, unknown>);
     } else if (save) {
       // Fresh save from new game — generate world
-      world = generateTrainingGrounds(save.playerName, save.playerGender, devMode);
+      world = generateVillage(save.playerName, save.playerGender, devMode);
     } else {
       // Fallback
-      world = generateTrainingGrounds('Shinobi', 'shinobi', devMode);
+      world = generateVillage('Shinobi', 'shinobi', devMode);
     }
   } else {
     // No save ID — shouldn't happen, but handle gracefully
-    world = generateTrainingGrounds('Shinobi', 'shinobi', devMode);
+    world = generateVillage('Shinobi', 'shinobi', devMode);
   }
 
   // ── Compute initial FOV ──

@@ -6,7 +6,7 @@
 import type { World } from './world.ts';
 import { reviveEntity } from './entityState.ts';
 import { computeFOV } from './fov.ts';
-import { FOV_RADIUS, PLAYER_START_X, PLAYER_START_Y, TRAINING_RESPAWN_TIME_S, RESPAWN_FADE_MS } from '../core/constants.ts';
+import { FOV_RADIUS, VILLAGE_PLAYER_START_X, VILLAGE_PLAYER_START_Y, TRAINING_RESPAWN_TIME_S, RESPAWN_FADE_MS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 
 export interface RespawnConfig {
@@ -26,8 +26,8 @@ export const TRAINING_GROUNDS_RESPAWN: RespawnConfig = {
   restoreStamina: true,
   restoreChakra: true,
   restoreWillpower: true,
-  spawnX: PLAYER_START_X,
-  spawnY: PLAYER_START_Y,
+  spawnX: VILLAGE_PLAYER_START_X,
+  spawnY: VILLAGE_PLAYER_START_Y,
   message: 'You awaken on the training grounds. An hour has passed.',
 };
 
