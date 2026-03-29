@@ -788,3 +788,34 @@ export const OBJ_SCARECROW: PixelPattern = {
     '................',
   ],
 };
+
+// ── BENCH (wooden, simple) ──
+const BENCH_PAL: Record<string, [number, number, number]> = {
+  w: [105, 78, 42],     // wood seat
+  W: [125, 95, 55],     // highlight
+  d: [82, 60, 32],      // dark
+  l: [70, 52, 28],      // legs
+};
+
+export const OBJ_BENCH: PixelPattern = {
+  width: 16, height: 16,
+  palette: BENCH_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '....dWWWWWWd....',
+    '...dWwwwwwWWd...',
+    '...dwwwwwwwwd...',
+    '....ddddddddd..',
+    '....l......l....',
+    '....l......l....',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};

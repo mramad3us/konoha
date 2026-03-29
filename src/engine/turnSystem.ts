@@ -205,12 +205,24 @@ export function executeTurn(action: GameAction, world: World): boolean {
               return true;
             }
 
-            const hasSheet = world.objectSheets.has(eid) || world.characterSheets.has(eid);
-            const hasInteractable = world.interactables.has(eid);
-            if (hasSheet || hasInteractable) {
-              // Open universal context menu (handled by game screen)
+            // Examine-only objects: skip menu, log description directly
+            const hasObjectSheet = world.objectSheets.has(eid);
+            const hasCharSheet = world.characterSheets.has(eid);
+            const hasSpecialInteract = world.interactables.has(eid);
+            const isNpc = hasCharSheet;
+
+            if (hasObjectSheet && !isNpc && !hasSpecialInteract) {
+              // Simple object — just examine directly
+              const sheet = world.objectSheets.get(eid)!;
+              const name = world.names.get(eid)?.display ?? 'something';
+              world.log(`${name}: ${sheet.description}`, 'info');
+              return false;
+            }
+
+            if (hasObjectSheet || hasCharSheet || hasSpecialInteract) {
+              // Complex entity — open context menu
               world._pendingInteraction = { entityId: eid, type: 'context_menu' };
-              return false; // Don't advance time — menu handles it
+              return false;
             }
           }
         }

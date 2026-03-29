@@ -9,7 +9,7 @@ import {
   OBJ_SLEEPING_BAG, OBJ_TORCH_PILLAR,
   OBJ_DOOR_CLOSED, OBJ_DOOR_OPEN,
   OBJ_DESK, OBJ_SHELF, OBJ_COUNTER, OBJ_WEAPONS_RACK, OBJ_MEDICINE_CABINET,
-  OBJ_WELL, OBJ_BARREL, OBJ_SCARECROW,
+  OBJ_WELL, OBJ_BARREL, OBJ_SCARECROW, OBJ_BENCH,
 } from './objects.ts';
 import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
@@ -88,6 +88,7 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'obj_well',             pattern: OBJ_WELL,             displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_barrel',           pattern: OBJ_BARREL,           displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_scarecrow',        pattern: OBJ_SCARECROW,        displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_bench',            pattern: OBJ_BENCH,            displayWidth: 48, displayHeight: 48, outline: true },
 
   // Doors
   { id: 'obj_door_closed', pattern: OBJ_DOOR_CLOSED, displayWidth: 48, displayHeight: 48, outline: true },

@@ -251,9 +251,9 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   tree(world, 48, 16);
   bush(world, 43, 14);
   bush(world, 53, 14);
-  spawn(world, { x: 46, y: 15, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -22,
+  spawn(world, { x: 46, y: 15, spriteId: 'obj_bench', layer: 'object', offsetY: -18,
     blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
-    description: 'A stone bench under the trees. A nice spot to rest.', category: 'object' });
+    description: 'A wooden bench under the trees. A nice spot to rest.', category: 'object' });
 
   // --- South park decorations (55-74, 130-139) ---
   tree(world, 58, 131);
@@ -262,7 +262,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   tree(world, 68, 138);
   bush(world, 56, 134);
   bush(world, 73, 134);
-  spawn(world, { x: 63, y: 136, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -22,
+  spawn(world, { x: 63, y: 136, spriteId: 'obj_bench', layer: 'object', offsetY: -18,
     blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
     description: 'A bench overlooking the small pond. Peaceful.', category: 'object' });
 
@@ -278,7 +278,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   spawn(world, { x: 110, y: 79, spriteId: 'obj_well', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'market well', article: 'the',
     description: 'A stone well in the center of the market. Fresh water for all.', category: 'object' });
-  spawn(world, { x: 120, y: 79, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -22,
+  spawn(world, { x: 120, y: 79, spriteId: 'obj_bench', layer: 'object', offsetY: -18,
     blocksMove: false, blocksSight: false, name: 'market bench', article: 'a',
     description: 'A bench for tired shoppers.', category: 'object' });
 
