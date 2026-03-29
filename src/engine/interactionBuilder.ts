@@ -58,6 +58,18 @@ export function buildContextOptions(
     });
   }
 
+  // ── Bleeding (any living NPC, conscious or unconscious) ──
+  const isBleeding = world.bleeding.has(entityId);
+  if (isNpc && !dead && isBleeding) {
+    options.push({ id: 'patch_up', label: 'Patch Up', accent: true });
+  }
+
+  // ── Wounded (any living NPC with < max HP) ──
+  const health = world.healths.get(entityId);
+  if (isNpc && !dead && health && health.current < health.max) {
+    options.push({ id: 'first_aid', label: 'First Aid', accent: true });
+  }
+
   // ── NPC: Unconscious ──
   if (isNpc && unconscious) {
     options.push({ id: 'revive', label: 'Revive', accent: true });
@@ -106,6 +118,21 @@ export function getExamineText(world: World, entityId: EntityId): string[] {
     else if (pct >= 0.5) lines.push('Some bruises and scrapes are visible.');
     else if (pct >= 0.2) lines.push('They\'re visibly hurt, moving stiffly.');
     else if (pct > 0) lines.push('They look barely able to stand.');
+  }
+
+  const bleeding = world.bleeding.get(entityId);
+  if (bleeding) {
+    if (bleeding.intensity >= 6) lines.push('Bleeding profusely — blood pools beneath them.');
+    else if (bleeding.intensity >= 3) lines.push('Bleeding steadily from open wounds.');
+    else lines.push('Bleeding lightly from minor cuts.');
+  }
+
+  const blood = world.resources.get(entityId);
+  if (blood && blood.blood < blood.maxBlood) {
+    const pct = blood.blood / blood.maxBlood;
+    if (pct <= 0.2) lines.push('Their skin is white as a ghost. They\'re barely alive.');
+    else if (pct <= 0.4) lines.push('Dangerously pale. They\'ve lost too much blood.');
+    else if (pct <= 0.7) lines.push('Getting pale. The blood loss is taking its toll.');
   }
 
   if (isUnconscious(world, entityId)) {

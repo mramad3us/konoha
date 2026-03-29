@@ -44,6 +44,7 @@ export interface CharacterSkills {
   bukijutsu: number;   // Tool use — kunai/shuriken accuracy & damage, equipment thresholds
   ninjutsu: number;    // Chakra efficiency, jutsu power, seal mastery & speed
   genjutsu: number;    // Illusion effectiveness and resistance
+  med: number;         // Medical knowledge — healing effectiveness, wound treatment
 }
 
 export type SkillId = keyof CharacterSkills;
@@ -53,6 +54,7 @@ export const SKILL_LABELS: Record<SkillId, string> = {
   bukijutsu: 'Bukijutsu',
   ninjutsu: 'Ninjutsu',
   genjutsu: 'Genjutsu',
+  med: 'Medicine',
 } as const;
 
 export const SKILL_DESCRIPTIONS: Record<SkillId, string> = {
@@ -60,9 +62,10 @@ export const SKILL_DESCRIPTIONS: Record<SkillId, string> = {
   bukijutsu: 'Tool use, thrown weapon accuracy & damage',
   ninjutsu: 'Chakra efficiency, jutsu power, seal speed',
   genjutsu: 'Illusion effectiveness and resistance',
+  med: 'Healing effectiveness, wound treatment, poison resistance',
 } as const;
 
-export const ALL_SKILL_IDS: SkillId[] = ['taijutsu', 'bukijutsu', 'ninjutsu', 'genjutsu'];
+export const ALL_SKILL_IDS: SkillId[] = ['taijutsu', 'bukijutsu', 'ninjutsu', 'genjutsu', 'med'];
 
 // ── STATS (0-100) ──
 
@@ -179,6 +182,7 @@ export const SKILL_IMPROVEMENT_RATES = {
   bukijutsu: 0.000100,          // per tool use
   ninjutsu: 0.000090,           // per jutsu cast
   genjutsu: 0.000070,           // per genjutsu attempt
+  med: 0.000050,                // per medical action (patch up, first aid)
 } as const;
 
 export const STAT_IMPROVEMENT_RATES = {
@@ -202,6 +206,7 @@ export const DEFAULT_SHINOBI_SHEET: CharacterSheet = {
     bukijutsu: 5,
     ninjutsu: 3,
     genjutsu: 1,
+    med: 2,
   },
   stats: {
     phy: 12,

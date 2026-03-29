@@ -206,7 +206,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         class: 'shinobi' as const,
         rank: 'jounin' as const,
         title: 'Elite Shinobi',
-        skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70 },
+        skills: { taijutsu: 70, bukijutsu: 70, ninjutsu: 70, genjutsu: 70, med: 70 },
         stats: { phy: 70, cha: 70, men: 70, soc: 70 },
         learnedJutsus: ['substitution'],
       }
@@ -236,6 +236,8 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     maxStamina,
     staminaCeiling: maxStamina,
     lastExertionTick: 0,
+    blood: 100,
+    maxBlood: 100,
   });
   world.names.set(playerId, { display: playerName, article: '' });
 
@@ -257,7 +259,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         class: 'civilian',
         rank: 'academy_student',
         title: 'Training Equipment',
-        skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0 },
+        skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: 0 },
         stats: { phy: 10, cha: 0, men: 0, soc: 0 },
         learnedJutsus: [],
       });
@@ -287,7 +289,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         class: 'shinobi',
         rank: 'genin',
         title: 'Training Partner',
-        skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2 },
+        skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2, med: 3 },
         stats: sparStats,
         learnedJutsus: [],
       });

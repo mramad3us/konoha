@@ -50,6 +50,13 @@ export function checkEntityState(world: World, entityId: EntityId): StateChange 
   // Already unconscious — nothing to do (must be killed or revived explicitly)
   if (isUnconscious(world, entityId)) return null;
 
+  // Check blood (death by bleed-out — immediate, no unconscious)
+  const res = world.resources.get(entityId);
+  if (res && res.blood <= 0) {
+    killEntity(world, entityId, null, true);
+    return { type: 'dead', entityId };
+  }
+
   // Check HP
   const health = world.healths.get(entityId);
   if (health && health.current <= 0) {
@@ -64,8 +71,8 @@ export function checkEntityState(world: World, entityId: EntityId): StateChange 
   }
 
   // Check willpower
-  const resources = world.resources.get(entityId);
-  if (resources && resources.willpower <= 0) {
+  const wpRes = world.resources.get(entityId);
+  if (wpRes && wpRes.willpower <= 0) {
     knockUnconscious(world, entityId, 'willpower');
 
     if (entityId === world.playerEntityId && playerRespawnCallback) {
@@ -247,6 +254,86 @@ const KILL_TEXT = [
   'Without hesitation, you finish what the fight started. {name} is gone.',
   'A clean end. {name} passes from this world.',
 ];
+
+// ── BLEEDING SYSTEM ──
+
+/**
+ * Tick bleeding for all entities. Call once per game tick.
+ * Bleeding drains blood resource, intensity decreases over time.
+ * Blood at 0 = death (not unconscious).
+ */
+export function tickBleeding(world: World): void {
+  for (const [entityId, bleed] of world.bleeding) {
+    if (isDead(world, entityId)) {
+      world.bleeding.delete(entityId);
+      continue;
+    }
+
+    const resources = world.resources.get(entityId);
+    if (!resources) continue;
+
+    // Drain blood by random amount up to intensity
+    const drain = 1 + Math.floor(Math.random() * bleed.intensity);
+    resources.blood = Math.max(0, resources.blood - drain);
+
+    // Decrease intensity (self-clotting)
+    bleed.intensity -= 1;
+    if (bleed.intensity <= 0) {
+      world.bleeding.delete(entityId);
+      const name = world.names.get(entityId)?.display ?? 'Someone';
+      world.log(`${name}'s bleeding has stopped.`, 'info');
+    }
+
+    // Blood at 0 = death (bleed out)
+    if (resources.blood <= 0) {
+      const name = world.names.get(entityId)?.display ?? 'Someone';
+      world.log(`${name} has bled out.`, 'system');
+      world.bleeding.delete(entityId);
+      killEntity(world, entityId, null, true); // force kill regardless of state
+    }
+  }
+
+  // Blood recovery for non-bleeding entities
+  for (const [entityId, resources] of world.resources) {
+    if (world.bleeding.has(entityId)) continue;
+    if (isDead(world, entityId)) continue;
+    if (resources.blood < resources.maxBlood) {
+      resources.blood = Math.min(resources.maxBlood, resources.blood + 1);
+    }
+  }
+}
+
+/**
+ * Apply bleeding effect to an entity.
+ */
+export function applyBleeding(world: World, entityId: EntityId, intensity: number): void {
+  const existing = world.bleeding.get(entityId);
+  if (existing) {
+    // Refresh — reset intensity to max of existing or new
+    existing.intensity = Math.max(existing.intensity, intensity);
+    existing.tickApplied = world.currentTick;
+  } else {
+    world.bleeding.set(entityId, { intensity, tickApplied: world.currentTick });
+  }
+
+  const name = world.names.get(entityId)?.display ?? 'Someone';
+  const msgs = [
+    `Blood begins to seep from ${name}'s wound.`,
+    `A cut opens on ${name} — they're bleeding.`,
+    `${name} is cut. Blood flows freely.`,
+    `The blade finds flesh — ${name} starts bleeding.`,
+  ];
+  world.log(msgs[Math.floor(Math.random() * msgs.length)], 'damage');
+}
+
+/**
+ * Stop bleeding on an entity (Patch Up action).
+ */
+export function stopBleeding(world: World, entityId: EntityId): void {
+  world.bleeding.delete(entityId);
+  const name = world.names.get(entityId)?.display ?? 'Someone';
+  world.log(`${name}'s wounds are patched up. The bleeding stops.`, 'info');
+}
 
 // ── AUTO-RECOVERY ──
 

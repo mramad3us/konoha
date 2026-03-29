@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -29,6 +29,10 @@ export class World {
   interactables = new Map<EntityId, InteractableComponent>();
   lightSources = new Map<EntityId, LightSourceComponent>();
   objectSheets = new Map<EntityId, ObjectSheetComponent>();
+  bleeding = new Map<EntityId, BleedingComponent>();
+
+  // Combat intent
+  playerKillIntent = false;
 
   // World systems data
   tileMap: TileMap;
@@ -76,6 +80,7 @@ export class World {
     this.interactables.delete(id);
     this.lightSources.delete(id);
     this.objectSheets.delete(id);
+    this.bleeding.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) */
@@ -172,6 +177,8 @@ export class World {
       interactables: serializeMap(this.interactables),
       lightSources: serializeMap(this.lightSources),
       objectSheets: serializeMap(this.objectSheets),
+      bleeding: serializeMap(this.bleeding),
+      playerKillIntent: this.playerKillIntent,
     };
   }
 
@@ -222,6 +229,12 @@ export class World {
     }
     if (data['objectSheets']) {
       deserializeMap(world.objectSheets, data['objectSheets'] as Record<string, ObjectSheetComponent>);
+    }
+    if (data['bleeding']) {
+      deserializeMap(world.bleeding, data['bleeding'] as Record<string, BleedingComponent>);
+    }
+    if (data['playerKillIntent'] !== undefined) {
+      world.playerKillIntent = data['playerKillIntent'] as boolean;
     }
 
     return world;

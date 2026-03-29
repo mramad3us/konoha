@@ -118,7 +118,7 @@ export interface CombatEngagement {
 
 // ── CONDITIONS ──
 
-export type CombatCondition = 'down' | 'stunned';
+export type CombatCondition = 'down' | 'stunned' | 'bleeding';
 
 /**
  * Down: next pass, opponent acts as if they have a free bead

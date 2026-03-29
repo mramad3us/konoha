@@ -2,7 +2,7 @@ import { createElement } from '../utils/dom.ts';
 
 export interface ResourceBarConfig {
   label: string;
-  type: 'hp' | 'chakra' | 'willpower' | 'stamina';
+  type: 'hp' | 'chakra' | 'willpower' | 'stamina' | 'blood';
 }
 
 export class ResourceBar {

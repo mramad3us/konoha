@@ -469,6 +469,13 @@ const CONDITION_TEMPLATES: Record<CombatCondition, string[]> = {
     '{defender} stands stock-still, eyes unfocused, completely open to attack!',
     'A ringing silence fills {defender}\'s skull. The world freezes. They can\'t respond!',
   ],
+  bleeding: [
+    'Blood begins to flow from {defender}\'s wound!',
+    'A deep cut opens on {defender} — they\'re bleeding!',
+    'The blade finds flesh. {defender} starts to bleed.',
+    '{defender} clutches at a fresh wound. Blood seeps between their fingers.',
+    'A crimson line appears on {defender}\'s arm. The cut is deep.',
+  ],
 };
 
 export function generateConditionFlavor(defenderName: string, condition: CombatCondition): string {

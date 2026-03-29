@@ -22,6 +22,7 @@ export interface GameSettings {
   pixelScale: number;
   showFps: boolean;
   language: string;
+  gore: boolean;
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -33,6 +34,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   pixelScale: 4,
   showFps: false,
   language: 'en',
+  gore: true,
 };
 
 export interface SaveExport {

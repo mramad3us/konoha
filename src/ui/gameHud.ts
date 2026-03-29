@@ -11,6 +11,7 @@ export class GameHud {
   private chakraBar: ResourceBar;
   private willpowerBar: ResourceBar;
   private staminaBar: ResourceBar;
+  private bloodBar: ResourceBar;
   private stanceValue: HTMLElement;
   private stanceTicks: HTMLElement;
   private stanceEl: HTMLElement | null = null;
@@ -29,11 +30,14 @@ export class GameHud {
     this.chakraBar = new ResourceBar({ label: 'CKR', type: 'chakra' });
     this.willpowerBar = new ResourceBar({ label: 'WIL', type: 'willpower' });
     this.staminaBar = new ResourceBar({ label: 'STA', type: 'stamina' });
+    this.bloodBar = new ResourceBar({ label: 'BLD', type: 'blood' });
+    this.bloodBar.element.style.display = 'none'; // hidden when at 100%
 
     resources.appendChild(this.hpBar.element);
     resources.appendChild(this.chakraBar.element);
     resources.appendChild(this.willpowerBar.element);
     resources.appendChild(this.staminaBar.element);
+    resources.appendChild(this.bloodBar.element);
 
     this.element.appendChild(resources);
 
@@ -70,6 +74,9 @@ export class GameHud {
       this.chakraBar.update(resources.chakra, resources.maxChakra);
       this.willpowerBar.update(resources.willpower, resources.maxWillpower);
       this.staminaBar.update(resources.stamina, resources.maxStamina);
+      this.bloodBar.update(resources.blood, resources.maxBlood);
+      // Only show blood bar when not at full
+      this.bloodBar.element.style.display = resources.blood < resources.maxBlood ? 'flex' : 'none';
     }
 
     if (playerCtrl) {

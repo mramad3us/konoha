@@ -118,6 +118,15 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
 
   addToggle('Screen Shake', 'screenShake');
 
+  // ── Display ──
+  const displayHeader = createElement('div', {});
+  displayHeader.style.cssText = 'padding:var(--space-4) 0 var(--space-2);color:var(--color-gold);font-family:var(--font-pixel);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;width:100%;max-width:480px;';
+  displayHeader.textContent = '// Display';
+  settingsWrap.appendChild(displayHeader);
+  rows.push(displayHeader);
+
+  addToggle('Gore', 'gore');
+
   // ── Developer ──
   const devHeader = createElement('div', {});
   devHeader.style.cssText = 'padding:var(--space-4) 0 var(--space-2);color:var(--color-gold);font-family:var(--font-pixel);font-size:9px;text-transform:uppercase;letter-spacing:0.12em;width:100%;max-width:480px;';

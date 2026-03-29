@@ -71,6 +71,13 @@ export interface ResourcesComponent {
   maxStamina: number;
   staminaCeiling: number;       // max natural restore point (fatigue)
   lastExertionTick: number;     // tick of last stamina-consuming action
+  blood: number;                // current blood (0-100)
+  maxBlood: number;             // max blood capacity (always 100)
+}
+
+export interface BleedingComponent {
+  intensity: number;            // bleed rate (1-10 dmg per tick to blood)
+  tickApplied: number;          // tick when bleeding started/refreshed
 }
 
 export interface AIControlledComponent {

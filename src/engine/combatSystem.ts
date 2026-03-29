@@ -13,7 +13,7 @@ import { resolveCombat } from './combatResolver.ts';
 import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, generateNpcObservation } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
-import { checkEntityState } from './entityState.ts';
+import { checkEntityState, applyBleeding, tickBleeding, killEntity as killEntityDirect } from './entityState.ts';
 import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
@@ -145,15 +145,40 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tempoForDefender));
   }
 
-  // Apply damage
+  // Apply damage (with kill intent modifier)
   if (outcome.damage > 0) {
     const defenderIsDummy = world.destructibles.has(outcome.defenderId);
+    let finalDamage = outcome.damage;
+
+    // Kill intent: +20% damage when player is attacker with intent
+    if (outcome.attackerId === playerId && world.playerKillIntent) {
+      finalDamage = Math.round(finalDamage * 1.2);
+    }
+
     if (!defenderIsDummy) {
       const targetHealth = world.healths.get(outcome.defenderId);
       if (targetHealth) {
-        targetHealth.current = Math.max(0, targetHealth.current - outcome.damage);
+        targetHealth.current = Math.max(0, targetHealth.current - finalDamage);
+      }
+
+      // Bleeding chance with kill intent
+      if (outcome.attackerId === playerId && world.playerKillIntent) {
+        const bleedChance = 0.20 + playerTaijutsu / 200;
+        if (Math.random() < bleedChance) {
+          const intensity = 3 + Math.floor(Math.random() * 5); // 3-7
+          applyBleeding(world, outcome.defenderId, intensity);
+        }
+      }
+
+      // Kill chance on KO with kill intent
+      if (targetHealth && targetHealth.current <= 0 && world.playerKillIntent) {
+        const killChance = 0.20 + playerTaijutsu / 200;
+        if (Math.random() < killChance) {
+          killEntityDirect(world, outcome.defenderId, playerId, true);
+        }
       }
     }
+
     if (outcome.attackerId === playerId) {
       const res = world.resources.get(playerId);
       if (res) res.stamina = Math.max(0, res.stamina - 1);
@@ -310,16 +335,37 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
 
   // Every 3 passes (1 tick / 6s), log NPC condition observation
   if (eng.round % 3 === 0 && !isDummy) {
-    const targetHp = world.healths.get(targetId);
     const targetName = world.names.get(targetId)?.display ?? 'Your opponent';
+    const targetHp = world.healths.get(targetId);
     if (targetHp) {
       const obs = generateNpcObservation(targetName, targetHp.current, targetHp.max);
       world.log(obs, 'info');
+    }
+    // Bleeding observation
+    const targetBleed = world.bleeding.get(targetId);
+    if (targetBleed) {
+      const bleedMsg = targetBleed.intensity >= 5
+        ? `${targetName} is bleeding profusely — blood spatters with every movement.`
+        : `${targetName} is bleeding from open wounds.`;
+      world.log(bleedMsg, 'damage');
+    }
+    // Blood level observation
+    const targetRes = world.resources.get(targetId);
+    if (targetRes && targetRes.blood < targetRes.maxBlood * 0.7) {
+      const bloodPct = targetRes.blood / targetRes.maxBlood;
+      const bloodMsg = bloodPct <= 0.3
+        ? `${targetName}'s skin is white as paper. They're fading.`
+        : `${targetName} is getting pale from blood loss.`;
+      world.log(bloodMsg, 'damage');
     }
   }
 
   world.currentTick += 1;
   world.gameTimeSeconds += 2; // 1 combat pass = 2s in-game
+
+  // Tick bleeding for all entities
+  tickBleeding(world);
+
   return true;
 }
 

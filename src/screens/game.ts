@@ -11,7 +11,9 @@ import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
-import { setPlayerRespawnCallback, killEntity, reviveEntity } from '../engine/entityState.ts';
+import { setPlayerRespawnCallback, killEntity, reviveEntity, stopBleeding } from '../engine/entityState.ts';
+import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
@@ -131,6 +133,15 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // Keybindings panel (inside canvas container for positioning)
   const keybindingsPanel = new KeybindingsPanel();
   canvasContainer.appendChild(keybindingsPanel.element);
+
+  // Kill intent toggle
+  const killToggle = new KillIntentToggle();
+  killToggle.setState(world.playerKillIntent);
+  killToggle.setChangeCallback((kill) => {
+    world.playerKillIntent = kill;
+    world.log(kill ? 'You draw your kunai. Fighting to kill.' : 'You sheathe your weapon. Fighting to subdue.', 'system');
+  });
+  canvasContainer.appendChild(killToggle.element);
 
   // Screen shake callback for critical hits
   setScreenShakeCallback(() => {
@@ -263,6 +274,28 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     } else if (choice === 'assassinate') {
       killEntity(world, entityId, world.playerEntityId, true);
       world.gameTimeSeconds += 2;
+      world.currentTick += 1;
+    } else if (choice === 'patch_up') {
+      stopBleeding(world, entityId);
+      world.gameTimeSeconds += 2;
+      world.currentTick += 1;
+      // Improve MED skill
+      const playerSheet = world.characterSheets.get(world.playerEntityId);
+      if (playerSheet) {
+        playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
+      }
+    } else if (choice === 'first_aid') {
+      const targetHp = world.healths.get(entityId);
+      const playerSheet = world.characterSheets.get(world.playerEntityId);
+      if (targetHp && playerSheet) {
+        const healPct = (5 + Math.floor(playerSheet.skills.med / 4)) / 100;
+        const healAmount = Math.max(1, Math.floor(targetHp.max * healPct));
+        targetHp.current = Math.min(targetHp.max, targetHp.current + healAmount);
+        const targetName = world.names.get(entityId)?.display ?? 'them';
+        world.log(`You treat ${targetName}'s wounds. (+${healAmount} HP)`, 'info');
+        playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
+      }
+      world.gameTimeSeconds += 6;
       world.currentTick += 1;
     } else if (choice === 'use_sleep') {
       doSleep();
