@@ -11,6 +11,7 @@ import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
+import { setPlayerRespawnCallback } from '../engine/entityState.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -200,7 +201,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     canvasContainer.classList.remove('game-canvas-container--fadein');
   };
 
-  inputSystem.setRespawnCallback(() => { doRespawn(); });
+  setPlayerRespawnCallback(() => { doRespawn(); });
 
   // Sleep flow (8 hours pass, restore stamina ceiling)
   const doSleep = async () => {

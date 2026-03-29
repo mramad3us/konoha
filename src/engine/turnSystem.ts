@@ -5,6 +5,7 @@ import { computeFOV } from './fov.ts';
 
 import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
+import { isUnconscious, killEntity } from './entityState.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
 
 /** Advance game time and recompute FOV with night reduction */
@@ -181,9 +182,16 @@ export function executeTurn(action: GameAction, world: World): boolean {
             const interactable = world.interactables.get(eid);
             if (interactable) {
               const name = world.names.get(eid)?.display ?? 'something';
-              // Dispatch by type — return value handled by caller
+
+              // Unconscious entity → kill action
+              if (isUnconscious(world, eid)) {
+                killEntity(world, eid, playerId);
+                advanceTurn(world, 1, 2);
+                return true;
+              }
+
+              // Regular interaction
               world.log(`You interact with ${name}.`, 'info');
-              // Store pending interaction for the game screen to handle
               world._pendingInteraction = { entityId: eid, type: interactable.interactionType };
               advanceTurn(world, 1, 2);
               return true;

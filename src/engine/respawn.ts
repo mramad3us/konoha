@@ -4,6 +4,7 @@
  */
 
 import type { World } from './world.ts';
+import { reviveEntity } from './entityState.ts';
 import { computeFOV } from './fov.ts';
 import { FOV_RADIUS, PLAYER_START_X, PLAYER_START_Y, TRAINING_RESPAWN_TIME_S, RESPAWN_FADE_MS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
@@ -36,12 +37,16 @@ export const TRAINING_GROUNDS_RESPAWN: RespawnConfig = {
  */
 export function executeRespawn(world: World, config: RespawnConfig): void {
   const playerId = world.playerEntityId;
-  const health = world.healths.get(playerId);
   const resources = world.resources.get(playerId);
   const pos = world.positions.get(playerId);
 
+  // Revive via centralized state manager (restores HP, clears unconscious, restores sprite)
+  reviveEntity(world, playerId, 1.0);
+
+  // Additional resource restoration based on config
+  const health = world.healths.get(playerId);
   if (health && config.restoreHp) {
-    health.current = health.max;
+    health.current = health.max; // full HP on respawn
   }
 
   if (resources) {
@@ -58,21 +63,11 @@ export function executeRespawn(world: World, config: RespawnConfig): void {
     }
   }
 
-  // Move player
+  // Move player to spawn
   if (pos) {
     pos.x = config.spawnX;
     pos.y = config.spawnY;
     pos.facing = 'n';
-  }
-
-  // Clear unconscious state
-  world.unconscious.delete(playerId);
-
-  // Restore sprite
-  const renderable = world.renderables.get(playerId);
-  if (renderable) {
-    const gender = renderable.spriteId.includes('kunoichi') ? 'kunoichi' : 'shinobi';
-    renderable.spriteId = `char_${gender}_s`;
   }
 
   // Advance time

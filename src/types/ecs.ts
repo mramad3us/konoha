@@ -88,8 +88,13 @@ export interface DestructibleComponent {
 }
 
 export interface UnconsciousComponent {
-  reason: 'hp' | 'willpower';
+  reason: 'hp' | 'willpower' | 'ability';
   tickFallen: number;
+}
+
+export interface DeadComponent {
+  tickDied: number;
+  killer: EntityId | null;
 }
 
 export interface InteractableComponent {

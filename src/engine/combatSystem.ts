@@ -13,6 +13,7 @@ import { resolveCombat } from './combatResolver.ts';
 import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, generateNpcObservation } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { checkEntityState } from './entityState.ts';
 import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
@@ -274,7 +275,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     if (targetCond.turnsRemaining <= 0) targetCond.condition = null;
   }
 
-  // ── Destruction check ──
+  // ── State check (centralized) ──
   const destructible = world.destructibles.get(targetId);
   if (destructible) {
     if (outcome.damage >= DUMMY_DESTROY_THRESHOLD) {
@@ -283,31 +284,14 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       engagements.delete(engagementKey(playerId, targetId));
     }
   } else {
-    const targetHealth = world.healths.get(targetId);
-    if (targetHealth && targetHealth.current <= 0 && !world.unconscious.has(targetId)) {
-      // Fall unconscious — entity persists, can be interacted with later
-      const targetName = world.names.get(targetId)?.display ?? 'The enemy';
-      world.unconscious.set(targetId, { reason: 'hp', tickFallen: world.currentTick });
-
-      // Switch to prone sprite
-      const renderable = world.renderables.get(targetId);
-      if (renderable) {
-        const spriteBase = renderable.spriteId.replace(/_[snew]$/, '');
-        renderable.spriteId = `${spriteBase}_prone`;
-        renderable.offsetY = -4; // lower to ground
-      }
-
-      // No longer blocks movement (can walk over unconscious bodies)
-      const blocking = world.blockings.get(targetId);
-      if (blocking) blocking.blocksMovement = false;
-
-      // Make interactable (for future kill/abduct)
-      world.interactables.set(targetId, { interactionType: 'examine', label: 'Examine' });
-
-      world.log(`${targetName} collapses to the ground, unconscious!`, 'system');
+    const stateChange = checkEntityState(world, targetId);
+    if (stateChange) {
       engagements.delete(engagementKey(playerId, targetId));
     }
   }
+
+  // Also check player state (damage from NPC attacks)
+  checkEntityState(world, playerId);
 
   // ── Stamina restoration ──
   // If player didn't attack (defended/parried), check rest-based regen

@@ -25,7 +25,6 @@ export class InputSystem {
   private conditionIndicator: ConditionIndicator;
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
-  private onRespawn: (() => void) | null = null;
   private onSleep: (() => void) | null = null;
 
   constructor(
@@ -112,7 +111,7 @@ export class InputSystem {
         this.hud.update(this.world);
         this.tempoBeads.update(getPlayerTempo(this.world));
         this.conditionIndicator.update(getPlayerCondition(this.world));
-        this.checkPlayerUnconscious();
+        // Player state checked by combatSystem via entityState
       }
       return;
     }
@@ -171,29 +170,9 @@ export class InputSystem {
     this.world = world;
   }
 
-  /** Set callback for player unconscious (triggers respawn flow) */
-  setRespawnCallback(cb: () => void): void {
-    this.onRespawn = cb;
-  }
-
   /** Set callback for sleep interaction */
   setSleepCallback(cb: () => void): void {
     this.onSleep = cb;
-  }
-
-  /** Check if player fell unconscious (0 HP or 0 willpower) */
-  private checkPlayerUnconscious(): void {
-    const playerId = this.world.playerEntityId;
-    const health = this.world.healths.get(playerId);
-    const resources = this.world.resources.get(playerId);
-
-    if (health && health.current <= 0) {
-      this.world.log('Everything goes dark...', 'system');
-      if (this.onRespawn) this.onRespawn();
-    } else if (resources && resources.willpower <= 0) {
-      this.world.log('Your mind gives way. Darkness takes you...', 'system');
-      if (this.onRespawn) this.onRespawn();
-    }
   }
 
   /** Remove event listener */

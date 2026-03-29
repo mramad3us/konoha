@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, InteractableComponent, LightSourceComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -25,6 +25,7 @@ export class World {
   destructibles = new Map<EntityId, DestructibleComponent>();
   characterSheets = new Map<EntityId, CharacterSheet>();
   unconscious = new Map<EntityId, UnconsciousComponent>();
+  dead = new Map<EntityId, DeadComponent>();
   interactables = new Map<EntityId, InteractableComponent>();
   lightSources = new Map<EntityId, LightSourceComponent>();
 
@@ -70,6 +71,7 @@ export class World {
     this.destructibles.delete(id);
     this.characterSheets.delete(id);
     this.unconscious.delete(id);
+    this.dead.delete(id);
     this.interactables.delete(id);
     this.lightSources.delete(id);
   }
@@ -164,6 +166,7 @@ export class World {
       destructibles: serializeMap(this.destructibles),
       characterSheets: serializeMap(this.characterSheets),
       unconscious: serializeMap(this.unconscious),
+      dead: serializeMap(this.dead),
       interactables: serializeMap(this.interactables),
       lightSources: serializeMap(this.lightSources),
     };
@@ -204,6 +207,9 @@ export class World {
     }
     if (data['unconscious']) {
       deserializeMap(world.unconscious, data['unconscious'] as Record<string, UnconsciousComponent>);
+    }
+    if (data['dead']) {
+      deserializeMap(world.dead, data['dead'] as Record<string, DeadComponent>);
     }
     if (data['interactables']) {
       deserializeMap(world.interactables, data['interactables'] as Record<string, InteractableComponent>);
