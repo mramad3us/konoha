@@ -123,27 +123,68 @@ export function sfxWhiff(): void {
   noise.stop(now + duration);
 }
 
-/** Critical hit — heavy impact + low boom */
+/** Critical hit — cinematic multi-layered impact */
 export function sfxCritical(): void {
   const ac = getCtx();
   const now = ac.currentTime;
 
-  // Heavy noise burst
-  noiseHit(0.15, 3, 60, vol(0.5), 1500);
+  // Layer 1: Sharp initial crack (high freq noise transient)
+  noiseHit(0.04, 1, 0, vol(0.6), 5000);
 
-  // Low boom
-  const osc = ac.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(80, now);
-  osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+  // Layer 2: Heavy body impact (slightly delayed, mid freq)
+  noiseHit(0.12, 3, 90, vol(0.5), 1200);
 
-  const gain = ac.createGain();
-  gain.gain.setValueAtTime(vol(0.5), now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  // Layer 3: Deep sub-bass boom (the "weight" of the hit)
+  const sub = ac.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(60, now + 0.02);
+  sub.frequency.exponentialRampToValueAtTime(20, now + 0.4);
 
-  osc.connect(gain).connect(ac.destination);
-  osc.start(now);
-  osc.stop(now + 0.25);
+  const subGain = ac.createGain();
+  subGain.gain.setValueAtTime(vol(0.6), now + 0.02);
+  subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+  sub.connect(subGain).connect(ac.destination);
+  sub.start(now + 0.02);
+  sub.stop(now + 0.5);
+
+  // Layer 4: Metallic ring (the "power" resonance, like a bell struck)
+  const ring = ac.createOscillator();
+  ring.type = 'triangle';
+  ring.frequency.setValueAtTime(800, now + 0.01);
+  ring.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+
+  const ringFilter = ac.createBiquadFilter();
+  ringFilter.type = 'bandpass';
+  ringFilter.frequency.value = 600;
+  ringFilter.Q.value = 8;
+
+  const ringGain = ac.createGain();
+  ringGain.gain.setValueAtTime(vol(0.15), now + 0.01);
+  ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+  ring.connect(ringFilter).connect(ringGain).connect(ac.destination);
+  ring.start(now + 0.01);
+  ring.stop(now + 0.65);
+
+  // Layer 5: Reverse-swell tail (brief rising tone before silence — dramatic punctuation)
+  const swell = ac.createOscillator();
+  swell.type = 'sawtooth';
+  swell.frequency.setValueAtTime(100, now + 0.15);
+  swell.frequency.linearRampToValueAtTime(300, now + 0.35);
+
+  const swellFilter = ac.createBiquadFilter();
+  swellFilter.type = 'lowpass';
+  swellFilter.frequency.value = 500;
+
+  const swellGain = ac.createGain();
+  swellGain.gain.setValueAtTime(0, now + 0.15);
+  swellGain.gain.linearRampToValueAtTime(vol(0.08), now + 0.25);
+  swellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+  swell.connect(swellFilter).connect(swellGain).connect(ac.destination);
+  swell.start(now + 0.15);
+  swell.stop(now + 0.45);
 }
 
 /** Tempo gain — short ascending chime */
