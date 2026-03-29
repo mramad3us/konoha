@@ -124,7 +124,7 @@ export async function renderNewGame(container: HTMLElement): Promise<void> {
   const startBtn = createElement('button', {
     className: 'menu-btn menu-btn--primary',
   });
-  startBtn.style.cssText += 'justify-content:center;margin-top:var(--space-4);';
+  startBtn.style.cssText += 'justify-content:center;margin-top:var(--space-4);width:100%;';
 
   const startIcon = createElement('span', { className: 'menu-btn__icon' });
   startIcon.innerHTML = KUNAI_SVG;
