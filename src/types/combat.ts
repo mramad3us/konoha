@@ -91,7 +91,7 @@ export function startingTempo(ownSkill: number, opponentSkill: number): number {
  * Taijutsu × 0.5 + PHY, with ±20% variance.
  */
 export function calculateDamage(taijutsu: number, phy: number): number {
-  const base = taijutsu * 0.5 + phy;
+  const base = (taijutsu * 0.5 + phy) * 0.5;
   const variance = 0.8 + Math.random() * 0.4;
   return Math.max(1, Math.round(base * variance));
 }
