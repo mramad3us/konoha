@@ -22,7 +22,8 @@ export interface BuildingTemplate {
  * Stamp a building onto the tilemap.
  * Creates walls around the perimeter, floor inside, and a door on one side.
  */
-export function stampBuilding(map: TileMap, b: BuildingTemplate): void {
+/** Returns the door position { x, y } for entity spawning */
+export function stampBuilding(map: TileMap, b: BuildingTemplate): { doorX: number; doorY: number } {
   const floor = b.floorType ?? 'wooden_floor';
   const doorOff = b.doorOffset ?? Math.floor(b.w / 2);
 
@@ -74,6 +75,8 @@ export function stampBuilding(map: TileMap, b: BuildingTemplate): void {
     case 'e': map.setTile(doorX + 1, doorY, floor === 'wooden_floor' ? 'road' : 'dirt'); break;
     case 'w': map.setTile(doorX - 1, doorY, floor === 'wooden_floor' ? 'road' : 'dirt'); break;
   }
+
+  return { doorX, doorY };
 }
 
 /**

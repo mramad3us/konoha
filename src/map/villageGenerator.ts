@@ -21,7 +21,7 @@ import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina } from '../engine/derivedStats.ts';
 import { stampBuilding, stampRoad, stampRiver, fillRect } from './buildingStamper.ts';
 import { spawnVillageNpcs } from '../data/villageNpcs.ts';
-import { spawnVillageObjects } from '../data/villageObjects.ts';
+import { spawnVillageObjects, spawnDoor } from '../data/villageObjects.ts';
 import {
   VILLAGE_WIDTH, VILLAGE_HEIGHT,
   VILLAGE_PLAYER_START_X, VILLAGE_PLAYER_START_Y,
@@ -292,6 +292,17 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
     blood: 100, maxBlood: 100,
   });
   world.names.set(playerId, { display: playerName, article: '' });
+
+  // ╔══════════════════════════════════════╗
+  // ║  SPAWN DOORS (entity on every door tile) ║
+  // ╚══════════════════════════════════════╝
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (tileMap.getTileType(x, y) === 'door') {
+        spawnDoor(world, x, y);
+      }
+    }
+  }
 
   // ╔══════════════════════════════════════╗
   // ║  LAYERS 5-7: OBJECTS + NPCS + DECOR  ║

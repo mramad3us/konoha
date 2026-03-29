@@ -179,13 +179,29 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'interact': {
-      // Find adjacent entity — anything with an objectSheet, characterSheet, or interactable
+      // Find adjacent entity
       for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           if (dx === 0 && dy === 0) continue;
           const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
           for (const eid of entities) {
             if (eid === playerId) continue;
+
+            // Doors toggle immediately (no context menu)
+            const door = world.doors.get(eid);
+            if (door) {
+              door.isOpen = !door.isOpen;
+              const renderable = world.renderables.get(eid);
+              const blocking = world.blockings.get(eid);
+              if (renderable) renderable.spriteId = door.isOpen ? 'obj_door_open' : 'obj_door_closed';
+              if (blocking) blocking.blocksMovement = !door.isOpen;
+              const interactable = world.interactables.get(eid);
+              if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
+              world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');
+              advanceTurn(world, 1, 2);
+              return true;
+            }
+
             const hasSheet = world.objectSheets.has(eid) || world.characterSheets.has(eid);
             const hasInteractable = world.interactables.has(eid);
             if (hasSheet || hasInteractable) {

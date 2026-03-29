@@ -7,6 +7,7 @@ import {
   OBJ_TALL_GRASS, OBJ_REEDS,
   OBJ_ROCK_SMALL, OBJ_ROCK_MEDIUM, OBJ_ROCK_LARGE, OBJ_ROCK_MOSSY,
   OBJ_SLEEPING_BAG, OBJ_TORCH_PILLAR,
+  OBJ_DOOR_CLOSED, OBJ_DOOR_OPEN,
 } from './objects.ts';
 import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
@@ -75,6 +76,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   // Sleeping bag & torch
   { id: 'obj_sleeping_bag',  pattern: OBJ_SLEEPING_BAG,  displayWidth: 48, displayHeight: 48 },
   { id: 'obj_torch_pillar',  pattern: OBJ_TORCH_PILLAR,  displayWidth: 48, displayHeight: 48, outline: true },
+
+  // Doors
+  { id: 'obj_door_closed', pattern: OBJ_DOOR_CLOSED, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_door_open', pattern: OBJ_DOOR_OPEN, displayWidth: 48, displayHeight: 48 },
 
   // Training dummy
   { id: 'obj_dummy', pattern: OBJ_DUMMY, displayWidth: 48, displayHeight: 48, outline: true },

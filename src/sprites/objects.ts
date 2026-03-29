@@ -462,3 +462,59 @@ export const OBJ_TORCH_PILLAR: PixelPattern = {
     '......ddd.......',
   ],
 };
+
+// ── DOOR (closed) ──
+const DOOR_CLOSED_PAL: Record<string, [number, number, number]> = {
+  w: [90, 65, 35],     // wood
+  W: [110, 82, 48],    // wood highlight
+  d: [70, 50, 28],     // frame
+  h: [140, 110, 60],   // handle
+  k: [50, 42, 30],     // dark
+};
+
+export const OBJ_DOOR_CLOSED: PixelPattern = {
+  width: 16, height: 16,
+  palette: DOOR_CLOSED_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '.....dddddd.....',
+    '.....dwwwwd.....',
+    '.....dwWwwd.....',
+    '.....dwwhwd.....',
+    '.....dwWwwd.....',
+    '.....dwwwwd.....',
+    '.....dwWwwd.....',
+    '.....dwwwwd.....',
+    '.....dddddd.....',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── DOOR (open) ──
+export const OBJ_DOOR_OPEN: PixelPattern = {
+  width: 16, height: 16,
+  palette: DOOR_CLOSED_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '.....d....d.....',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};

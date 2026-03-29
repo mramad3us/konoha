@@ -53,10 +53,22 @@ function bush(world: World, x: number, y: number): void {
 }
 
 function bed(world: World, x: number, y: number): void {
-  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -10,
     blocksMove: false, blocksSight: false, name: 'bed', article: 'a',
     description: 'A comfortable futon.', category: 'object',
     interactType: 'sleep', interactLabel: 'Sleep' });
+}
+
+/** Spawn a door entity at a position */
+export function spawnDoor(world: World, x: number, y: number): void {
+  const id = world.createEntity();
+  world.setPosition(id, { x, y, facing: 's' });
+  world.renderables.set(id, { spriteId: 'obj_door_closed', layer: 'object', offsetY: -16 });
+  world.blockings.set(id, { blocksMovement: true, blocksSight: false });
+  world.names.set(id, { display: 'door', article: 'a' });
+  world.objectSheets.set(id, { description: 'A wooden door. Press F to open or close.', category: 'object' });
+  world.interactables.set(id, { interactionType: 'door', label: 'Open' });
+  world.doors.set(id, { isOpen: false });
 }
 
 export function spawnVillageObjects(world: World, devMode: boolean): void {
@@ -69,37 +81,37 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 72, 74, 'A torch flanking the Hokage\'s seat.');
   torch(world, 60, 78, 'A torch in the lower hall.');
   torch(world, 72, 78, 'A torch in the lower hall.');
-  spawn(world, { x: 65, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 65, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'Hokage\'s desk', article: 'the',
     description: 'The desk where the Hokage reviews missions and signs orders. Scrolls are piled high.', category: 'object' });
-  spawn(world, { x: 68, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 68, y: 74, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'war table', article: 'a',
     description: 'A large table with a map of the shinobi nations. Pins mark known threats.', category: 'object' });
-  spawn(world, { x: 62, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 62, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'scroll shelf', article: 'a',
     description: 'Village records and sealed documents dating back generations.', category: 'object' });
-  spawn(world, { x: 70, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 70, y: 77, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'weapons rack', article: 'a',
     description: 'Ceremonial weapons displayed on the wall. Each has a story.', category: 'object' });
 
   // --- Mission Desk (60-71, 83-87) ---
   torch(world, 62, 85, 'The mission desk is always busy.');
-  spawn(world, { x: 66, y: 84, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 66, y: 84, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'mission counter', article: 'the',
     description: 'Stacks of mission scrolls sorted by rank: D, C, B, A, S.', category: 'object' });
 
   // --- Academy (58-73, 12-19) ---
   torch(world, 60, 14, 'Academy classroom torch.');
   torch(world, 72, 14, 'Academy classroom torch.');
-  spawn(world, { x: 65, y: 16, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 65, y: 16, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'instructor\'s podium', article: 'the',
     description: 'Where the sensei lectures on jutsu theory and shinobi history.', category: 'object' });
 
   // --- Library (78-85, 12-17) ---
-  spawn(world, { x: 80, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 80, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'bookshelf', article: 'a',
     description: 'Scrolls on jutsu theory, village history, and elemental chakra.', category: 'object' });
-  spawn(world, { x: 83, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 83, y: 14, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'scroll rack', article: 'a',
     description: 'Sealed scrolls. Some are marked classified.', category: 'object' });
   torch(world, 81, 16, 'A quiet reading lamp.', 3);
@@ -107,7 +119,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // --- Hospital (18-31, 82-91) ---
   bed(world, 22, 84); bed(world, 22, 86); bed(world, 22, 88);
   torch(world, 28, 84, 'Medical examination lamp.', 3);
-  spawn(world, { x: 28, y: 88, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 28, y: 88, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'medicine cabinet', article: 'a',
     description: 'Bandages, salves, and chakra supplements organized by type.', category: 'object' });
 
@@ -207,14 +219,14 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // --- Council Room interior (60-67, 92-96) ---
   torch(world, 62, 93, 'Council room torch.');
-  spawn(world, { x: 64, y: 93, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 64, y: 93, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'council table', article: 'the',
     description: 'A round table where village elders debate policy and strategy.', category: 'object' });
 
   // --- Clinic interior (18-25, 94-98) ---
   bed(world, 20, 95);
   torch(world, 24, 96, 'Clinic examination lamp.', 3);
-  spawn(world, { x: 22, y: 95, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 22, y: 95, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'herb cabinet', article: 'an',
     description: 'Dried medicinal herbs organized by ailment. The sharp scent is therapeutic.', category: 'object' });
 
@@ -229,7 +241,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // --- General Store interior (80-86, 111-115) ---
   torch(world, 82, 113, 'General store lamp.', 3);
-  spawn(world, { x: 84, y: 113, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 84, y: 113, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'supply shelf', article: 'a',
     description: 'Everything a shinobi or civilian might need: rope, oil, paper, ink.', category: 'object' });
 
@@ -239,7 +251,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   tree(world, 48, 16);
   bush(world, 43, 14);
   bush(world, 53, 14);
-  spawn(world, { x: 46, y: 15, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+  spawn(world, { x: 46, y: 15, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -10,
     blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
     description: 'A stone bench under the trees. A nice spot to rest.', category: 'object' });
 
@@ -250,23 +262,23 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   tree(world, 68, 138);
   bush(world, 56, 134);
   bush(world, 73, 134);
-  spawn(world, { x: 63, y: 136, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+  spawn(world, { x: 63, y: 136, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -10,
     blocksMove: false, blocksSight: false, name: 'park bench', article: 'a',
     description: 'A bench overlooking the small pond. Peaceful.', category: 'object' });
 
   // --- Farm plots decorations (6-13, 100-126) ---
-  spawn(world, { x: 8, y: 105, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 8, y: 105, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'scarecrow', article: 'a',
     description: 'A scarecrow dressed in old shinobi gear. Effective, in a creepy sort of way.', category: 'object' });
-  spawn(world, { x: 10, y: 120, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 10, y: 120, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'water barrel', article: 'a',
     description: 'A barrel collecting rainwater for the farm plots.', category: 'object' });
 
   // --- Market plaza open area decorations ---
-  spawn(world, { x: 110, y: 79, spriteId: 'obj_rock_small', layer: 'object', offsetY: -4,
+  spawn(world, { x: 110, y: 79, spriteId: 'obj_rock_small', layer: 'object', offsetY: -14,
     blocksMove: true, blocksSight: false, name: 'market well', article: 'the',
     description: 'A stone well in the center of the market. Fresh water for all.', category: 'object' });
-  spawn(world, { x: 120, y: 79, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+  spawn(world, { x: 120, y: 79, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -10,
     blocksMove: false, blocksSight: false, name: 'market bench', article: 'a',
     description: 'A bench for tired shoppers.', category: 'object' });
 
@@ -283,7 +295,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   spawnTrainingGroundsObjects(world, devMode);
 
   // --- Sleeping bag near training grounds ---
-  spawn(world, { x: TG_OFFSET_X + 21, y: TG_OFFSET_Y + 36, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -4,
+  spawn(world, { x: TG_OFFSET_X + 21, y: TG_OFFSET_Y + 36, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -10,
     blocksMove: false, blocksSight: false, name: 'sleeping bag', article: 'a',
     description: 'A well-worn bedroll for training rest.', category: 'object',
     interactType: 'sleep', interactLabel: 'Sleep' });

@@ -114,8 +114,12 @@ export interface DeadComponent {
 }
 
 export interface InteractableComponent {
-  interactionType: 'sleep' | 'examine' | 'talk';
+  interactionType: 'sleep' | 'examine' | 'talk' | 'door';
   label: string;
+}
+
+export interface DoorComponent {
+  isOpen: boolean;
 }
 
 export interface LightSourceComponent {
