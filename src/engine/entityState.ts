@@ -93,8 +93,9 @@ export function knockUnconscious(
 
   const name = world.names.get(entityId)?.display ?? 'Someone';
 
-  // Set unconscious component
-  world.unconscious.set(entityId, { reason, tickFallen: world.currentTick });
+  // Set unconscious component with random recovery time (10-600 ticks = ~1min to ~1hr)
+  const recoveryDelay = 10 + Math.floor(Math.random() * 590);
+  world.unconscious.set(entityId, { reason, tickFallen: world.currentTick, recoveryTick: world.currentTick + recoveryDelay });
 
   // Switch sprite to prone
   const renderable = world.renderables.get(entityId);
@@ -245,6 +246,36 @@ const KILL_TEXT = [
   '{name} draws their last breath.',
   'Without hesitation, you finish what the fight started. {name} is gone.',
   'A clean end. {name} passes from this world.',
+];
+
+// ── AUTO-RECOVERY ──
+
+/**
+ * Tick unconscious recovery for all entities.
+ * Call once per game tick. Entities wake up when their recovery time is reached.
+ * Does NOT apply to the player (player respawns via separate flow).
+ */
+export function tickUnconsciousRecovery(world: World): void {
+  for (const [entityId, state] of world.unconscious) {
+    if (entityId === world.playerEntityId) continue; // Player respawns differently
+    if (world.dead.has(entityId)) continue; // Dead don't recover
+    if (world.currentTick >= state.recoveryTick) {
+      const name = world.names.get(entityId)?.display ?? 'Someone';
+      const msg = RECOVERY_TEXT[Math.floor(Math.random() * RECOVERY_TEXT.length)].replace(/\{name\}/g, name);
+      reviveEntity(world, entityId, 0.05); // Wake at 5% HP
+      world.log(msg, 'info');
+    }
+  }
+}
+
+const RECOVERY_TEXT = [
+  '{name} stirs, groaning, and slowly pushes themselves upright.',
+  '{name}\'s eyes flutter open. They look around, dazed but alive.',
+  'A cough from the ground — {name} is coming to.',
+  '{name} twitches, then rolls over. Consciousness returns.',
+  '{name} gasps and sits up suddenly, wide-eyed and disoriented.',
+  'Slowly, painfully, {name} rises from the dirt.',
+  '{name} lets out a low moan and begins to move again.',
 ];
 
 const REVIVE_TEXT = [

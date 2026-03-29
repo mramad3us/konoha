@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -28,6 +28,7 @@ export class World {
   dead = new Map<EntityId, DeadComponent>();
   interactables = new Map<EntityId, InteractableComponent>();
   lightSources = new Map<EntityId, LightSourceComponent>();
+  objectSheets = new Map<EntityId, ObjectSheetComponent>();
 
   // World systems data
   tileMap: TileMap;
@@ -74,6 +75,7 @@ export class World {
     this.dead.delete(id);
     this.interactables.delete(id);
     this.lightSources.delete(id);
+    this.objectSheets.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) */
@@ -169,6 +171,7 @@ export class World {
       dead: serializeMap(this.dead),
       interactables: serializeMap(this.interactables),
       lightSources: serializeMap(this.lightSources),
+      objectSheets: serializeMap(this.objectSheets),
     };
   }
 
@@ -216,6 +219,9 @@ export class World {
     }
     if (data['lightSources']) {
       deserializeMap(world.lightSources, data['lightSources'] as Record<string, LightSourceComponent>);
+    }
+    if (data['objectSheets']) {
+      deserializeMap(world.objectSheets, data['objectSheets'] as Record<string, ObjectSheetComponent>);
     }
 
     return world;

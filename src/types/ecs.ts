@@ -90,6 +90,15 @@ export interface DestructibleComponent {
 export interface UnconsciousComponent {
   reason: 'hp' | 'willpower' | 'ability';
   tickFallen: number;
+  recoveryTick: number; // tick at which entity auto-wakes (random 1min-1hr)
+}
+
+export type ObjectCategory = 'terrain' | 'object' | 'npc' | 'creature';
+
+export interface ObjectSheetComponent {
+  description: string;
+  examineDetails?: string[];
+  category: ObjectCategory;
 }
 
 export interface DeadComponent {

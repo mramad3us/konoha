@@ -26,7 +26,7 @@ export class InputSystem {
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
   private onSleep: (() => void) | null = null;
-  private onUnconsciousMenu: ((entityId: number) => void) | null = null;
+  private onContextMenu: ((entityId: number) => void) | null = null;
 
   constructor(
     world: World,
@@ -162,8 +162,8 @@ export class InputSystem {
 
       if (interaction.type === 'sleep' && this.onSleep) {
         this.onSleep();
-      } else if (interaction.type === 'unconscious_menu' && this.onUnconsciousMenu) {
-        this.onUnconsciousMenu(interaction.entityId);
+      } else if (interaction.type === 'context_menu' && this.onContextMenu) {
+        this.onContextMenu(interaction.entityId);
       }
     }
   }
@@ -178,9 +178,9 @@ export class InputSystem {
     this.onSleep = cb;
   }
 
-  /** Set callback for unconscious NPC interaction menu */
-  setUnconsciousMenuCallback(cb: (entityId: number) => void): void {
-    this.onUnconsciousMenu = cb;
+  /** Set callback for universal context menu */
+  setContextMenuCallback(cb: (entityId: number) => void): void {
+    this.onContextMenu = cb;
   }
 
   /** Remove event listener */

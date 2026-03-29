@@ -137,24 +137,26 @@ const SPAWN_CONFIG: Record<SpawnType, {
   article: 'a' | 'an' | 'the' | '';
   destructible?: boolean;
   sparring?: boolean;
+  objectCategory: import('../types/ecs.ts').ObjectCategory;
+  description: string;
 }> = {
-  dummy:           { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true },
-  sparring_partner:{ spriteId: 'char_takeshi_s',  offsetY: -16, blocksMove: true,  blocksSight: false, displayName: 'sparring partner', article: 'a', sparring: true },
-  tree_small:  { spriteId: 'obj_tree_small',  offsetY: -28, blocksMove: true,  blocksSight: true,  displayName: 'tree', article: 'a' },
-  tree_large:  { spriteId: 'obj_tree_large',  offsetY: -36, blocksMove: true,  blocksSight: true,  displayName: 'large tree', article: 'a' },
-  tree_willow: { spriteId: 'obj_tree_willow', offsetY: -32, blocksMove: true,  blocksSight: true,  displayName: 'willow tree', article: 'a' },
-  bush_small:  { spriteId: 'obj_bush_small',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'bush', article: 'a' },
-  bush_berry:  { spriteId: 'obj_bush_berry',  offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'berry bush', article: 'a' },
-  bush_tall:   { spriteId: 'obj_bush_tall',   offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'tall bush', article: 'a' },
-  bush_flower: { spriteId: 'obj_bush_flower', offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'flowering bush', article: 'a' },
-  tall_grass:  { spriteId: 'obj_tall_grass',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'tall grass', article: '' },
-  reeds:       { spriteId: 'obj_reeds',       offsetY: -12, blocksMove: false, blocksSight: false, displayName: 'reeds', article: '' },
-  rock_small:  { spriteId: 'obj_rock_small',  offsetY: -4,  blocksMove: true,  blocksSight: false, displayName: 'small rock', article: 'a' },
-  rock_medium: { spriteId: 'obj_rock_medium', offsetY: -8,  blocksMove: true,  blocksSight: false, displayName: 'rock', article: 'a' },
-  rock_large:  { spriteId: 'obj_rock_large',  offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'boulder', article: 'a' },
-  rock_mossy:      { spriteId: 'obj_rock_mossy',      offsetY: -10, blocksMove: true,  blocksSight: false, displayName: 'mossy boulder', article: 'a' },
-  sleeping_bag:    { spriteId: 'obj_sleeping_bag',    offsetY: -4,  blocksMove: false, blocksSight: false, displayName: 'sleeping bag', article: 'a' },
-  torch_pillar:    { spriteId: 'obj_torch_pillar',    offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'torch pillar', article: 'a' },
+  dummy:           { spriteId: 'obj_dummy',       offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'training dummy', article: 'a', destructible: true, objectCategory: 'object', description: 'A training dummy made of wood and straw. The target painted on its chest has seen countless strikes.' },
+  sparring_partner:{ spriteId: 'char_takeshi_s',  offsetY: -16, blocksMove: true,  blocksSight: false, displayName: 'sparring partner', article: 'a', sparring: true, objectCategory: 'npc', description: 'A fellow genin from the academy. He trains here daily, always looking for a match.' },
+  tree_small:  { spriteId: 'obj_tree_small',  offsetY: -28, blocksMove: true,  blocksSight: true,  displayName: 'tree', article: 'a', objectCategory: 'terrain', description: 'A sturdy tree with thick branches. Its leaves rustle softly in the breeze.' },
+  tree_large:  { spriteId: 'obj_tree_large',  offsetY: -36, blocksMove: true,  blocksSight: true,  displayName: 'large tree', article: 'a', objectCategory: 'terrain', description: 'An ancient tree towering overhead. Its trunk is wide enough to hide behind.' },
+  tree_willow: { spriteId: 'obj_tree_willow', offsetY: -32, blocksMove: true,  blocksSight: true,  displayName: 'willow tree', article: 'a', objectCategory: 'terrain', description: 'A graceful willow, its long branches sweeping low to the ground like curtains.' },
+  bush_small:  { spriteId: 'obj_bush_small',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'bush', article: 'a', objectCategory: 'terrain', description: 'A low, unremarkable shrub. Good for concealment if you crouch.' },
+  bush_berry:  { spriteId: 'obj_bush_berry',  offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'berry bush', article: 'a', objectCategory: 'terrain', description: 'Dark berries grow among the leaves. Some look edible, others less so.' },
+  bush_tall:   { spriteId: 'obj_bush_tall',   offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'tall bush', article: 'a', objectCategory: 'terrain', description: 'A dense thicket, tall enough to block your path. Thorny branches discourage shortcuts.' },
+  bush_flower: { spriteId: 'obj_bush_flower', offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'flowering bush', article: 'a', objectCategory: 'terrain', description: 'Bright yellow flowers dot this bush, attracting small insects in the warm air.' },
+  tall_grass:  { spriteId: 'obj_tall_grass',  offsetY: -8,  blocksMove: false, blocksSight: false, displayName: 'tall grass', article: '', objectCategory: 'terrain', description: 'Knee-high grass sways gently. Good for low-profile movement.' },
+  reeds:       { spriteId: 'obj_reeds',       offsetY: -12, blocksMove: false, blocksSight: false, displayName: 'reeds', article: '', objectCategory: 'terrain', description: 'Tall reeds grow near the water\'s edge, their stalks dry and papery.' },
+  rock_small:  { spriteId: 'obj_rock_small',  offsetY: -4,  blocksMove: true,  blocksSight: false, displayName: 'small rock', article: 'a', objectCategory: 'terrain', description: 'A smooth stone, worn by weather. Nothing special.' },
+  rock_medium: { spriteId: 'obj_rock_medium', offsetY: -8,  blocksMove: true,  blocksSight: false, displayName: 'rock', article: 'a', objectCategory: 'terrain', description: 'A solid chunk of grey stone embedded in the earth. Immovable.' },
+  rock_large:  { spriteId: 'obj_rock_large',  offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'boulder', article: 'a', objectCategory: 'terrain', description: 'A massive boulder. Generations of shinobi have used it as a landmark.' },
+  rock_mossy:  { spriteId: 'obj_rock_mossy',  offsetY: -10, blocksMove: true,  blocksSight: false, displayName: 'mossy boulder', article: 'a', objectCategory: 'terrain', description: 'Green moss clings to this old stone. The damp surface is cool to the touch.' },
+  sleeping_bag:{ spriteId: 'obj_sleeping_bag', offsetY: -4,  blocksMove: false, blocksSight: false, displayName: 'sleeping bag', article: 'a', objectCategory: 'object', description: 'A well-worn bedroll. It looks warm enough for a few hours of rest.' },
+  torch_pillar:{ spriteId: 'obj_torch_pillar', offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'torch pillar', article: 'a', objectCategory: 'object', description: 'A stone pillar topped with an oil-soaked torch. It lights automatically at dusk.' },
 };
 
 /**
@@ -246,6 +248,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'object', offsetY: cfg.offsetY });
     world.blockings.set(id, { blocksMovement: cfg.blocksMove, blocksSight: cfg.blocksSight });
     world.names.set(id, { display: cfg.displayName, article: cfg.article });
+    world.objectSheets.set(id, { description: cfg.description, category: cfg.objectCategory });
 
     if (cfg.destructible) {
       // Dummies don't have HP — they only break from massive single hits (80+ dmg)

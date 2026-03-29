@@ -5,7 +5,7 @@ import { computeFOV } from './fov.ts';
 
 import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
-import { isUnconscious } from './entityState.ts';
+import { tickUnconsciousRecovery } from './entityState.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
 
 /** Advance game time and recompute FOV with night reduction */
@@ -18,6 +18,8 @@ function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
     const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
     computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
   }
+  // Check auto-recovery for unconscious entities
+  tickUnconsciousRecovery(world);
 }
 
 /** Stance to game seconds per step */
@@ -173,27 +175,19 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'interact': {
-      // Find adjacent interactable
+      // Find adjacent entity — anything with an objectSheet, characterSheet, or interactable
       for (let dx = -1; dx <= 1; dx++) {
         for (let dy = -1; dy <= 1; dy++) {
           if (dx === 0 && dy === 0) continue;
           const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
           for (const eid of entities) {
-            const interactable = world.interactables.get(eid);
-            if (interactable) {
-              const name = world.names.get(eid)?.display ?? 'something';
-
-              // Unconscious entity → open context menu (handled by game screen)
-              if (isUnconscious(world, eid)) {
-                world._pendingInteraction = { entityId: eid, type: 'unconscious_menu' };
-                return false; // Don't advance time — menu is open
-              }
-
-              // Regular interaction
-              world.log(`You interact with ${name}.`, 'info');
-              world._pendingInteraction = { entityId: eid, type: interactable.interactionType };
-              advanceTurn(world, 1, 2);
-              return true;
+            if (eid === playerId) continue;
+            const hasSheet = world.objectSheets.has(eid) || world.characterSheets.has(eid);
+            const hasInteractable = world.interactables.has(eid);
+            if (hasSheet || hasInteractable) {
+              // Open universal context menu (handled by game screen)
+              world._pendingInteraction = { entityId: eid, type: 'context_menu' };
+              return false; // Don't advance time — menu handles it
             }
           }
         }

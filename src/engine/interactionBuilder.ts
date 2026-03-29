@@ -1,0 +1,119 @@
+/**
+ * Universal context menu builder — reads entity state and builds
+ * the appropriate interaction options for any entity.
+ */
+
+import type { ContextMenuOption } from '../ui/contextMenu.ts';
+import type { World } from './world.ts';
+import type { EntityId } from '../types/ecs.ts';
+import { isUnconscious, isDead } from './entityState.ts';
+import { SHINOBI_RANK_LABELS } from '../types/character.ts';
+
+export interface ZoneFlags {
+  allowKill: boolean;
+  allowAbduct: boolean;
+}
+
+export const TRAINING_GROUNDS_FLAGS: ZoneFlags = {
+  allowKill: false,
+  allowAbduct: false,
+};
+
+/**
+ * Build context menu options for any entity based on its components and state.
+ */
+export function buildContextOptions(
+  world: World,
+  entityId: EntityId,
+  zone: ZoneFlags,
+): ContextMenuOption[] {
+  const options: ContextMenuOption[] = [];
+  const sheet = world.objectSheets.get(entityId);
+  const charSheet = world.characterSheets.get(entityId);
+  const interactable = world.interactables.get(entityId);
+  const unconscious = isUnconscious(world, entityId);
+  const dead = isDead(world, entityId);
+  const isNpc = !!charSheet;
+
+  // ── Examine (always available for anything with a sheet) ──
+  if (sheet || charSheet) {
+    options.push({ id: 'examine', label: 'Examine' });
+  }
+
+  // ── Special interactable (sleep, etc.) ──
+  if (interactable && !unconscious && !dead) {
+    if (interactable.interactionType === 'sleep') {
+      options.push({ id: 'use_sleep', label: 'Sleep', accent: true });
+    } else if (interactable.interactionType === 'talk') {
+      options.push({ id: 'talk', label: 'Talk' });
+    }
+  }
+
+  // ── NPC: Conscious ──
+  if (isNpc && !unconscious && !dead) {
+    options.push({ id: 'talk', label: 'Talk', disabled: true, disabledReason: 'Not available yet' });
+    options.push({
+      id: 'assassinate', label: 'Assassinate', danger: true,
+      disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,
+    });
+  }
+
+  // ── NPC: Unconscious ──
+  if (isNpc && unconscious) {
+    options.push({ id: 'revive', label: 'Revive', accent: true });
+    options.push({ id: 'restrain', label: 'Restrain', disabled: true, disabledReason: 'No rope' });
+    options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
+    options.push({ id: 'abduct', label: 'Abduct', disabled: true, disabledReason: !zone.allowAbduct ? 'Not here' : 'Not available yet' });
+    options.push({
+      id: 'kill', label: 'Kill', danger: true,
+      disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,
+    });
+  }
+
+  // ── NPC: Dead ──
+  if (isNpc && dead) {
+    options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
+  }
+
+  return options;
+}
+
+/**
+ * Generate examine text for an entity.
+ */
+export function getExamineText(world: World, entityId: EntityId): string[] {
+  const lines: string[] = [];
+  const sheet = world.objectSheets.get(entityId);
+  const charSheet = world.characterSheets.get(entityId);
+  const name = world.names.get(entityId)?.display ?? 'Unknown';
+
+  if (sheet) {
+    lines.push(sheet.description);
+    if (sheet.examineDetails) {
+      lines.push(...sheet.examineDetails);
+    }
+  }
+
+  if (charSheet) {
+    const rankLabel = SHINOBI_RANK_LABELS[charSheet.rank] ?? charSheet.rank;
+    lines.push(`${name}: ${rankLabel}, ${charSheet.title}.`);
+  }
+
+  const hp = world.healths.get(entityId);
+  if (hp) {
+    const pct = hp.current / hp.max;
+    if (pct >= 0.8) lines.push('They look healthy and strong.');
+    else if (pct >= 0.5) lines.push('Some bruises and scrapes are visible.');
+    else if (pct >= 0.2) lines.push('They\'re visibly hurt, moving stiffly.');
+    else if (pct > 0) lines.push('They look barely able to stand.');
+  }
+
+  if (isUnconscious(world, entityId)) {
+    lines.push('Unconscious. Breathing shallowly.');
+  }
+  if (isDead(world, entityId)) {
+    lines.push('Dead.');
+  }
+
+  return lines;
+}

@@ -12,6 +12,7 @@ import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
 import { setPlayerRespawnCallback, killEntity, reviveEntity } from '../engine/entityState.ts';
+import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
@@ -228,27 +229,23 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   inputSystem.setSleepCallback(() => { doSleep(); });
 
-  // Unconscious NPC interaction menu
+  // Universal context menu for all entity interactions
   const contextMenu = new ContextMenu();
-  inputSystem.setUnconsciousMenuCallback(async (entityId: number) => {
+  inputSystem.setContextMenuCallback(async (entityId: number) => {
     const name = world.names.get(entityId)?.display ?? 'Unknown';
-    // TODO: determine zone restrictions (training grounds = no kill)
-    const isTrainingGrounds = true; // For now, always training grounds
+    const options = buildContextOptions(world, entityId, TRAINING_GROUNDS_FLAGS);
 
-    const choice = await contextMenu.show(name, [
-      { id: 'examine', label: 'Examine' },
-      { id: 'revive', label: 'Revive', accent: true },
-      { id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' },
-      { id: 'abduct', label: 'Abduct', disabled: true, disabledReason: 'Not available yet' },
-      { id: 'kill', label: 'Kill', danger: true, disabled: isTrainingGrounds, disabledReason: isTrainingGrounds ? 'Training grounds' : undefined },
-    ]);
+    if (options.length === 0) {
+      world.log('Nothing to do here.', 'info');
+      return;
+    }
+
+    const choice = await contextMenu.show(name, options);
 
     if (choice === 'examine') {
-      const sheet = world.characterSheets.get(entityId);
-      if (sheet) {
-        world.log(`${name}: ${sheet.title}, ${sheet.rank}. Unconscious.`, 'info');
-      } else {
-        world.log(`${name} lies unconscious on the ground.`, 'info');
+      const lines = getExamineText(world, entityId);
+      for (const line of lines) {
+        world.log(line, 'info');
       }
     } else if (choice === 'revive') {
       reviveEntity(world, entityId, 0.3);
@@ -258,6 +255,12 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       killEntity(world, entityId, world.playerEntityId);
       world.gameTimeSeconds += 2;
       world.currentTick += 1;
+    } else if (choice === 'assassinate') {
+      killEntity(world, entityId, world.playerEntityId, true);
+      world.gameTimeSeconds += 2;
+      world.currentTick += 1;
+    } else if (choice === 'use_sleep') {
+      doSleep();
     }
 
     hud.update(world);
