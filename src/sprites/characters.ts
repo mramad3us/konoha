@@ -215,17 +215,26 @@ const BODY_PRONE: string[] = [
 
 // ── SPRITE GENERATION ──
 
+/** Optional custom body patterns for special character types */
+export interface BodyOverrides {
+  s?: string[];
+  n?: string[];
+  e?: string[];
+  w?: string[];
+  prone?: string[];
+}
+
 /** Generate a full set of directional sprites for a character */
-export function generateCharacterSprites(accents: CharacterAccents): {
+export function generateCharacterSprites(accents: CharacterAccents, overrides?: BodyOverrides): {
   s: PixelPattern; n: PixelPattern; e: PixelPattern; w: PixelPattern; prone: PixelPattern;
 } {
   const palette = buildPalette(accents);
   return {
-    s:     { width: 16, height: 16, palette, pixels: BODY_S },
-    n:     { width: 16, height: 16, palette, pixels: BODY_N },
-    e:     { width: 16, height: 16, palette, pixels: BODY_E },
-    w:     { width: 16, height: 16, palette, pixels: BODY_W },
-    prone: { width: 16, height: 16, palette, pixels: BODY_PRONE },
+    s:     { width: 16, height: 16, palette, pixels: overrides?.s ?? BODY_S },
+    n:     { width: 16, height: 16, palette, pixels: overrides?.n ?? BODY_N },
+    e:     { width: 16, height: 16, palette, pixels: overrides?.e ?? BODY_E },
+    w:     { width: 16, height: 16, palette, pixels: overrides?.w ?? BODY_W },
+    prone: { width: 16, height: 16, palette, pixels: overrides?.prone ?? BODY_PRONE },
   };
 }
 
@@ -246,7 +255,101 @@ export const CHAR_KUNOICHI_E = kasura.e;
 export const CHAR_KUNOICHI_W = kasura.w;
 export const CHAR_KUNOICHI_PRONE = kasura.prone;
 
-const anbu = generateCharacterSprites(ACCENTS_ANBU);
+// ANBU body overrides — smooth porcelain mask, no hair visible
+const ANBU_BODIES: BodyOverrides = {
+  s: [
+    '................',
+    '.....ssssss.....',
+    '....ssssssss....',
+    '....ssssssss....',
+    '....ssssssss....',
+    '....spssssps....',
+    '.....ssssss.....',
+    '....oossoo......',
+    '...oOoOoOoo.....',
+    '...oOoOoOoo.....',
+    '..wooGggGoo.....',
+    '..w.oooooo.w....',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....SS..SS......',
+  ],
+  n: [
+    '................',
+    '.....ssssss.....',
+    '....ssssssss....',
+    '....ssssssss....',
+    '....ssssssss....',
+    '....ssssssss....',
+    '.....ssssss.....',
+    '....oossoo......',
+    '...oOoOoOoo.....',
+    '...oOoOoOoo.....',
+    '..wooGggGoo.....',
+    '..w.oooooo.w....',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....SS..SS......',
+  ],
+  e: [
+    '................',
+    '......sssss.....',
+    '.....ssssss.....',
+    '.....ssssss.....',
+    '.....ssssss.....',
+    '.....sssps......',
+    '......ssss......',
+    '.....oosso......',
+    '....oOoOoo......',
+    '....oOoOoow.....',
+    '....oGggoo.w....',
+    '.....ooooow.....',
+    '.....oSoSo......',
+    '.....oSoSo......',
+    '.....oSoSo......',
+    '.....SS.SS......',
+  ],
+  w: [
+    '................',
+    '.....sssss......',
+    '.....ssssss.....',
+    '.....ssssss.....',
+    '.....ssssss.....',
+    '......spss......',
+    '......ssss......',
+    '......ossoo.....',
+    '......ooOoOo....',
+    '.....wooOoOo....',
+    '....w.ooggGo....',
+    '.....woooooo....',
+    '......oSoSo.....',
+    '......oSoSo.....',
+    '......oSoSo.....',
+    '......SS.SS.....',
+  ],
+  prone: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.ssss...........',
+    '.sssss..........',
+    '.spsssssoooooo..',
+    '.ssssssoOoOoOo..',
+    '..sssssoOoOoOo..',
+    '......ooGggGoo..',
+    '......oSoooSo...',
+    '......oSoooSo...',
+    '.......SS.SS....',
+    '................',
+    '................',
+  ],
+};
+
+const anbu = generateCharacterSprites(ACCENTS_ANBU, ANBU_BODIES);
 export const CHAR_ANBU_S = anbu.s;
 export const CHAR_ANBU_N = anbu.n;
 export const CHAR_ANBU_E = anbu.e;
