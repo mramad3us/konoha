@@ -63,8 +63,8 @@ function bed(world: World, x: number, y: number): void {
 export function spawnDoor(world: World, x: number, y: number): void {
   const id = world.createEntity();
   world.setPosition(id, { x, y, facing: 's' });
-  world.renderables.set(id, { spriteId: 'obj_door_closed', layer: 'object', offsetY: -16 });
-  world.blockings.set(id, { blocksMovement: true, blocksSight: false });
+  world.renderables.set(id, { spriteId: 'obj_door_closed', layer: 'object', offsetY: -12 });
+  world.blockings.set(id, { blocksMovement: true, blocksSight: true });
   world.names.set(id, { display: 'door', article: 'a' });
   world.objectSheets.set(id, { description: 'A wooden door. Press F to open or close.', category: 'object' });
   world.interactables.set(id, { interactionType: 'door', label: 'Open' });

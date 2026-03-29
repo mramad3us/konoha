@@ -51,26 +51,29 @@ export const TILE_WOODEN_FLOOR: PixelPattern = {
   ],
 };
 
-// ── BUILDING WALL (dark grey/brown, solid) ──
+// ── BUILDING WALL (with visible front face for volume) ──
 const WALL_PAL: Record<string, [number, number, number]> = {
-  b: [65, 55, 48],
-  d: [50, 42, 36],
-  l: [80, 70, 60],
-  m: [55, 48, 42],    // mortar line
+  b: [75, 65, 55],     // wall top surface
+  d: [58, 50, 42],     // top shadow
+  l: [90, 80, 68],     // top highlight
+  m: [48, 42, 36],     // mortar line
+  f: [45, 38, 32],     // front face (darker = receding)
+  F: [55, 48, 40],     // front face highlight
+  k: [35, 30, 25],     // front face shadow (deepest)
 };
 
 export const TILE_BUILDING_WALL: PixelPattern = {
   width: 16, height: 8,
   palette: WALL_PAL,
   pixels: [
-    '......bbbb......',
+    '......lblb......',
     '....blbbdbbb....',
     '..bbmbbblbbmbb..',
     'bblbmbbbbbbmblbb',
-    'bbdbmblbbdbmbbdb',
-    '..bbmbbdbbmbbb..',
-    '....bbmbblbb....',
-    '......bdmb......',
+    'kkfFfkfFfkfFfkkk',
+    '..kkfFfkfFfkkk..',
+    '....kkfFfkkk....',
+    '......kfkk......',
   ],
 };
 

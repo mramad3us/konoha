@@ -194,7 +194,10 @@ export function executeTurn(action: GameAction, world: World): boolean {
               const renderable = world.renderables.get(eid);
               const blocking = world.blockings.get(eid);
               if (renderable) renderable.spriteId = door.isOpen ? 'obj_door_open' : 'obj_door_closed';
-              if (blocking) blocking.blocksMovement = !door.isOpen;
+              if (blocking) {
+                blocking.blocksMovement = !door.isOpen;
+                blocking.blocksSight = !door.isOpen;
+              }
               const interactable = world.interactables.get(eid);
               if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
               world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');

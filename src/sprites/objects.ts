@@ -463,13 +463,15 @@ export const OBJ_TORCH_PILLAR: PixelPattern = {
   ],
 };
 
-// ── DOOR (closed) ──
+// ── DOOR (closed) — solid wood panel with frame and handle ──
 const DOOR_CLOSED_PAL: Record<string, [number, number, number]> = {
-  w: [90, 65, 35],     // wood
-  W: [110, 82, 48],    // wood highlight
-  d: [70, 50, 28],     // frame
-  h: [140, 110, 60],   // handle
-  k: [50, 42, 30],     // dark
+  w: [100, 72, 40],    // wood planks
+  W: [120, 90, 52],    // wood highlight
+  d: [60, 45, 25],     // frame dark
+  D: [75, 56, 32],     // frame mid
+  h: [160, 130, 60],   // handle (brass)
+  k: [45, 35, 20],     // shadow
+  p: [85, 62, 35],     // panel mid
 };
 
 export const OBJ_DOOR_CLOSED: PixelPattern = {
@@ -478,16 +480,16 @@ export const OBJ_DOOR_CLOSED: PixelPattern = {
   pixels: [
     '................',
     '................',
-    '................',
-    '.....dddddd.....',
-    '.....dwwwwd.....',
-    '.....dwWwwd.....',
-    '.....dwwhwd.....',
-    '.....dwWwwd.....',
-    '.....dwwwwd.....',
-    '.....dwWwwd.....',
-    '.....dwwwwd.....',
-    '.....dddddd.....',
+    '....ddDDDDdd....',
+    '....dwwWWwwd....',
+    '....dwwWWwwd....',
+    '....dpppppDd....',
+    '....dwwWhwwd....',
+    '....dwwWWwwd....',
+    '....dpppppDd....',
+    '....dwwWWwwd....',
+    '....dwwWWwwd....',
+    '....dkkkkkdd....',
     '................',
     '................',
     '................',
@@ -495,23 +497,23 @@ export const OBJ_DOOR_CLOSED: PixelPattern = {
   ],
 };
 
-// ── DOOR (open) ──
+// ── DOOR (open) — hinged to left side, showing frame ──
 export const OBJ_DOOR_OPEN: PixelPattern = {
   width: 16, height: 16,
   palette: DOOR_CLOSED_PAL,
   pixels: [
     '................',
     '................',
-    '................',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
-    '.....d....d.....',
+    '....dd....dd....',
+    '....dw....Dd....',
+    '....dW.....d....',
+    '....dp.....d....',
+    '....dw.....d....',
+    '....dW.....d....',
+    '....dp.....d....',
+    '....dw.....d....',
+    '....dW.....d....',
+    '....dk....kd....',
     '................',
     '................',
     '................',
