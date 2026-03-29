@@ -86,14 +86,16 @@ export function startingTempo(ownSkill: number, opponentSkill: number): number {
 
 /**
  * Calculate base damage for a clean hit.
- * Taijutsu primary (70%), PHY secondary (30%).
+ * Taijutsu × 0.5 + PHY, with ±20% variance.
  */
 export function calculateDamage(taijutsu: number, phy: number): number {
-  const base = (taijutsu * 0.7 + phy * 0.3) / 10;
-  // Min 1 damage, slight random variance ±20%
+  const base = taijutsu * 0.5 + phy;
   const variance = 0.8 + Math.random() * 0.4;
   return Math.max(1, Math.round(base * variance));
 }
+
+/** Threshold for a blow strong enough to destroy a training dummy */
+export const DUMMY_DESTROY_THRESHOLD = 80;
 
 // ── COMBAT ENGAGEMENT STATE ──
 // Tracks an ongoing melee exchange between two entities

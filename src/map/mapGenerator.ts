@@ -17,7 +17,6 @@ import {
   BASE_PLAYER_DAMAGE,
   BASE_PLAYER_ACCURACY,
   BASE_PLAYER_EVASION,
-  TRAINING_DUMMY_HP,
 } from '../core/constants.ts';
 
 type SpawnType =
@@ -210,10 +209,17 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     world.names.set(id, { display: cfg.displayName, article: cfg.article });
 
     if (cfg.destructible) {
-      world.healths.set(id, { current: TRAINING_DUMMY_HP, max: TRAINING_DUMMY_HP });
+      // Dummies don't have HP — they only break from massive single hits (80+ dmg)
       world.combatStats.set(id, { damage: 0, accuracy: 0, evasion: 0, attackVerb: '' });
+      world.characterSheets.set(id, {
+        class: 'civilian',
+        rank: 'academy_student',
+        title: 'Training Equipment',
+        skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0 },
+        stats: { phy: 10, cha: 0, men: 0, soc: 0 },
+      });
       world.destructibles.set(id, {
-        onDestroyMessage: `The ${cfg.displayName} splinters apart!`,
+        onDestroyMessage: `The ${cfg.displayName} splinters apart in a shower of wood and straw!`,
         respawnTicks: 50,
       });
       world.aiControlled.set(id, { behavior: 'static' });

@@ -60,8 +60,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
       if (blockingEntity !== null && blockingEntity !== playerId) {
         const name = world.names.get(blockingEntity);
         const desc = name ? `${name.article ? name.article + ' ' : ''}${name.display}` : 'something';
-        const hasHealth = world.healths.has(blockingEntity);
-        if (hasHealth) {
+        const isCombatTarget = world.combatStats.has(blockingEntity) || world.healths.has(blockingEntity);
+        if (isCombatTarget) {
           world.log(`You face ${desc}. Use attack keys (a/z/e) to engage.`, 'info');
         } else {
           world.log(`Blocked by ${desc}.`, 'info');

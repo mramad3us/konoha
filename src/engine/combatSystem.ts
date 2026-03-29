@@ -9,7 +9,7 @@
  */
 
 import type { CombatMove, CombatEngagement, TempoState } from '../types/combat.ts';
-import { maxTempoSlots, startingTempo } from '../types/combat.ts';
+import { maxTempoSlots, startingTempo, DUMMY_DESTROY_THRESHOLD } from '../types/combat.ts';
 import { resolveCombat } from './combatResolver.ts';
 import { generateCombatFlavor } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
@@ -73,8 +73,8 @@ export function findAdjacentTarget(world: World): EntityId | null {
       const entities = world.getEntitiesAt(tx, ty);
       for (const eid of entities) {
         if (eid === world.playerEntityId) continue;
-        // Must have health to be attackable
-        if (world.healths.has(eid)) return eid;
+        // Must have combatStats or health to be a valid combat target
+        if (world.combatStats.has(eid) || world.healths.has(eid)) return eid;
       }
     }
   }
@@ -135,12 +135,18 @@ export function processCombatMove(
 
   // Apply damage
   if (outcome.damage > 0) {
-    const targetHealth = world.healths.get(outcome.defenderId);
-    if (targetHealth) {
-      targetHealth.current = Math.max(0, targetHealth.current - outcome.damage);
-    }
+    const defenderIsDummy = world.destructibles.has(outcome.defenderId);
 
-    // If player dealt damage, also drain stamina slightly
+    if (!defenderIsDummy) {
+      // Real entities take HP damage
+      const targetHealth = world.healths.get(outcome.defenderId);
+      if (targetHealth) {
+        targetHealth.current = Math.max(0, targetHealth.current - outcome.damage);
+      }
+    }
+    // Dummies don't have HP — they absorb hits
+
+    // Drain stamina on attack
     if (outcome.attackerId === playerId) {
       const res = world.resources.get(playerId);
       if (res) {
@@ -201,12 +207,19 @@ export function processCombatMove(
     );
   }
 
-  // Check for destruction
-  const targetHealth = world.healths.get(targetId);
-  if (targetHealth && targetHealth.current <= 0) {
-    const destructible = world.destructibles.get(targetId);
-    if (destructible) {
+  // Check for destruction — dummies only break from massive single hits
+  const destructible = world.destructibles.get(targetId);
+  if (destructible) {
+    if (outcome.damage >= DUMMY_DESTROY_THRESHOLD) {
       world.log(destructible.onDestroyMessage, 'system');
+      world.destroyEntity(targetId);
+      engagements.delete(engagementKey(playerId, targetId));
+    }
+  } else {
+    // Real entities die when HP hits 0
+    const targetHealth = world.healths.get(targetId);
+    if (targetHealth && targetHealth.current <= 0) {
+      world.log(`${world.names.get(targetId)?.display ?? 'The enemy'} is defeated!`, 'system');
       world.destroyEntity(targetId);
       engagements.delete(engagementKey(playerId, targetId));
     }
