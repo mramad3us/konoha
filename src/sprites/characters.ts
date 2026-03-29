@@ -1,291 +1,235 @@
 /**
- * Character sprites — 16x16 pixel patterns with auto-outline.
- * Shinobi (male) and Kunoichi (female) in 4 cardinal directions.
- * Dark outfit, headband with metal plate, visible eyes.
+ * Composable character sprite system.
+ *
+ * All shinobi/kunoichi share the same black outfit pixel patterns.
+ * Only accent colors differ: hair, headband, belt, pupil.
+ * This scales to hundreds of unique characters from minimal data.
+ *
+ * Pattern slots:
+ *   o/O = outfit dark/mid (always black)
+ *   S   = outfit shadow (always darkest)
+ *   s   = skin
+ *   h   = hair (accent)
+ *   b   = headband cloth (accent)
+ *   m/M = metal plate/highlight (shared)
+ *   e   = eye white
+ *   p   = pupil (accent)
+ *   w   = hand wraps (shared)
+ *   g/G = belt/highlight (accent)
+ *   K   = special slot (mask for ANBU, hat for Kage)
  */
 
-import type { PixelPattern } from './pixelPatterns.ts';
+import type { PixelPattern, RGB } from './pixelPatterns.ts';
 
-// ── SHARED PALETTES ──
-// o = outfit dark, O = outfit mid, s = skin, h = hair, b = headband cloth,
-// m = metal plate, e = eye white, p = pupil, w = hand wrap, g = belt/gold,
-// S = shadow/darker outfit
+// ── ACCENT DEFINITION ──
 
-const SHINOBI_PAL: Record<string, [number, number, number]> = {
-  o: [26, 26, 46],     // outfit dark
-  O: [34, 34, 58],     // outfit mid
-  s: [212, 165, 116],  // skin
-  h: [26, 26, 46],     // hair (matches outfit)
-  b: [26, 58, 92],     // headband blue
-  m: [112, 128, 144],  // metal plate
-  M: [136, 153, 169],  // metal highlight
-  e: [255, 255, 255],  // eye white
-  p: [26, 26, 46],     // pupil
-  w: [224, 216, 200],  // hand wraps
-  g: [139, 105, 20],   // belt gold
-  G: [160, 130, 45],   // belt highlight
-  S: [20, 20, 36],     // shadow
+export interface CharacterAccents {
+  hair: RGB;
+  headband: RGB;
+  pupil: RGB;
+  belt: RGB;
+  beltHighlight: RGB;
+  /** Optional special overlay color (ANBU mask, Kage hat) */
+  special?: RGB;
+}
+
+// ── BASE PALETTE (shared black outfit) ──
+
+function buildPalette(accents: CharacterAccents): Record<string, RGB> {
+  return {
+    o: [26, 26, 38],       // outfit dark
+    O: [34, 34, 48],       // outfit mid
+    S: [18, 18, 28],       // outfit shadow
+    s: [212, 165, 116],    // skin
+    h: accents.hair,
+    b: accents.headband,
+    m: [112, 128, 144],    // metal plate
+    M: [136, 153, 169],    // metal highlight
+    e: [255, 255, 255],    // eye white
+    p: accents.pupil,
+    w: [200, 195, 185],    // hand wraps (slightly off-white)
+    g: accents.belt,
+    G: accents.beltHighlight,
+    K: accents.special ?? [112, 128, 144], // special slot
+  };
+}
+
+// ── PRESET ACCENTS ──
+
+/** Default shinobi: dark hair, blue headband, dark eyes, gold belt */
+export const ACCENTS_HASUKE: CharacterAccents = {
+  hair: [26, 26, 38],
+  headband: [26, 58, 92],
+  pupil: [26, 26, 38],
+  belt: [139, 105, 20],
+  beltHighlight: [160, 130, 45],
 };
 
-const KUNOICHI_PAL: Record<string, [number, number, number]> = {
-  o: [46, 20, 26],     // outfit dark (red-tinted navy)
-  O: [58, 28, 34],     // outfit mid
-  s: [212, 165, 116],  // skin
-  h: [230, 150, 170],  // pink hair
-  b: [92, 26, 40],     // headband (dark red)
-  m: [112, 128, 144],  // metal plate
-  M: [136, 153, 169],  // metal highlight
-  e: [255, 255, 255],  // eye white
-  p: [40, 140, 80],    // green pupil
-  w: [224, 216, 200],  // hand wraps
-  g: [139, 40, 30],    // belt (red-gold)
-  G: [160, 55, 40],    // belt highlight
-  S: [36, 16, 20],     // shadow
+/** Default kunoichi (Kasura): pink hair, red headband, green eyes, red belt */
+export const ACCENTS_KASURA: CharacterAccents = {
+  hair: [230, 150, 170],
+  headband: [92, 26, 40],
+  pupil: [40, 140, 80],
+  belt: [139, 40, 30],
+  beltHighlight: [160, 55, 40],
 };
 
-// ── SHINOBI SPRITES ──
-
-/** Facing South (toward camera) */
-export const CHAR_SHINOBI_S: PixelPattern = {
-  width: 16, height: 16,
-  palette: SHINOBI_PAL,
-  pixels: [
-    '................',
-    '....hhhhhh......',
-    '...hbbbbbbh.....',
-    '...hmMmmMmh.....',
-    '...hsssssh......',
-    '...sepsspes.....',
-    '....ssssss......',
-    '....oossoo......',
-    '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....SS..SS......',
-  ],
+/** Generic NPC shinobi: brown hair, blue headband */
+export const ACCENTS_GENERIC_SHINOBI: CharacterAccents = {
+  hair: [70, 50, 35],
+  headband: [26, 58, 92],
+  pupil: [40, 35, 30],
+  belt: [100, 80, 50],
+  beltHighlight: [120, 100, 65],
 };
 
-/** Facing North (away) */
-export const CHAR_SHINOBI_N: PixelPattern = {
-  width: 16, height: 16,
-  palette: SHINOBI_PAL,
-  pixels: [
-    '................',
-    '....hhhhhh......',
-    '...hhhhhhhh.....',
-    '...hhhhhhhh.....',
-    '...hhhhhhhh.....',
-    '...bbhhhbbb.....',
-    '....hhhhhh......',
-    '....oossoo......',
-    '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....SS..SS......',
-  ],
+/** ANBU: grey hair, blank mask (special slot = white mask) */
+export const ACCENTS_ANBU: CharacterAccents = {
+  hair: [80, 80, 90],
+  headband: [40, 40, 50],
+  pupil: [20, 20, 25],
+  belt: [60, 60, 70],
+  beltHighlight: [80, 80, 90],
+  special: [220, 215, 210],  // white mask
 };
 
-/** Facing East (right) */
-export const CHAR_SHINOBI_E: PixelPattern = {
-  width: 16, height: 16,
-  palette: SHINOBI_PAL,
-  pixels: [
-    '................',
-    '.....hhhhh......',
-    '....hhhhhh......',
-    '....bbbmMhh.....',
-    '....hsssshh.....',
-    '....hsseps......',
-    '.....sssss......',
-    '.....oosso......',
-    '....oOoOoo......',
-    '....oOoOoow.....',
-    '....oGggoo.w....',
-    '.....ooooow.....',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....SS.SS......',
-  ],
+/** Kage: white robes accent (special = hat color) */
+export const ACCENTS_KAGE: CharacterAccents = {
+  hair: [60, 55, 50],
+  headband: [178, 34, 52],
+  pupil: [30, 30, 35],
+  belt: [178, 34, 52],
+  beltHighlight: [200, 50, 65],
+  special: [200, 30, 45],  // Kage hat red
 };
 
-/** Facing West (left) */
-export const CHAR_SHINOBI_W: PixelPattern = {
-  width: 16, height: 16,
-  palette: SHINOBI_PAL,
-  pixels: [
-    '................',
-    '......hhhhh.....',
-    '......hhhhhh....',
-    '.....hhMmbbbb...',
-    '.....hhssssh....',
-    '......spessh....',
-    '......sssss.....',
-    '......ossoo.....',
-    '......ooOoOo....',
-    '.....wooOoOo....',
-    '....w.ooggGo....',
-    '.....woooooo....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......SS.SS.....',
-  ],
-};
+// ── SHARED BODY PATTERNS ──
+// These are the SAME for every character. Palette swap = different look.
 
-// ── KUNOICHI SPRITES ──
-// Same body shapes as Shinobi, palette gives the red overtone + pink hair + green eyes
+const BODY_S: string[] = [
+  '................',
+  '....hhhhhh......',
+  '...hbbbbbbh.....',
+  '...hmMmmMmh.....',
+  '...hsssssh......',
+  '...sepsspes.....',
+  '....ssssss......',
+  '....oossoo......',
+  '...oOoOoOoo.....',
+  '...oOoOoOoo.....',
+  '..wooGggGoo.....',
+  '..w.oooooo.w....',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....SS..SS......',
+];
 
-/** Facing South */
-export const CHAR_KUNOICHI_S: PixelPattern = {
-  width: 16, height: 16,
-  palette: KUNOICHI_PAL,
-  pixels: [
-    '................',
-    '....hhhhhh......',
-    '...hbbbbbbh.....',
-    '...hmMmmMmh.....',
-    '...hsssssh......',
-    '...sepsspes.....',
-    '....ssssss......',
-    '....oossoo......',
-    '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....SS..SS......',
-  ],
-};
+const BODY_N: string[] = [
+  '................',
+  '....hhhhhh......',
+  '...hhhhhhhh.....',
+  '...hhhhhhhh.....',
+  '...hhhhhhhh.....',
+  '...bbhhhbbb.....',
+  '....hhhhhh......',
+  '....oossoo......',
+  '...oOoOoOoo.....',
+  '...oOoOoOoo.....',
+  '..wooGggGoo.....',
+  '..w.oooooo.w....',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....SS..SS......',
+];
 
-/** Facing North */
-export const CHAR_KUNOICHI_N: PixelPattern = {
-  width: 16, height: 16,
-  palette: KUNOICHI_PAL,
-  pixels: [
-    '................',
-    '....hhhhhh......',
-    '...hhhhhhhh.....',
-    '...hhhhhhhh.....',
-    '...hhhhhhhh.....',
-    '...bbhhhbbb.....',
-    '....hhhhhh......',
-    '....oossoo......',
-    '...oOoOoOoo.....',
-    '...oOoOoOoo.....',
-    '..wooGggGoo.....',
-    '..w.oooooo.w....',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....oSooSo......',
-    '....SS..SS......',
-  ],
-};
+const BODY_E: string[] = [
+  '................',
+  '.....hhhhh......',
+  '....hhhhhh......',
+  '....bbbmMhh.....',
+  '....hsssshh.....',
+  '....hsseps......',
+  '.....sssss......',
+  '.....oosso......',
+  '....oOoOoo......',
+  '....oOoOoow.....',
+  '....oGggoo.w....',
+  '.....ooooow.....',
+  '.....oSoSo......',
+  '.....oSoSo......',
+  '.....oSoSo......',
+  '.....SS.SS......',
+];
 
-/** Facing East */
-export const CHAR_KUNOICHI_E: PixelPattern = {
-  width: 16, height: 16,
-  palette: KUNOICHI_PAL,
-  pixels: [
-    '................',
-    '.....hhhhh......',
-    '....hhhhhh......',
-    '....bbbmMhh.....',
-    '....hsssshh.....',
-    '....hsseps......',
-    '.....sssss......',
-    '.....oosso......',
-    '....oOoOoo......',
-    '....oOoOoow.....',
-    '....oGggoo.w....',
-    '.....ooooow.....',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....oSoSo......',
-    '.....SS.SS......',
-  ],
-};
+const BODY_W: string[] = [
+  '................',
+  '......hhhhh.....',
+  '......hhhhhh....',
+  '.....hhMmbbbb...',
+  '.....hhssssh....',
+  '......spessh....',
+  '......sssss.....',
+  '......ossoo.....',
+  '......ooOoOo....',
+  '.....wooOoOo....',
+  '....w.ooggGo....',
+  '.....woooooo....',
+  '......oSoSo.....',
+  '......oSoSo.....',
+  '......oSoSo.....',
+  '......SS.SS.....',
+];
 
-/** Facing West */
-export const CHAR_KUNOICHI_W: PixelPattern = {
-  width: 16, height: 16,
-  palette: KUNOICHI_PAL,
-  pixels: [
-    '................',
-    '......hhhhh.....',
-    '......hhhhhh....',
-    '.....hhMmbbbb...',
-    '.....hhssssh....',
-    '......spessh....',
-    '......sssss.....',
-    '......ossoo.....',
-    '......ooOoOo....',
-    '.....wooOoOo....',
-    '....w.ooggGo....',
-    '.....woooooo....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......oSoSo.....',
-    '......SS.SS.....',
-  ],
-};
+const BODY_PRONE: string[] = [
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '..hhhssoooooSS..',
+  '..hbbhsoOoOoSS..',
+  '..hmmhswoogGww..',
+  '..hhhssoooooooo.',
+  '................',
+  '................',
+];
 
-// ── PRONE / UNCONSCIOUS SPRITES ──
+// ── SPRITE GENERATION ──
 
-/** Shinobi prone (unconscious) — horizontal on ground */
-export const CHAR_SHINOBI_PRONE: PixelPattern = {
-  width: 16, height: 16,
-  palette: SHINOBI_PAL,
-  pixels: [
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '..hhhssoooooSS..',
-    '..hbbhsoOoOoSS..',
-    '..hmmhswoogGww..',
-    '..hhhssoooooooo.',
-    '................',
-    '................',
-  ],
-};
+/** Generate a full set of directional sprites for a character */
+export function generateCharacterSprites(accents: CharacterAccents): {
+  s: PixelPattern; n: PixelPattern; e: PixelPattern; w: PixelPattern; prone: PixelPattern;
+} {
+  const palette = buildPalette(accents);
+  return {
+    s:     { width: 16, height: 16, palette, pixels: BODY_S },
+    n:     { width: 16, height: 16, palette, pixels: BODY_N },
+    e:     { width: 16, height: 16, palette, pixels: BODY_E },
+    w:     { width: 16, height: 16, palette, pixels: BODY_W },
+    prone: { width: 16, height: 16, palette, pixels: BODY_PRONE },
+  };
+}
 
-/** Kunoichi prone (unconscious) — horizontal on ground */
-export const CHAR_KUNOICHI_PRONE: PixelPattern = {
-  width: 16, height: 16,
-  palette: KUNOICHI_PAL,
-  pixels: [
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '..hhhssoooooSS..',
-    '..hbbhsoOoOoSS..',
-    '..hmmhswoogGww..',
-    '..hhhssoooooooo.',
-    '................',
-    '................',
-  ],
-};
+// ── PRE-BUILT SPRITES (for manifest) ──
+
+const hasuke = generateCharacterSprites(ACCENTS_HASUKE);
+const kasura = generateCharacterSprites(ACCENTS_KASURA);
+
+export const CHAR_SHINOBI_S = hasuke.s;
+export const CHAR_SHINOBI_N = hasuke.n;
+export const CHAR_SHINOBI_E = hasuke.e;
+export const CHAR_SHINOBI_W = hasuke.w;
+export const CHAR_SHINOBI_PRONE = hasuke.prone;
+
+export const CHAR_KUNOICHI_S = kasura.s;
+export const CHAR_KUNOICHI_N = kasura.n;
+export const CHAR_KUNOICHI_E = kasura.e;
+export const CHAR_KUNOICHI_W = kasura.w;
+export const CHAR_KUNOICHI_PRONE = kasura.prone;
