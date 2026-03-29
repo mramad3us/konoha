@@ -146,7 +146,9 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   }
 
   // Apply damage (with kill intent modifier)
-  if (outcome.damage > 0) {
+  // Dummies deal 0 damage — they're wooden posts, not fighters
+  const attackerIsDummy = world.destructibles.has(outcome.attackerId);
+  if (outcome.damage > 0 && !attackerIsDummy) {
     const defenderIsDummy = world.destructibles.has(outcome.defenderId);
     let finalDamage = outcome.damage;
 
