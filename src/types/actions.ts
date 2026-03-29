@@ -5,7 +5,8 @@ export type GameAction =
   | { type: 'wait' }
   | { type: 'changeStance'; stance: MovementStance }
   | { type: 'toggleKeybindings' }
-  | { type: 'toggleCharacterSheet' };
+  | { type: 'toggleCharacterSheet' }
+  | { type: 'interact' };
 
 /** Log entry categories for color-coding */
 export type LogCategory =

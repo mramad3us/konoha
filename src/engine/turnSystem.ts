@@ -3,7 +3,28 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST } from '../core/constants.ts';
+import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS } from '../core/constants.ts';
+import { getNightFovReduction } from './gameTime.ts';
+
+/** Advance game time and recompute FOV with night reduction */
+function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
+  world.currentTick += ticks;
+  world.gameTimeSeconds += gameSeconds;
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (playerPos) {
+    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
+    const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
+    computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
+  }
+}
+
+/** Stance to game seconds per step */
+const STANCE_SECONDS: Record<string, number> = {
+  sprint: 3,
+  walk: 6,
+  creep: 9,
+  crawl: 12,
+};
 
 /** Map dx,dy to a facing direction */
 function vectorToDirection(dx: number, dy: number): Direction {
@@ -97,19 +118,15 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       }
 
-      // Advance ticks
+      // Advance time
       const tickCost = STANCE_TICK_COST[playerCtrl.movementStance];
-      world.currentTick += tickCost;
-
-      // Recompute FOV
-      computeFOV(world, playerPos.x, playerPos.y, FOV_RADIUS);
+      advanceTurn(world, tickCost, STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);
 
       return true;
     }
 
     case 'wait': {
       world.log('You wait and observe your surroundings.', 'info');
-      world.currentTick += STANCE_TICK_COST[playerCtrl.movementStance];
 
       // Small stamina regen on wait
       const resources = world.resources.get(playerId);
@@ -117,7 +134,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
         resources.stamina = Math.min(resources.maxStamina, resources.stamina + 1);
       }
 
-      computeFOV(world, playerPos.x, playerPos.y, FOV_RADIUS);
+      advanceTurn(world, STANCE_TICK_COST[playerCtrl.movementStance], STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);
       return true;
     }
 
@@ -138,6 +155,30 @@ export function executeTurn(action: GameAction, world: World): boolean {
     case 'toggleKeybindings':
     case 'toggleCharacterSheet': {
       return false; // Handled by UI, not turn system
+    }
+
+    case 'interact': {
+      // Find adjacent interactable
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
+          for (const eid of entities) {
+            const interactable = world.interactables.get(eid);
+            if (interactable) {
+              const name = world.names.get(eid)?.display ?? 'something';
+              // Dispatch by type — return value handled by caller
+              world.log(`You interact with ${name}.`, 'info');
+              // Store pending interaction for the game screen to handle
+              world._pendingInteraction = { entityId: eid, type: interactable.interactionType };
+              advanceTurn(world, 1, 2);
+              return true;
+            }
+          }
+        }
+      }
+      world.log('Nothing to interact with nearby.', 'info');
+      return false;
     }
   }
 }

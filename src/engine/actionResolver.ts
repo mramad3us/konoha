@@ -27,6 +27,7 @@ const KEY_MAP: Record<string, GameAction> = {
   // UI toggles
   '?': { type: 'toggleKeybindings' },
   'c': { type: 'toggleCharacterSheet' },
+  'f': { type: 'interact' },
 };
 
 /** Resolve a key press to a GameAction, or null if not a game key */

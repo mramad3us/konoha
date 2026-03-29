@@ -69,6 +69,8 @@ export interface ResourcesComponent {
   maxWillpower: number;
   stamina: number;
   maxStamina: number;
+  staminaCeiling: number;       // max natural restore point (fatigue)
+  lastExertionTick: number;     // tick of last stamina-consuming action
 }
 
 export interface AIControlledComponent {
@@ -83,6 +85,21 @@ export interface NameComponent {
 export interface DestructibleComponent {
   onDestroyMessage: string;
   respawnTicks: number;
+}
+
+export interface UnconsciousComponent {
+  reason: 'hp' | 'willpower';
+  tickFallen: number;
+}
+
+export interface InteractableComponent {
+  interactionType: 'sleep' | 'examine' | 'talk';
+  label: string;
+}
+
+export interface LightSourceComponent {
+  radius: number;
+  activeAtNight: boolean;
 }
 
 // Re-export CharacterSheet as a component type

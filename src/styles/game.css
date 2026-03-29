@@ -110,6 +110,39 @@
   animation: screenShake 0.3s ease-out;
 }
 
+/* ── Blackout (respawn fade) ── */
+.game-canvas-container--blackout {
+  position: relative;
+}
+
+.game-canvas-container--blackout::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: fadeToBlack 0.8s ease-in forwards;
+  z-index: 5;
+}
+
+.game-canvas-container--fadein::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: fadeFromBlack 0.8s ease-out forwards;
+  z-index: 5;
+}
+
+@keyframes fadeToBlack {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeFromBlack {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* ── Canvas Container ── */
 .game-canvas-container {
   flex: 3;

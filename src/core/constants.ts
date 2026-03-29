@@ -53,8 +53,31 @@ export const MELEE_STAMINA_COST = 1;
 
 // ── Game Time ──
 export const PASS_DURATION_SECONDS = 2;   // 1 combat exchange = 2s in-game
-export const TICK_DURATION_SECONDS = 6;   // 1 movement step = 6s in-game
+export const TICK_DURATION_SECONDS = 6;   // 1 movement step (walk) = 6s in-game
 export const SECONDS_PER_DAY = 86400;
+export const GAME_START_HOUR = 8;         // game starts at 8:00 AM
+
+// ── Day/Night ──
+export const DAWN_HOUR = 6;
+export const DUSK_HOUR = 18;
+export const NIGHT_MAX_DIM = 0.55;        // max darkness alpha at midnight
+export const NIGHT_FOV_REDUCTION = 4;     // tiles of FOV lost at deepest night
+
+// ── Stamina Rework ──
+export const STAMINA_ATTACK_COST = 1;     // per combat key press (attack only)
+export const STAMINA_SPRINT_COST = 2;     // per sprint step
+export const STAMINA_RESTORE_RATE = 0.02; // fraction of max per tick when resting
+export const STAMINA_REST_TICKS = 3;      // consecutive non-exerting passes before regen
+export const STAMINA_FATIGUE_DRAIN = 0.1; // ceiling drop per exertion
+export const STAMINA_FATIGUE_FLOOR = 0.3; // min ceiling as fraction of max
+export const STAMINA_PHY_SCALING = 0.5;   // extra max stamina per PHY point
+
+// ── Respawn ──
+export const RESPAWN_FADE_MS = 800;
+export const TRAINING_RESPAWN_TIME_S = 3600;  // 1 in-game hour
+
+// ── Interact ──
+export const INTERACT_TIME_SECONDS = 2;
 
 // ── Critical Hits ──
 export const CRIT_BASE_CHANCE = 0.05;     // 5% base chance per clean hit

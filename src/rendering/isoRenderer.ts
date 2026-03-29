@@ -1,5 +1,6 @@
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 import type { World } from '../engine/world.ts';
+import { getNightDimFactor } from '../engine/gameTime.ts';
 import { Camera } from './camera.ts';
 import { spriteCache } from './spriteCache.ts';
 import type { DrawCommand } from './depthSort.ts';
@@ -125,5 +126,14 @@ export class IsoRenderer {
     }
 
     ctx.globalAlpha = 1.0;
+
+    // ── Night overlay ──
+    const nightDim = getNightDimFactor(world.gameTimeSeconds);
+    if (nightDim > 0.01) {
+      ctx.fillStyle = `rgba(5, 5, 20, ${nightDim})`;
+      ctx.fillRect(0, 0, this.camera.viewportWidth, this.camera.viewportHeight);
+
+      // TODO: Draw torch light circles here (bright spots at light source positions)
+    }
   }
 }

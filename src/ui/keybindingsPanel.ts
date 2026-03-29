@@ -30,6 +30,7 @@ export class KeybindingsPanel {
       ],
       [
         { keys: '.', descs: 'Wait' },
+        { keys: 'f', descs: 'Interact' },
         { keys: 'c', descs: 'Character' },
         { keys: '?', descs: 'Keys' },
       ],

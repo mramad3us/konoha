@@ -246,6 +246,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
 
   eng.round++;
   world.currentTick += 1;
+  world.gameTimeSeconds += 2; // 1 combat pass = 2s in-game
   return true;
 }
 

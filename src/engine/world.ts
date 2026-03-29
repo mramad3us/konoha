@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, InteractableComponent, LightSourceComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES } from '../core/constants.ts';
@@ -24,10 +24,14 @@ export class World {
   names = new Map<EntityId, NameComponent>();
   destructibles = new Map<EntityId, DestructibleComponent>();
   characterSheets = new Map<EntityId, CharacterSheet>();
+  unconscious = new Map<EntityId, UnconsciousComponent>();
+  interactables = new Map<EntityId, InteractableComponent>();
+  lightSources = new Map<EntityId, LightSourceComponent>();
 
   // World systems data
   tileMap: TileMap;
   currentTick = 0;
+  gameTimeSeconds = 0;  // elapsed in-game time in seconds
   playerEntityId: EntityId = 0;
 
   // FOV data
@@ -36,6 +40,9 @@ export class World {
 
   // Game log
   gameLog: GameLogEntry[] = [];
+
+  // Pending interaction (set by turnSystem, consumed by game.ts)
+  _pendingInteraction: { entityId: number; type: string } | null = null;
 
   constructor(tileMap: TileMap) {
     this.tileMap = tileMap;
@@ -62,6 +69,9 @@ export class World {
     this.names.delete(id);
     this.destructibles.delete(id);
     this.characterSheets.delete(id);
+    this.unconscious.delete(id);
+    this.interactables.delete(id);
+    this.lightSources.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) */
@@ -136,6 +146,7 @@ export class World {
       nextId: this.nextId,
       entities: Array.from(this.entities),
       currentTick: this.currentTick,
+      gameTimeSeconds: this.gameTimeSeconds,
       playerEntityId: this.playerEntityId,
       tileMap: this.tileMap.serialize(),
       fovExplored: Array.from(this.fovExplored),
@@ -152,6 +163,9 @@ export class World {
       names: serializeMap(this.names),
       destructibles: serializeMap(this.destructibles),
       characterSheets: serializeMap(this.characterSheets),
+      unconscious: serializeMap(this.unconscious),
+      interactables: serializeMap(this.interactables),
+      lightSources: serializeMap(this.lightSources),
     };
   }
 
@@ -162,6 +176,7 @@ export class World {
 
     world.nextId = data['nextId'] as number;
     world.currentTick = data['currentTick'] as number;
+    world.gameTimeSeconds = (data['gameTimeSeconds'] as number) ?? 0;
     world.playerEntityId = data['playerEntityId'] as number;
     world.fovExplored = new Set(data['fovExplored'] as string[]);
     world.gameLog = data['gameLog'] as GameLogEntry[];
@@ -186,6 +201,15 @@ export class World {
     deserializeMap(world.destructibles, data['destructibles'] as Record<string, DestructibleComponent>);
     if (data['characterSheets']) {
       deserializeMap(world.characterSheets, data['characterSheets'] as Record<string, CharacterSheet>);
+    }
+    if (data['unconscious']) {
+      deserializeMap(world.unconscious, data['unconscious'] as Record<string, UnconsciousComponent>);
+    }
+    if (data['interactables']) {
+      deserializeMap(world.interactables, data['interactables'] as Record<string, InteractableComponent>);
+    }
+    if (data['lightSources']) {
+      deserializeMap(world.lightSources, data['lightSources'] as Record<string, LightSourceComponent>);
     }
 
     return world;

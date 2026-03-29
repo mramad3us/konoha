@@ -6,6 +6,7 @@ import type { TileType } from '../types/tiles.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { DEFAULT_SHINOBI_SHEET } from '../types/character.ts';
 import {
+  GAME_START_HOUR,
   TRAINING_GROUNDS_WIDTH,
   TRAINING_GROUNDS_HEIGHT,
   PLAYER_START_X,
@@ -24,7 +25,8 @@ type SpawnType =
   | 'tree_small' | 'tree_large' | 'tree_willow'
   | 'bush_small' | 'bush_berry' | 'bush_tall' | 'bush_flower'
   | 'tall_grass' | 'reeds'
-  | 'rock_small' | 'rock_medium' | 'rock_large' | 'rock_mossy';
+  | 'rock_small' | 'rock_medium' | 'rock_large' | 'rock_mossy'
+  | 'sleeping_bag' | 'torch_pillar';
 
 interface ObjectSpawn {
   x: number;
@@ -101,6 +103,20 @@ const OBJECT_SPAWNS: ObjectSpawn[] = [
   { x: 10, y: 25, type: 'tall_grass' },
   { x: 30, y: 30, type: 'tall_grass' },
 
+  // ── Sleeping bag near spawn ──
+  { x: 21, y: 36, type: 'sleeping_bag' },
+
+  // ── Torch pillars around perimeter ──
+  { x: 5,  y: 1,  type: 'torch_pillar' },
+  { x: 20, y: 1,  type: 'torch_pillar' },
+  { x: 35, y: 1,  type: 'torch_pillar' },
+  { x: 1,  y: 15, type: 'torch_pillar' },
+  { x: 38, y: 15, type: 'torch_pillar' },
+  { x: 1,  y: 30, type: 'torch_pillar' },
+  { x: 38, y: 30, type: 'torch_pillar' },
+  { x: 18, y: 38, type: 'torch_pillar' },
+  { x: 22, y: 38, type: 'torch_pillar' },
+
   // ── Rocks — varied sizes ──
   { x: 8,  y: 14, type: 'rock_medium' },
   { x: 32, y: 8,  type: 'rock_large' },
@@ -139,7 +155,9 @@ const SPAWN_CONFIG: Record<SpawnType, {
   rock_small:  { spriteId: 'obj_rock_small',  offsetY: -4,  blocksMove: true,  blocksSight: false, displayName: 'small rock', article: 'a' },
   rock_medium: { spriteId: 'obj_rock_medium', offsetY: -8,  blocksMove: true,  blocksSight: false, displayName: 'rock', article: 'a' },
   rock_large:  { spriteId: 'obj_rock_large',  offsetY: -14, blocksMove: true,  blocksSight: false, displayName: 'boulder', article: 'a' },
-  rock_mossy:  { spriteId: 'obj_rock_mossy',  offsetY: -10, blocksMove: true,  blocksSight: false, displayName: 'mossy boulder', article: 'a' },
+  rock_mossy:      { spriteId: 'obj_rock_mossy',      offsetY: -10, blocksMove: true,  blocksSight: false, displayName: 'mossy boulder', article: 'a' },
+  sleeping_bag:    { spriteId: 'obj_sleeping_bag',    offsetY: -4,  blocksMove: false, blocksSight: false, displayName: 'sleeping bag', article: 'a' },
+  torch_pillar:    { spriteId: 'obj_torch_pillar',    offsetY: -20, blocksMove: true,  blocksSight: false, displayName: 'torch pillar', article: 'a' },
 };
 
 /**
@@ -169,6 +187,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   }
 
   const world = new World(tileMap);
+  world.gameTimeSeconds = GAME_START_HOUR * 3600; // Start at 8:00 AM
 
   // ── Create Player ──
   const playerId = world.createEntity();
@@ -196,6 +215,8 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
     maxWillpower: BASE_PLAYER_WILLPOWER,
     stamina: BASE_PLAYER_STAMINA,
     maxStamina: BASE_PLAYER_STAMINA,
+    staminaCeiling: BASE_PLAYER_STAMINA,
+    lastExertionTick: 0,
   });
   world.names.set(playerId, { display: playerName, article: '' });
   world.characterSheets.set(playerId, {
@@ -228,6 +249,14 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         respawnTicks: 50,
       });
       world.aiControlled.set(id, { behavior: 'static' });
+    }
+
+    if (spawn.type === 'sleeping_bag') {
+      world.interactables.set(id, { interactionType: 'sleep', label: 'Sleep' });
+    }
+
+    if (spawn.type === 'torch_pillar') {
+      world.lightSources.set(id, { radius: 5, activeAtNight: true });
     }
 
     if (cfg.sparring) {

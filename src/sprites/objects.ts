@@ -395,3 +395,70 @@ export const OBJ_ROCK_MOSSY: PixelPattern = {
     '................',
   ],
 };
+
+// ── SLEEPING BAG ──
+const SLEEPBAG_PAL: Record<string, [number, number, number]> = {
+  b: [40, 60, 90],     // bag blue
+  B: [50, 75, 110],    // bag highlight
+  d: [30, 45, 70],     // bag dark
+  p: [70, 55, 40],     // pillow
+  P: [85, 70, 55],     // pillow highlight
+};
+
+export const OBJ_SLEEPING_BAG: PixelPattern = {
+  width: 16, height: 16,
+  palette: SLEEPBAG_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '....pPPp........',
+    '...dbbBBbd......',
+    '...dbbbBbd......',
+    '...dbbBBbd......',
+    '....dddddd......',
+    '................',
+    '................',
+  ],
+};
+
+// ── TORCH PILLAR ──
+const TORCH_PAL: Record<string, [number, number, number]> = {
+  s: [80, 80, 84],     // stone base
+  S: [96, 96, 100],    // stone highlight
+  d: [64, 64, 68],     // stone dark
+  w: [122, 90, 32],    // wood shaft
+  W: [140, 108, 44],   // wood highlight
+  f: [240, 180, 50],   // flame
+  F: [255, 220, 100],  // flame bright
+  r: [220, 100, 30],   // flame red
+};
+
+export const OBJ_TORCH_PILLAR: PixelPattern = {
+  width: 16, height: 16,
+  palette: TORCH_PAL,
+  pixels: [
+    '................',
+    '.......F........',
+    '......fFf.......',
+    '......rfr.......',
+    '.......w........',
+    '.......w........',
+    '.......w........',
+    '.......W........',
+    '.......w........',
+    '.......w........',
+    '.......W........',
+    '.......w........',
+    '......dSd.......',
+    '.....dSSSd......',
+    '.....dsssd......',
+    '......ddd.......',
+  ],
+};

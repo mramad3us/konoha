@@ -5,10 +5,12 @@ import {
   OBJ_BUSH_SMALL, OBJ_BUSH_BERRY, OBJ_BUSH_TALL, OBJ_BUSH_FLOWER,
   OBJ_TALL_GRASS, OBJ_REEDS,
   OBJ_ROCK_SMALL, OBJ_ROCK_MEDIUM, OBJ_ROCK_LARGE, OBJ_ROCK_MOSSY,
+  OBJ_SLEEPING_BAG, OBJ_TORCH_PILLAR,
 } from './objects.ts';
 import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
   CHAR_KUNOICHI_S, CHAR_KUNOICHI_N, CHAR_KUNOICHI_E, CHAR_KUNOICHI_W,
+  CHAR_SHINOBI_PRONE, CHAR_KUNOICHI_PRONE,
 } from './characters.ts';
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 
@@ -53,6 +55,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'obj_rock_large',  pattern: OBJ_ROCK_LARGE,  displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_rock_mossy',  pattern: OBJ_ROCK_MOSSY,  displayWidth: 48, displayHeight: 48, outline: true },
 
+  // Sleeping bag & torch
+  { id: 'obj_sleeping_bag',  pattern: OBJ_SLEEPING_BAG,  displayWidth: 48, displayHeight: 48 },
+  { id: 'obj_torch_pillar',  pattern: OBJ_TORCH_PILLAR,  displayWidth: 48, displayHeight: 48, outline: true },
+
   // Training dummy
   { id: 'obj_dummy', pattern: OBJ_DUMMY, displayWidth: 48, displayHeight: 48, outline: true },
 
@@ -67,4 +73,8 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_kunoichi_n', pattern: CHAR_KUNOICHI_N, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_e', pattern: CHAR_KUNOICHI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_w', pattern: CHAR_KUNOICHI_W, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // Prone / unconscious
+  { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_kunoichi_prone', pattern: CHAR_KUNOICHI_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
 ];

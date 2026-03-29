@@ -2,6 +2,7 @@ import { resolveAction, GAME_KEYS } from '../engine/actionResolver.ts';
 import { executeTurn } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
+import { isAttack } from '../types/combat.ts';
 import type { World } from '../engine/world.ts';
 import type { Camera } from '../rendering/camera.ts';
 import type { GameHud } from '../ui/gameHud.ts';
@@ -19,6 +20,8 @@ export class InputSystem {
   private tempoBeads: TempoBeadsUI;
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
+  private onRespawn: (() => void) | null = null;
+  private onSleep: (() => void) | null = null;
 
   constructor(
     world: World,
@@ -57,10 +60,27 @@ export class InputSystem {
 
     // ── Combat keys (a/z/e/q/s/d) ──
     if (isCombatKey(key)) {
+      // Check stamina for attacks
+      if (isAttack(key)) {
+        const res = this.world.resources.get(this.world.playerEntityId);
+        if (res && res.stamina <= 0) {
+          this.world.log('Too exhausted to attack.', 'info');
+          this.hud.update(this.world);
+          return;
+        }
+        // Consume stamina for attack attempt
+        if (res) {
+          res.stamina = Math.max(0, res.stamina - 1);
+          res.staminaCeiling = Math.max(res.maxStamina * 0.3, res.staminaCeiling - 0.1);
+          res.lastExertionTick = this.world.currentTick;
+        }
+      }
+
       const turnConsumed = processCombatMove(this.world, key);
       if (turnConsumed) {
         this.hud.update(this.world);
         this.tempoBeads.update(getPlayerTempo(this.world));
+        this.checkPlayerUnconscious();
       }
       return;
     }
@@ -101,11 +121,46 @@ export class InputSystem {
     // Update HUD + tempo
     this.hud.update(this.world);
     this.tempoBeads.update(getPlayerTempo(this.world));
+
+    // Check for pending interaction
+    if (this.world._pendingInteraction) {
+      const interaction = this.world._pendingInteraction;
+      this.world._pendingInteraction = null;
+
+      if (interaction.type === 'sleep' && this.onSleep) {
+        this.onSleep();
+      }
+    }
   }
 
   /** Update world reference (for save loads) */
   setWorld(world: World): void {
     this.world = world;
+  }
+
+  /** Set callback for player unconscious (triggers respawn flow) */
+  setRespawnCallback(cb: () => void): void {
+    this.onRespawn = cb;
+  }
+
+  /** Set callback for sleep interaction */
+  setSleepCallback(cb: () => void): void {
+    this.onSleep = cb;
+  }
+
+  /** Check if player fell unconscious (0 HP or 0 willpower) */
+  private checkPlayerUnconscious(): void {
+    const playerId = this.world.playerEntityId;
+    const health = this.world.healths.get(playerId);
+    const resources = this.world.resources.get(playerId);
+
+    if (health && health.current <= 0) {
+      this.world.log('Everything goes dark...', 'system');
+      if (this.onRespawn) this.onRespawn();
+    } else if (resources && resources.willpower <= 0) {
+      this.world.log('Your mind gives way. Darkness takes you...', 'system');
+      if (this.onRespawn) this.onRespawn();
+    }
   }
 
   /** Remove event listener */

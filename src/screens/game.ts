@@ -10,6 +10,7 @@ import { InputSystem } from '../systems/inputSystem.ts';
 import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
+import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
 import { computeFOV } from '../engine/fov.ts';
@@ -17,6 +18,7 @@ import { generateTrainingGrounds } from '../map/mapGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
 import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS } from '../core/constants.ts';
+import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 
 export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Loading overlay ──
@@ -54,7 +56,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Compute initial FOV ──
   const playerPos = world.positions.get(world.playerEntityId);
   if (playerPos) {
-    computeFOV(world, playerPos.x, playerPos.y, FOV_RADIUS);
+    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
+    computeFOV(world, playerPos.x, playerPos.y, Math.max(3, FOV_RADIUS - nightReduction));
   }
 
   // ── Build layout ──
@@ -65,10 +68,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   const topbarLeft = createElement('div', { className: 'game-topbar__left' });
   const zoneLabel = createElement('span', { className: 'game-topbar__zone', text: 'Training Grounds' });
-  const tickLabel = createElement('span', { className: 'game-topbar__tick', text: `T:${world.currentTick}` });
+  const timeLabel = createElement('span', { className: 'game-topbar__tick', text: formatGameTime(world.gameTimeSeconds) });
   const saveFlash = createElement('span', { className: 'game-topbar__save-flash', text: 'Saved' });
   topbarLeft.appendChild(zoneLabel);
-  topbarLeft.appendChild(tickLabel);
+  topbarLeft.appendChild(timeLabel);
   topbarLeft.appendChild(saveFlash);
   topbar.appendChild(topbarLeft);
 
@@ -134,7 +137,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const origFullRender = hud.fullRender.bind(hud);
   hud.fullRender = (w: World) => {
     origFullRender(w);
-    tickLabel.textContent = `T:${w.currentTick}`;
+    timeLabel.textContent = formatGameTime(w.gameTimeSeconds);
   };
 
   // ── Initialize rendering ──
@@ -175,6 +178,47 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   hud.insertAfterStance(tempoBeads.element);
 
   const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, tempoBeads);
+
+  // Respawn flow (fade to black → restore → fade back)
+  const doRespawn = async () => {
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    executeRespawn(world, TRAINING_GROUNDS_RESPAWN);
+    const pp = world.positions.get(world.playerEntityId);
+    if (pp) camera.snapTo(pp.x, pp.y);
+    hud.fullRender(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  inputSystem.setRespawnCallback(() => { doRespawn(); });
+
+  // Sleep flow (8 hours pass, restore stamina ceiling)
+  const doSleep = async () => {
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    // 8 hours of sleep
+    world.gameTimeSeconds += 8 * 3600;
+    const res = world.resources.get(world.playerEntityId);
+    if (res) {
+      res.staminaCeiling = res.maxStamina;
+      res.stamina = Math.min(res.maxStamina, res.stamina + res.maxStamina * 0.8);
+    }
+    const hp = world.healths.get(world.playerEntityId);
+    if (hp) hp.current = Math.min(hp.max, hp.current + Math.floor(hp.max * 0.5));
+    world.log('You sleep soundly and wake feeling refreshed.', 'system');
+    hud.fullRender(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  inputSystem.setSleepCallback(() => { doSleep(); });
 
   // ── Render Loop ──
   let rafId = 0;

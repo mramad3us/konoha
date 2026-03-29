@@ -239,3 +239,53 @@ export const CHAR_KUNOICHI_W: PixelPattern = {
     '......SS.SS.....',
   ],
 };
+
+// ── PRONE / UNCONSCIOUS SPRITES ──
+
+/** Shinobi prone (unconscious) — horizontal on ground */
+export const CHAR_SHINOBI_PRONE: PixelPattern = {
+  width: 16, height: 16,
+  palette: SHINOBI_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '..hhhssoooooSS..',
+    '..hbbhsoOoOoSS..',
+    '..hmmhswoogGww..',
+    '..hhhssoooooooo.',
+    '................',
+    '................',
+  ],
+};
+
+/** Kunoichi prone (unconscious) — horizontal on ground */
+export const CHAR_KUNOICHI_PRONE: PixelPattern = {
+  width: 16, height: 16,
+  palette: KUNOICHI_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '..hhhssoooooSS..',
+    '..hbbhsoOoOoSS..',
+    '..hmmhswoogGww..',
+    '..hhhssoooooooo.',
+    '................',
+    '................',
+  ],
+};
