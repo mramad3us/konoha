@@ -15,6 +15,7 @@ export type CharacterClass =
 // ── RANK (flexible — add to end to extend) ──
 
 export type ShinobiRank =
+  | 'civilian'
   | 'academy_student'
   | 'genin'
   | 'chuunin'
@@ -24,6 +25,7 @@ export type ShinobiRank =
   | 'kage';
 
 export const SHINOBI_RANK_LABELS: Record<ShinobiRank, string> = {
+  civilian: 'Civilian',
   academy_student: 'Academy Student',
   genin: 'Genin',
   chuunin: 'Chunin',

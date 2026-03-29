@@ -340,7 +340,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     spawnNpc(world, {
       x: shopDefs[i].x, y: shopDefs[i].y, name: shopDefs[i].name,
       accents: i % 2 === 0 ? ACCENTS_SHOPKEEPER_1 : ACCENTS_SHOPKEEPER_2,
-      rank: 'genin', title: 'Shopkeeper', charClass: 'merchant',
+      rank: 'civilian', title: 'Shopkeeper', charClass: 'merchant',
       skills: { taijutsu: 10, bukijutsu: 15, ninjutsu: 5, genjutsu: 2, med: 3 },
       stats: { phy: 12, cha: 8, men: 10, soc: 45 },
       description: shopDefs[i].desc,
@@ -370,7 +370,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
   // ── Ramen Chef ──
   spawnNpc(world, {
     x: 66, y: 100, name: 'Old Masashi', accents: ACCENTS_CHEF,
-    rank: 'genin', title: 'Ramen Chef', charClass: 'civilian',
+    rank: 'civilian', title: 'Ramen Chef', charClass: 'civilian',
     skills: { taijutsu: 5, bukijutsu: 30, ninjutsu: 0, genjutsu: 0, med: 5 },
     stats: { phy: 20, cha: 5, men: 15, soc: 55 },
     description: 'The legendary ramen chef of Konoha Kitchen. His noodles are the stuff of myth.',
@@ -433,7 +433,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     const rng = cellHash(d.x, d.y);
     spawnNpc(world, {
       x: d.x, y: d.y, name: d.name, accents: accent,
-      rank: 'academy_student', title: d.title, charClass: 'civilian',
+      rank: 'civilian', title: d.title, charClass: 'civilian',
       skills: { taijutsu: 1, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: (rng % 3) },
       stats: {
         phy: 1 + (rng % 10),
