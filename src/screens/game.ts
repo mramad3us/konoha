@@ -492,7 +492,6 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       if (mission) {
         world.log(`Mission accepted: ${mission.title} (${mission.rank}-Rank)`, 'system');
         world.log(`Objective: ${mission.objective}`, 'info');
-        world.log('Skill training now grants 2\u00d7 XP while on mission.', 'info');
       }
     }
 

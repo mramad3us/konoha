@@ -335,14 +335,6 @@ export class MissionBoardUI {
       this.detailEl.appendChild(lockEl);
     }
 
-    // XP bonus note
-    const noteSection = createElement('div', { className: 'mission-board__section' });
-    noteSection.appendChild(createElement('div', { className: 'mission-board__section-label', text: 'Note' }));
-    noteSection.appendChild(createElement('div', {
-      className: 'mission-board__section-text mission-board__section-text--small',
-      text: 'All skill training grants 2\u00d7 XP while on an active mission.',
-    }));
-    this.detailEl.appendChild(noteSection);
 
     // Accept button state
     this.acceptBtn.disabled = !allowed || this.hasActiveMission;
