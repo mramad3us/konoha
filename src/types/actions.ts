@@ -14,6 +14,7 @@ export type LogCategory =
   | 'miss_incoming'   // Enemy misses you / you parry (defensive, good)
   | 'combat_neutral'  // Stalemate, circling (neutral)
   | 'combat_tempo'    // Tempo gained/spent (tactical info)
+  | 'bleed'           // Bleeding related (purple)
   | 'info'            // General info
   | 'system'          // System messages
   | 'movement'        // Movement descriptions

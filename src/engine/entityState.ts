@@ -288,13 +288,13 @@ export function tickBleeding(world: World): void {
     if (bleed.intensity <= 0) {
       world.bleeding.delete(entityId);
       const name = world.names.get(entityId)?.display ?? 'Someone';
-      world.log(`${name}'s bleeding has stopped.`, 'info');
+      world.log(`${name}'s bleeding has stopped.`, 'bleed');
     }
 
     // Blood at 0 = death (bleed out)
     if (resources.blood <= 0) {
       const name = world.names.get(entityId)?.display ?? 'Someone';
-      world.log(`${name} has bled out.`, 'system');
+      world.log(`${name} has bled out.`, 'bleed');
       world.bleeding.delete(entityId);
       killEntity(world, entityId, null, true); // force kill regardless of state
     }
@@ -326,7 +326,7 @@ export function applyBleeding(world: World, entityId: EntityId, intensity: numbe
   const name = world.names.get(entityId)?.display ?? 'Someone';
   const pool = byWeapon ? BLEED_KUNAI_TEXT : BLEED_UNARMED_TEXT;
   const msg = pool[Math.floor(Math.random() * pool.length)].replace(/\{name\}/g, name);
-  world.log(msg, 'damage');
+  world.log(msg, 'bleed');
 }
 
 const BLEED_KUNAI_TEXT = [

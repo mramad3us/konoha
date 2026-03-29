@@ -362,7 +362,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       const bleedMsg = targetBleed.intensity >= 5
         ? `${targetName} is bleeding profusely — blood spatters with every movement.`
         : `${targetName} is bleeding from open wounds.`;
-      world.log(bleedMsg, 'damage');
+      world.log(bleedMsg, 'bleed');
     }
     // Blood level observation
     const targetRes = world.resources.get(targetId);
@@ -371,7 +371,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       const bloodMsg = bloodPct <= 0.3
         ? `${targetName}'s skin is white as paper. They're fading.`
         : `${targetName} is getting pale from blood loss.`;
-      world.log(bloodMsg, 'damage');
+      world.log(bloodMsg, 'bleed');
     }
   }
 

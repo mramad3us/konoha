@@ -435,6 +435,11 @@
   color: var(--color-leaf);
 }
 
+/* Bleed — dark purple */
+.game-log__entry--bleed {
+  color: #9a3070;
+}
+
 /* Legacy compat */
 .game-log__entry--combat {
   color: var(--color-gold);
