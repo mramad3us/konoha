@@ -1,6 +1,7 @@
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 import type { World } from '../engine/world.ts';
 import { getNightDimFactor } from '../engine/gameTime.ts';
+import { getActiveEngagements } from '../engine/combatSystem.ts';
 import { Camera } from './camera.ts';
 import { spriteCache } from './spriteCache.ts';
 import type { DrawCommand } from './depthSort.ts';
@@ -127,13 +128,86 @@ export class IsoRenderer {
 
     ctx.globalAlpha = 1.0;
 
+    // ── Combat status indicators above characters ──
+    this.drawCombatIndicators(ctx, world, offset);
+
     // ── Night overlay ──
     const nightDim = getNightDimFactor(world.gameTimeSeconds);
     if (nightDim > 0.01) {
       ctx.fillStyle = `rgba(5, 5, 20, ${nightDim})`;
       ctx.fillRect(0, 0, this.camera.viewportWidth, this.camera.viewportHeight);
+    }
+  }
 
-      // TODO: Draw torch light circles here (bright spots at light source positions)
+  /** Draw tempo beads and condition icons above characters in combat */
+  private drawCombatIndicators(ctx: CanvasRenderingContext2D, world: World, offset: { ox: number; oy: number }): void {
+    const engagements = getActiveEngagements();
+    const halfTW = TILE_WIDTH / 2;
+    const halfTH = TILE_HEIGHT / 2;
+
+    for (const eng of engagements.values()) {
+      // Draw for each combatant
+      for (const [entityId, tempo, cond] of [
+        [eng.entityA, eng.tempoA, eng.conditionA] as const,
+        [eng.entityB, eng.tempoB, eng.conditionB] as const,
+      ]) {
+        const pos = world.positions.get(entityId);
+        if (!pos) continue;
+        if (!world.fovVisible.has(world.fovKey(pos.x, pos.y))) continue;
+
+        const sx = (pos.x - pos.y) * halfTW + offset.ox;
+        const sy = (pos.x + pos.y) * halfTH + offset.oy;
+
+        // Center above character sprite
+        const centerX = sx + TILE_WIDTH / 2;
+        const aboveY = sy - 20; // above the character head
+
+        // ── Tempo beads ──
+        if (tempo.max > 0) {
+          const beadSize = 4;
+          const beadGap = 2;
+          const totalWidth = tempo.max * (beadSize + beadGap) - beadGap;
+          const startX = centerX - totalWidth / 2;
+
+          for (let i = 0; i < tempo.max; i++) {
+            const bx = startX + i * (beadSize + beadGap);
+            if (i < tempo.current) {
+              // Filled bead — gold
+              ctx.fillStyle = '#c9a84c';
+              ctx.fillRect(bx, aboveY, beadSize, beadSize);
+            } else {
+              // Empty bead — dark outline
+              ctx.fillStyle = '#2a2a2a';
+              ctx.fillRect(bx, aboveY, beadSize, beadSize);
+              ctx.fillStyle = '#444';
+              ctx.fillRect(bx + 1, aboveY + 1, beadSize - 2, beadSize - 2);
+            }
+          }
+        }
+
+        // ── Condition icon ──
+        if (cond.condition) {
+          const iconY = aboveY - 8;
+          if (cond.condition === 'down') {
+            // Down arrow — orange/gold
+            ctx.fillStyle = '#c9a84c';
+            ctx.fillRect(centerX - 1, iconY, 2, 4);
+            ctx.fillRect(centerX - 3, iconY + 3, 6, 2);
+            ctx.fillRect(centerX - 2, iconY + 5, 4, 1);
+            ctx.fillRect(centerX - 1, iconY + 6, 2, 1);
+          } else {
+            // Stunned spiral — red
+            ctx.fillStyle = '#d4364a';
+            ctx.fillRect(centerX - 2, iconY, 4, 1);
+            ctx.fillRect(centerX + 2, iconY + 1, 1, 2);
+            ctx.fillRect(centerX, iconY + 2, 2, 1);
+            ctx.fillRect(centerX - 2, iconY + 1, 1, 2);
+            ctx.fillRect(centerX - 1, iconY + 3, 3, 1);
+            ctx.fillRect(centerX + 2, iconY + 3, 1, 2);
+            ctx.fillRect(centerX - 2, iconY + 4, 4, 1);
+          }
+        }
+      }
     }
   }
 }

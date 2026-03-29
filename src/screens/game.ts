@@ -9,6 +9,7 @@ import { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import { InputSystem } from '../systems/inputSystem.ts';
 import { CharacterSheetUI } from '../ui/characterSheet.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
+import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -173,11 +174,13 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const characterSheet = new CharacterSheetUI();
   container.appendChild(characterSheet.element);
 
-  // Tempo beads (in the HUD, after stance indicator)
+  // Tempo beads + condition indicator (in the HUD, after stance indicator)
   const tempoBeads = new TempoBeadsUI();
+  const conditionIndicator = new ConditionIndicator();
   hud.insertAfterStance(tempoBeads.element);
+  hud.insertAfterStance(conditionIndicator.element);
 
-  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, tempoBeads);
+  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, tempoBeads, conditionIndicator);
 
   // Respawn flow (fade to black → restore → fade back)
   const doRespawn = async () => {

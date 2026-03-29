@@ -476,3 +476,63 @@ export function generateConditionFlavor(defenderName: string, condition: CombatC
   const template = pool[Math.floor(Math.random() * pool.length)];
   return template.replace(/\{defender\}/g, defenderName);
 }
+
+// ── NPC CONDITION OBSERVATION (every 3 passes / 1 tick) ──
+
+const NPC_CONDITION_OBSERVATIONS = {
+  healthy: [
+    '{name} looks fresh and ready, barely winded.',
+    '{name} stands confident, guard tight, breathing steady.',
+    '{name}\'s stance is solid — no signs of fatigue.',
+    '{name} circles with controlled energy, fully focused.',
+    '{name} shows no signs of tiring. Sharp eyes, sharp form.',
+  ],
+  light_damage: [
+    '{name} winces slightly — a bruise forming on their jaw.',
+    '{name} rolls their shoulder, shaking off a hit.',
+    'A trickle of sweat runs down {name}\'s brow. They\'re feeling it.',
+    '{name} adjusts their stance, compensating for a sore rib.',
+    '{name} is breathing harder now, but still steady on their feet.',
+  ],
+  moderate_damage: [
+    '{name} is visibly hurt — their guard is dropping.',
+    'Blood at the corner of {name}\'s mouth. They spit and reset.',
+    '{name}\'s movements are slowing. The accumulated damage shows.',
+    '{name} favors their left side — the right took too many hits.',
+    '{name} staggers slightly between exchanges. Getting worn down.',
+  ],
+  heavy_damage: [
+    '{name} looks like they can barely stand. One more solid hit...',
+    '{name}\'s breathing is ragged, arms heavy, eyes unfocused.',
+    'Blood drips from {name}\'s split brow. They\'re running on pure will.',
+    '{name} sways on their feet. It\'s a matter of time.',
+    '{name} can barely keep their guard up. Exhaustion and pain take hold.',
+  ],
+  critical: [
+    '{name} is on the verge of collapse. Every breath is labored.',
+    '{name}\'s legs are shaking. One knee threatens to buckle.',
+    '{name} can\'t even raise their fists. Almost done.',
+  ],
+};
+
+type HealthTier = keyof typeof NPC_CONDITION_OBSERVATIONS;
+
+function getHealthTier(current: number, max: number): HealthTier {
+  const pct = current / max;
+  if (pct > 0.8) return 'healthy';
+  if (pct > 0.5) return 'light_damage';
+  if (pct > 0.3) return 'moderate_damage';
+  if (pct > 0.1) return 'heavy_damage';
+  return 'critical';
+}
+
+/**
+ * Generate an observation about an NPC's physical condition.
+ * Called once per tick (every 3 combat passes).
+ */
+export function generateNpcObservation(name: string, currentHp: number, maxHp: number): string {
+  const tier = getHealthTier(currentHp, maxHp);
+  const pool = NPC_CONDITION_OBSERVATIONS[tier];
+  const template = pool[Math.floor(Math.random() * pool.length)];
+  return template.replace(/\{name\}/g, name);
+}

@@ -1,6 +1,6 @@
 import { resolveAction, GAME_KEYS } from '../engine/actionResolver.ts';
 import { executeTurn } from '../engine/turnSystem.ts';
-import { processCombatMove, getPlayerTempo, clearStaleEngagements } from '../engine/combatSystem.ts';
+import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
 import type { World } from '../engine/world.ts';
@@ -9,6 +9,7 @@ import type { GameHud } from '../ui/gameHud.ts';
 import type { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import type { CharacterSheetUI } from '../ui/characterSheet.ts';
 import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
+import type { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
 
 export class InputSystem {
@@ -18,6 +19,7 @@ export class InputSystem {
   private keybindingsPanel: KeybindingsPanel;
   private characterSheet: CharacterSheetUI;
   private tempoBeads: TempoBeadsUI;
+  private conditionIndicator: ConditionIndicator;
   private handler: (e: KeyboardEvent) => void;
   private lastInputTime = 0;
   private onRespawn: (() => void) | null = null;
@@ -30,6 +32,7 @@ export class InputSystem {
     keybindingsPanel: KeybindingsPanel,
     characterSheet: CharacterSheetUI,
     tempoBeads: TempoBeadsUI,
+    conditionIndicator: ConditionIndicator,
   ) {
     this.world = world;
     this.camera = camera;
@@ -37,6 +40,7 @@ export class InputSystem {
     this.keybindingsPanel = keybindingsPanel;
     this.characterSheet = characterSheet;
     this.tempoBeads = tempoBeads;
+    this.conditionIndicator = conditionIndicator;
 
     this.handler = (e: KeyboardEvent) => this.handleKey(e);
     document.addEventListener('keydown', this.handler);
@@ -80,6 +84,7 @@ export class InputSystem {
       if (turnConsumed) {
         this.hud.update(this.world);
         this.tempoBeads.update(getPlayerTempo(this.world));
+        this.conditionIndicator.update(getPlayerCondition(this.world));
         this.checkPlayerUnconscious();
       }
       return;
@@ -118,9 +123,10 @@ export class InputSystem {
       clearStaleEngagements(this.world);
     }
 
-    // Update HUD + tempo
+    // Update HUD + tempo + condition
     this.hud.update(this.world);
     this.tempoBeads.update(getPlayerTempo(this.world));
+    this.conditionIndicator.update(getPlayerCondition(this.world));
 
     // Check for pending interaction
     if (this.world._pendingInteraction) {

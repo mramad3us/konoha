@@ -10,7 +10,7 @@
 import type { CombatMove, CombatEngagement, TempoState, ConditionState } from '../types/combat.ts';
 import { maxTempoSlots, startingTempo, DUMMY_DESTROY_THRESHOLD, critChance } from '../types/combat.ts';
 import { resolveCombat } from './combatResolver.ts';
-import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor } from './flavorText.ts';
+import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, generateNpcObservation } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
 import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
@@ -102,20 +102,32 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   const playerCond = isPlayerA ? eng.conditionA : eng.conditionB;
   const targetCond = isPlayerA ? eng.conditionB : eng.conditionA;
 
+  // If player is stunned, they can't act — NPC gets a free hit
+  if (playerCond.condition === 'stunned') {
+    world.log('You\'re stunned and can\'t respond!', 'hit_incoming');
+  }
+
+  // If player is downed, log it
+  if (playerCond.condition === 'down') {
+    world.log('You struggle to recover your footing...', 'combat_neutral');
+  }
+
   // NPC picks its move
   const isDummy = world.destructibles.has(targetId);
   const npcAiType = isDummy ? 'dummy' as const : 'basic' as const;
   const npcTempo = isPlayerA ? eng.tempoB : eng.tempoA;
   const playerTempo = isPlayerA ? eng.tempoA : eng.tempoB;
 
+  // Override moves for stunned entities (stunned = can't act, their move is irrelevant)
+  const effectivePlayerMove = playerCond.condition === 'stunned' ? 'q' as CombatMove : playerMove;
   const npcMove = targetCond.condition === 'stunned'
-    ? 'q' as CombatMove // stunned entities can't act, default to defend (won't matter)
+    ? 'q' as CombatMove
     : pickNpcMove(npcAiType, targetTaijutsu, npcTempo.current, playerTempo.current);
 
   // Resolve combat
   const outcome = isPlayerA
-    ? resolveCombat(playerMove, npcMove, playerId, targetId, eng.tempoA, eng.tempoB, eng.conditionA, eng.conditionB, playerTaijutsu, targetTaijutsu, playerPhy, targetPhy)
-    : resolveCombat(npcMove, playerMove, targetId, playerId, eng.tempoB, eng.tempoA, eng.conditionB, eng.conditionA, targetTaijutsu, playerTaijutsu, targetPhy, playerPhy);
+    ? resolveCombat(effectivePlayerMove, npcMove, playerId, targetId, eng.tempoA, eng.tempoB, eng.conditionA, eng.conditionB, playerTaijutsu, targetTaijutsu, playerPhy, targetPhy)
+    : resolveCombat(npcMove, effectivePlayerMove, targetId, playerId, eng.tempoB, eng.tempoA, eng.conditionB, eng.conditionA, targetTaijutsu, playerTaijutsu, targetPhy, playerPhy);
 
   // Apply tempo changes by entity ID
   const tempoForAttacker = outcome.tempoChange.attacker;
@@ -257,9 +269,31 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   }
 
   eng.round++;
+
+  // Every 3 passes (1 tick / 6s), log NPC condition observation
+  if (eng.round % 3 === 0 && !isDummy) {
+    const targetHp = world.healths.get(targetId);
+    const targetName = world.names.get(targetId)?.display ?? 'Your opponent';
+    if (targetHp) {
+      const obs = generateNpcObservation(targetName, targetHp.current, targetHp.max);
+      world.log(obs, 'info');
+    }
+  }
+
   world.currentTick += 1;
   world.gameTimeSeconds += 2; // 1 combat pass = 2s in-game
   return true;
+}
+
+/** Get the player's current condition if in an engagement */
+export function getPlayerCondition(world: World): import('../types/combat.ts').CombatCondition | null {
+  const targetId = findAdjacentTarget(world);
+  if (targetId === null) return null;
+  const key = engagementKey(world.playerEntityId, targetId);
+  const eng = engagements.get(key);
+  if (!eng) return null;
+  const cond = eng.entityA === world.playerEntityId ? eng.conditionA : eng.conditionB;
+  return cond.condition;
 }
 
 /** Get the player's current tempo state if in an engagement */
@@ -270,6 +304,11 @@ export function getPlayerTempo(world: World): TempoState | null {
   const eng = engagements.get(key);
   if (!eng) return null;
   return eng.entityA === world.playerEntityId ? eng.tempoA : eng.tempoB;
+}
+
+/** Get all active engagement data for rendering overlays */
+export function getActiveEngagements(): Map<string, CombatEngagement> {
+  return engagements;
 }
 
 /** Clear engagements when entities move apart */
