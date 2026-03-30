@@ -577,20 +577,20 @@ function spawnPlayer(
 /**
  * Enemy rank tiers — used for all away mission enemy types.
  *
- * Bandit tiers (C-rank):
+ * Bandit tiers (C-rank — genin/chuunin level):
  * - Thug: low genin-level hand-to-hand, cannon fodder
  * - Enforcer: high genin-level technique, very physically strong
  * - Boss: chuunin-level hand-to-hand, strength varies
  *
- * Rogue Nin tiers (B-rank):
- * - Rogue Genin: trained ninja who went rogue, genin-level ninjutsu
- * - Rogue Chuunin: experienced rogue, chuunin-level all-around
- * - Rogue Leader: top-tier rogue, near-jonin combat ability
+ * Rogue Nin tiers (B-rank — chuunin level):
+ * - Rogue Nin: low-mid chuunin, trained ninja gone rogue
+ * - Rogue Chuunin: solid chuunin, experienced fighter with ninjutsu
+ * - Rogue Leader: strong chuunin, top of chuunin range
  *
- * Missing-Nin tiers (A-rank):
- * - Missing-Nin Operative: jonin-level combat, trained assassin
- * - Missing-Nin Elite: high jonin, dangerous ninjutsu user
- * - Missing-Nin Commander: elite combatant, near-kage potential
+ * Missing-Nin tiers (A-rank — jonin level):
+ * - Missing-Nin Operative: low-mid jonin, lethal and disciplined
+ * - Missing-Nin Elite: solid jonin, dangerous ninjutsu user
+ * - Missing-Nin Commander: strong jonin, top of jonin range
  */
 type EnemyRank = 'thug' | 'enforcer' | 'boss'
   | 'rogue_genin' | 'rogue_chuunin' | 'rogue_leader'
@@ -723,27 +723,29 @@ function spawnEnemy(
       attackVerb = 'slash';
       break;
 
-    // ── Rogue Nin tiers (B-rank) ──
+    // ── Rogue Nin tiers (B-rank — chuunin level) ──
     case 'rogue_genin':
-      tai = rng.nextInt(15, 25);
-      buki = rng.nextInt(10, 20);
-      nin = rng.nextInt(8, 18);
-      phy = rng.nextInt(12, 20);
-      men = rng.nextInt(10, 18);
-      cha = rng.nextInt(8, 15);
-      title = 'Rogue Genin';
-      description = `A rogue ninja. Trained but turned to crime.`;
+      // Low chuunin underlings — trained ninja, but not elite
+      tai = rng.nextInt(20, 30);
+      buki = rng.nextInt(12, 22);
+      nin = rng.nextInt(10, 20);
+      phy = rng.nextInt(14, 22);
+      men = rng.nextInt(12, 20);
+      cha = rng.nextInt(10, 18);
+      title = 'Rogue Nin';
+      description = `A rogue ninja. Trained shinobi who abandoned their village.`;
       attackVerb = 'strike';
       isNinja = true;
       break;
 
     case 'rogue_chuunin':
-      tai = rng.nextInt(25, 40);
-      buki = rng.nextInt(15, 28);
-      nin = rng.nextInt(15, 30);
-      phy = rng.nextInt(18, 28);
-      men = rng.nextInt(15, 25);
-      cha = rng.nextInt(12, 22);
+      // Solid chuunin — experienced, reliable fighter
+      tai = rng.nextInt(28, 40);
+      buki = rng.nextInt(18, 30);
+      nin = rng.nextInt(20, 32);
+      phy = rng.nextInt(18, 26);
+      men = rng.nextInt(16, 24);
+      cha = rng.nextInt(14, 22);
       title = 'Rogue Chuunin';
       description = `A dangerous rogue chuunin. Experienced in real combat and ninjutsu.`;
       attackVerb = 'slash';
@@ -751,26 +753,28 @@ function spawnEnemy(
       break;
 
     case 'rogue_leader':
-      tai = rng.nextInt(35, 50);
-      buki = rng.nextInt(20, 35);
-      nin = rng.nextInt(25, 40);
-      phy = rng.nextInt(22, 32);
-      men = rng.nextInt(20, 30);
-      cha = rng.nextInt(15, 28);
+      // Strong chuunin — top of chuunin range, commands the group
+      tai = rng.nextInt(35, 48);
+      buki = rng.nextInt(22, 35);
+      nin = rng.nextInt(25, 38);
+      phy = rng.nextInt(20, 30);
+      men = rng.nextInt(20, 28);
+      cha = rng.nextInt(16, 26);
       title = 'Rogue Leader';
-      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A near-jonin level rogue who commands through fear and skill.`;
+      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A veteran chuunin-level rogue who commands through fear and skill.`;
       attackVerb = 'slash';
       isNinja = true;
       break;
 
-    // ── Missing-Nin tiers (A-rank) ──
+    // ── Missing-Nin tiers (A-rank — jonin level) ──
     case 'missing_operative':
-      tai = rng.nextInt(35, 50);
-      buki = rng.nextInt(25, 38);
-      nin = rng.nextInt(30, 45);
-      phy = rng.nextInt(25, 35);
-      men = rng.nextInt(22, 32);
-      cha = rng.nextInt(20, 32);
+      // Low jonin underlings — former village shinobi, dangerous
+      tai = rng.nextInt(42, 55);
+      buki = rng.nextInt(30, 42);
+      nin = rng.nextInt(35, 48);
+      phy = rng.nextInt(25, 34);
+      men = rng.nextInt(24, 32);
+      cha = rng.nextInt(22, 32);
       title = 'Missing-Nin';
       description = `A missing-nin operative. Jonin-level combat training, lethal and disciplined.`;
       attackVerb = 'strike';
@@ -778,12 +782,13 @@ function spawnEnemy(
       break;
 
     case 'missing_elite':
-      tai = rng.nextInt(45, 60);
-      buki = rng.nextInt(30, 45);
-      nin = rng.nextInt(40, 55);
-      phy = rng.nextInt(28, 38);
-      men = rng.nextInt(28, 38);
-      cha = rng.nextInt(25, 38);
+      // Solid jonin — high-level ninjutsu user
+      tai = rng.nextInt(50, 62);
+      buki = rng.nextInt(35, 48);
+      nin = rng.nextInt(45, 58);
+      phy = rng.nextInt(28, 36);
+      men = rng.nextInt(28, 36);
+      cha = rng.nextInt(26, 36);
       title = 'Elite Missing-Nin';
       description = `An elite missing-nin. Extremely dangerous — fights with precision and deadly ninjutsu.`;
       attackVerb = 'slash';
@@ -791,14 +796,15 @@ function spawnEnemy(
       break;
 
     case 'missing_commander':
-      tai = rng.nextInt(55, 70);
-      buki = rng.nextInt(35, 50);
-      nin = rng.nextInt(50, 65);
-      phy = rng.nextInt(30, 42);
-      men = rng.nextInt(32, 42);
-      cha = rng.nextInt(30, 42);
+      // Strong jonin — top of jonin range
+      tai = rng.nextInt(58, 70);
+      buki = rng.nextInt(40, 52);
+      nin = rng.nextInt(52, 65);
+      phy = rng.nextInt(30, 40);
+      men = rng.nextInt(30, 40);
+      cha = rng.nextInt(28, 40);
       title = 'Missing-Nin Commander';
-      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A feared missing-nin of near-legendary ability. Approach with extreme caution.`;
+      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A feared jonin-level missing-nin. Approach with extreme caution.`;
       attackVerb = 'slash';
       isNinja = true;
       break;
