@@ -8,6 +8,7 @@ import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { onRestrainedWake } from './restraintCarry.ts';
 import { processMissionEvent } from './missions.ts';
+import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 
 // ── STATE QUERIES ──
 
@@ -128,6 +129,15 @@ export function knockUnconscious(
   const pool = reason === 'willpower' ? UNCONSCIOUS_WILLPOWER_TEXT : UNCONSCIOUS_HP_TEXT;
   const msg = pool[Math.floor(Math.random() * pool.length)].replace(/\{name\}/g, name);
   world.log(msg, 'system');
+
+  // Floating KO text
+  const pos = world.positions.get(entityId);
+  if (pos) {
+    const KO_WORDS = reason === 'willpower'
+      ? ['I... can\'t...', 'No more...', 'My spirit...']
+      : ['Ugh...', 'Guh...', 'Can\'t... move...'];
+    spawnFloatingText(pos.x, pos.y, KO_WORDS[Math.floor(Math.random() * KO_WORDS.length)], '#cc8844', 2.0);
+  }
 }
 
 // ── KILL ──
@@ -173,6 +183,13 @@ export function killEntity(
   // Flavor text
   const msg = KILL_TEXT[Math.floor(Math.random() * KILL_TEXT.length)].replace(/\{name\}/g, name);
   world.log(msg, 'system');
+
+  // Floating death text
+  const pos = world.positions.get(entityId);
+  if (pos) {
+    const DEATH_WORDS = ['Ugh...', 'No...', 'Gah...!', '...'];
+    spawnFloatingText(pos.x, pos.y, DEATH_WORDS[Math.floor(Math.random() * DEATH_WORDS.length)], '#cc4444', 2.2);
+  }
 
   // Fire mission events when on an away mission
   if (world.awayMissionState && world.missionLog.active) {

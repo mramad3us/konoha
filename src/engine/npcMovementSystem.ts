@@ -11,6 +11,7 @@ import type { World } from './world.ts';
 import type { Direction, EntityId, AggroComponent } from '../types/ecs.ts';
 import { npcFaceTowardPlayer } from './surpriseAttack.ts';
 import { initiateNpcEngagement } from './combatSystem.ts';
+import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -397,6 +398,7 @@ function tickAggro(
         const health = world.healths.get(id);
         if (health) aggro.lastKnownHp = health.current;
         world.log(`${npcName} spots you!`, 'hit_incoming');
+        spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
       }
       break;
     }
@@ -407,6 +409,8 @@ function tickAggro(
         aggro.state = 'fleeing';
         ai.behavior = 'flee';
         world.log(`${npcName} tries to flee!`, 'info');
+        const FLEE_SHOUTS = ['Enough!', 'I\'m out of here!', 'Retreat!', 'Tch... too strong!', 'I won\'t die here!'];
+        spawnFloatingText(pos.x, pos.y, FLEE_SHOUTS[Math.floor(Math.random() * FLEE_SHOUTS.length)], '#ffaa44', 2.0);
       }
       // Update HP tracking
       const health = world.healths.get(id);
@@ -456,6 +460,8 @@ function tickChase(
     const isNew = initiateNpcEngagement(world, id, world.playerEntityId);
     if (isNew) {
       world.log(`${npcName} engages you in combat!`, 'hit_incoming');
+      const ENGAGE_SHOUTS = ['You\'re mine!', 'Fight me!', 'Prepare yourself!', 'Here I come!', 'Don\'t move!'];
+      spawnFloatingText(pos.x, pos.y, ENGAGE_SHOUTS[Math.floor(Math.random() * ENGAGE_SHOUTS.length)], '#ff6644', 1.8);
     }
     return;
   }

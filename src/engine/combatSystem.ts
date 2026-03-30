@@ -22,6 +22,7 @@ import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { tryCastJutsu } from './jutsuResolver.ts';
+import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 
 /** Active engagements keyed by "smaller_id:larger_id" */
 const engagements = new Map<string, CombatEngagement>();
@@ -218,6 +219,8 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
             if (subResult.success) {
               const npcName = world.names.get(outcome.defenderId)?.display ?? 'The enemy';
               world.log(`${npcName} forms a hand sign — substitution jutsu!`, 'info');
+              const subPos = world.positions.get(outcome.defenderId);
+              if (subPos) spawnFloatingText(subPos.x, subPos.y, 'Kawarimi!', '#66ccff');
               engagements.delete(engagementKey(playerId, targetId));
             }
           }
@@ -314,6 +317,30 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   }
 
   world.log(flavor, logCategory);
+
+  // ── Floating speech bubbles over combatants ──
+  {
+    const defPos = world.positions.get(outcome.defenderId);
+    const atkPos = world.positions.get(outcome.attackerId);
+
+    // Defender reacts to being hit
+    if (outcome.damage > 0 && defPos) {
+      const HIT_REACTIONS = ['Argh!', 'Tch!', 'Ngh!', 'Gah!', 'Kuh!'];
+      spawnFloatingText(defPos.x, defPos.y, HIT_REACTIONS[Math.floor(Math.random() * HIT_REACTIONS.length)], '#ff6666');
+    }
+
+    // Attacker reacts on whiff/parry
+    if (outcome.type === 'perfect_parry' && atkPos) {
+      const PARRY_REACTIONS = ['What?!', 'Tch!', 'Fast...!'];
+      spawnFloatingText(atkPos.x, atkPos.y, PARRY_REACTIONS[Math.floor(Math.random() * PARRY_REACTIONS.length)], '#aaaaaa');
+    }
+
+    // Critical hit — attacker exclaims
+    if (outcome.isCritical && atkPos) {
+      const CRIT_SHOUTS = ['Hah!', 'There!', 'Got you!', 'Take this!'];
+      spawnFloatingText(atkPos.x, atkPos.y, CRIT_SHOUTS[Math.floor(Math.random() * CRIT_SHOUTS.length)], '#ffcc44');
+    }
+  }
 
   // Log crit and condition separately
   if (outcome.isCritical) {

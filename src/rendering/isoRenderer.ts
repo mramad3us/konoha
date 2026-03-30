@@ -3,6 +3,7 @@ import type { World } from '../engine/world.ts';
 import { getNightDimFactor } from '../engine/gameTime.ts';
 import { getActiveEngagements } from '../engine/combatSystem.ts';
 import { drawParticles } from '../systems/particleSystem.ts';
+import { drawFloatingTexts } from '../systems/floatingTextSystem.ts';
 import { Camera } from './camera.ts';
 import { spriteCache } from './spriteCache.ts';
 import type { DrawCommand } from './depthSort.ts';
@@ -167,6 +168,9 @@ export class IsoRenderer {
 
     // ── Particles (smoke, chakra flashes) ──
     drawParticles(ctx, offset);
+
+    // ── Floating text (combat speech bubbles) ──
+    drawFloatingTexts(ctx, offset);
 
     // ── Night overlay ──
     const nightDim = getNightDimFactor(world.gameTimeSeconds);

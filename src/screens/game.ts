@@ -23,6 +23,7 @@ import { MissionBoardUI } from '../ui/missionBoardUI.ts';
 import { interactWithEntity } from '../engine/turnSystem.ts';
 import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus, getMissionXpMultiplier, getCRankData } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
+import { updateFloatingTexts } from '../systems/floatingTextSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
 import { saveSystem } from '../systems/saveSystem.ts';
@@ -953,6 +954,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       // Normal game rendering (village or mission map)
       camera.update(dt);
       updateParticles(dt);
+      updateFloatingTexts(dt);
       renderer.draw(world);
     }
 
