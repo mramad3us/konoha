@@ -105,7 +105,9 @@ export function canTakeMission(
     return { allowed: false, reason: `Requires ${req.minRank} rank` };
   }
 
-  if (req.prevRank && completedLog[req.prevRank] < req.minPrevCompleted) {
+  // Previous mission requirements only apply at the minimum rank tier
+  // Higher-ranked shinobi bypass the grind (e.g., chuunin+ skip the 15 D-rank requirement for C-rank)
+  if (req.prevRank && playerIdx <= reqIdx && completedLog[req.prevRank] < req.minPrevCompleted) {
     return { allowed: false, reason: `Complete ${req.minPrevCompleted} ${req.prevRank}-rank missions first (${completedLog[req.prevRank]}/${req.minPrevCompleted})` };
   }
 
