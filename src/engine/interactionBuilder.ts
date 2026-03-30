@@ -65,10 +65,10 @@ export function buildContextOptions(
     } else if (interactable.interactionType === 'mission_board') {
       options.push({ id: 'use_mission_board', label: 'Pick Mission', accent: true });
     } else if (interactable.interactionType === 'village_gate') {
-      // Show "Depart on Mission" if player has an active away mission
+      // Show "Depart on Mission" if player has an active away mission (C/B/A rank)
       if (world.missionLog?.active && !world.missionLog.active.objectiveComplete) {
         const templateKey = world.missionLog.active.mission.templateKey;
-        if (templateKey.startsWith('c_')) {
+        if (templateKey.startsWith('c_') || templateKey.startsWith('b_') || templateKey.startsWith('a_')) {
           options.push({ id: 'depart_mission', label: 'Depart on Mission', accent: true });
         }
       }

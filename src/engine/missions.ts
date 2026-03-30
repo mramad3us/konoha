@@ -227,9 +227,9 @@ const D_RANK_SEARCH: MissionTemplate = {
     const targets = [
       { name: 'a missing cat named Tora', sprite: 'obj_bush_small' },
       { name: 'a lost medicine pouch', sprite: 'obj_barrel' },
-      { name: 'a child\'s wooden kunai', sprite: 'obj_rock_small' },
+      { name: 'a child\'s wooden kunai', sprite: 'obj_scroll_case' },
       { name: 'a runaway chicken', sprite: 'obj_bush_flower' },
-      { name: 'a dropped scroll case', sprite: 'obj_rock_small' },
+      { name: 'a dropped scroll case', sprite: 'obj_scroll_case' },
     ];
     const target = targets[seed % targets.length];
     // Actual spawn position is computed when mission is accepted (needs World)

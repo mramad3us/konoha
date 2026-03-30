@@ -519,7 +519,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   {
     const gateId = world.createEntity();
     world.setPosition(gateId, { x: 77, y: 155, facing: 's' });
-    world.renderables.set(gateId, { spriteId: 'obj_rock_small', layer: 'object', offsetY: -4 });
+    world.renderables.set(gateId, { spriteId: 'obj_torii', layer: 'object', offsetY: -28 });
     world.blockings.set(gateId, { blocksMovement: false, blocksSight: false });
     world.names.set(gateId, { display: 'village gate', article: 'the' });
     world.objectSheets.set(gateId, { description: 'The main gate of Konohagakure. Beyond lies the world.', category: 'object' });
@@ -530,7 +530,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
 
   // Shrine (143,73 8×6) — interior: 144-149, 74-77
   torch(world, 145, 74, 'A sacred flame that never goes out.', 5);
-  spawn(world, { x: 148, y: 75, spriteId: 'obj_rock_medium', layer: 'object', offsetY: -30,
+  spawn(world, { x: 148, y: 75, spriteId: 'obj_altar', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'offering stone', article: 'an',
     description: 'A smooth stone altar for offerings to the village spirits.', category: 'object' });
   bench(world, 146, 77, 'prayer mat', 'A mat for kneeling in prayer. Worn smooth by many knees.');
@@ -573,7 +573,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   for (let y = 42; y <= 140; y += 6) bush(world, 79, y);
 
   // --- Memorial Stone ---
-  spawn(world, { x: 51, y: 59, spriteId: 'obj_rock_large', layer: 'object', offsetY: -14,
+  spawn(world, { x: 51, y: 59, spriteId: 'obj_memorial', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'Memorial Stone', article: 'the',
     description: 'A polished monument inscribed with names of fallen shinobi. Fresh flowers rest at its base.', category: 'object' });
 

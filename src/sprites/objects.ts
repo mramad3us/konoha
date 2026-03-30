@@ -819,3 +819,163 @@ export const OBJ_BENCH: PixelPattern = {
     '................',
   ],
 };
+
+// ── TORII GATE (red gate post) ──
+const TORII_PAL: Record<string, [number, number, number]> = {
+  r: [178, 34, 52],    // red paint
+  R: [210, 52, 68],    // red highlight
+  d: [140, 24, 38],    // red dark
+  w: [90, 70, 40],     // wood base
+  k: [60, 45, 25],     // dark wood
+};
+
+export const OBJ_TORII: PixelPattern = {
+  width: 16, height: 16,
+  palette: TORII_PAL,
+  pixels: [
+    '................',
+    '..dRRRRRRRRRd..',
+    '..dddddddddddd.',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '..dRRRRRRRRRd..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '...rR......Rr..',
+    '..kwk......kwk.',
+    '..kkk......kkk.',
+    '................',
+  ],
+};
+
+// ── ALTAR / OFFERING STONE ──
+const ALTAR_PAL: Record<string, [number, number, number]> = {
+  s: [140, 140, 145],  // stone
+  S: [160, 160, 168],  // stone highlight
+  d: [100, 100, 108],  // stone dark
+  c: [180, 160, 120],  // candle/offering
+  f: [240, 180, 60],   // flame
+};
+
+export const OBJ_ALTAR: PixelPattern = {
+  width: 16, height: 16,
+  palette: ALTAR_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '.......f........',
+    '......fc........',
+    '...dSSSSSSSd....',
+    '...dSssssSsd....',
+    '...dSssssSsd....',
+    '...dddddddddd..',
+    '....dSSSSSSd....',
+    '....dsssssd.....',
+    '....dsssssd.....',
+    '....ddddddd.....',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── MEMORIAL STONE (polished monument) ──
+const MEMORIAL_PAL: Record<string, [number, number, number]> = {
+  s: [120, 120, 130],  // polished stone
+  S: [150, 150, 160],  // stone highlight
+  d: [80, 80, 90],     // stone dark
+  g: [60, 90, 40],     // moss/grass at base
+  i: [180, 170, 140],  // inscription
+};
+
+export const OBJ_MEMORIAL: PixelPattern = {
+  width: 16, height: 16,
+  palette: MEMORIAL_PAL,
+  pixels: [
+    '................',
+    '.....dSSd.......',
+    '....dSSSSd......',
+    '....dSiiSd......',
+    '....dSiiSd......',
+    '....dSiiSd......',
+    '....dSiiSd......',
+    '....dSiiSd......',
+    '....dSsSsd......',
+    '...ddssssdd.....',
+    '...ddssssddd....',
+    '..gddddddddg...',
+    '..gg..gg..ggg...',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── SUPPLY CRATE (wooden crate) ──
+const CRATE_PAL: Record<string, [number, number, number]> = {
+  w: [130, 100, 55],   // wood
+  W: [155, 120, 68],   // wood highlight
+  d: [90, 68, 35],     // wood dark
+  m: [100, 90, 70],    // metal band
+  M: [130, 118, 95],   // metal highlight
+};
+
+export const OBJ_CRATE: PixelPattern = {
+  width: 16, height: 16,
+  palette: CRATE_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '....dWWWWWd.....',
+    '....mMMMMMm.....',
+    '....dWwwWWd.....',
+    '....dWwwwWd.....',
+    '....mMMMMMm.....',
+    '....dWwwWWd.....',
+    '....dWwwwWd.....',
+    '....mMMMMMm.....',
+    '....ddddddd.....',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
+// ── SCROLL CASE (small cylindrical case) ──
+const SCROLL_PAL: Record<string, [number, number, number]> = {
+  p: [180, 160, 130],  // parchment
+  P: [200, 185, 155],  // parchment highlight
+  d: [130, 110, 80],   // parchment dark
+  r: [140, 50, 50],    // red seal/cap
+  R: [170, 65, 65],    // red highlight
+};
+
+export const OBJ_SCROLL_CASE: PixelPattern = {
+  width: 16, height: 16,
+  palette: SCROLL_PAL,
+  pixels: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....rPPPPr.....',
+    '.....RPppPR.....',
+    '.....rddddr.....',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+};

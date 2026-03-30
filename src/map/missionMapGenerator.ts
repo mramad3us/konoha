@@ -444,8 +444,8 @@ function stampBanditCamp(world: World, cx: number, cy: number, _rng: SeededRng):
     { dx: -3, dy: -2, sprite: 'obj_sleeping_bag', name: 'bedroll', desc: 'A dirty bedroll. Smells of sweat and road dust.' },
     { dx: 2, dy: -3, sprite: 'obj_sleeping_bag', name: 'bedroll', desc: 'A threadbare bedroll, hastily laid out.' },
     { dx: -2, dy: 3, sprite: 'obj_sleeping_bag', name: 'bedroll', desc: 'An unrolled sleeping bag.' },
-    { dx: 4, dy: 1, sprite: 'obj_rock_small', name: 'supply crate', desc: 'Stolen goods piled carelessly. Marked crates from several villages.' },
-    { dx: -4, dy: 0, sprite: 'obj_rock_medium', name: 'weapon stash', desc: 'Crude weapons leaned against a rock. Axes, clubs, a rusty sword.' },
+    { dx: 4, dy: 1, sprite: 'obj_crate', name: 'supply crate', desc: 'Stolen goods piled carelessly. Marked crates from several villages.' },
+    { dx: -4, dy: 0, sprite: 'obj_weapons_rack', name: 'weapon stash', desc: 'Crude weapons leaned against a rock. Axes, clubs, a rusty sword.' },
   ];
 
   for (const obj of campObjects) {

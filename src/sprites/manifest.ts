@@ -10,6 +10,7 @@ import {
   OBJ_DOOR_CLOSED, OBJ_DOOR_OPEN,
   OBJ_DESK, OBJ_SHELF, OBJ_COUNTER, OBJ_WEAPONS_RACK, OBJ_MEDICINE_CABINET,
   OBJ_WELL, OBJ_BARREL, OBJ_SCARECROW, OBJ_BENCH,
+  OBJ_TORII, OBJ_ALTAR, OBJ_MEMORIAL, OBJ_CRATE, OBJ_SCROLL_CASE,
 } from './objects.ts';
 import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
@@ -89,6 +90,11 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'obj_barrel',           pattern: OBJ_BARREL,           displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_scarecrow',        pattern: OBJ_SCARECROW,        displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_bench',            pattern: OBJ_BENCH,            displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_torii',            pattern: OBJ_TORII,            displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_altar',            pattern: OBJ_ALTAR,            displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_memorial',         pattern: OBJ_MEMORIAL,         displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_crate',            pattern: OBJ_CRATE,            displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'obj_scroll_case',      pattern: OBJ_SCROLL_CASE,      displayWidth: 48, displayHeight: 48, outline: true },
 
   // Doors
   { id: 'obj_door_closed', pattern: OBJ_DOOR_CLOSED, displayWidth: 48, displayHeight: 48, outline: true },
