@@ -15,11 +15,7 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
     settings = { ...DEFAULT_SETTINGS };
   }
 
-  // Override the .screen flex centering — settings needs a top-aligned scrollable layout
-  container.style.justifyContent = 'flex-start';
-  container.style.overflow = 'auto';
-
-  // ── Back button (in normal flow at the top) ──
+  // ── Back button ──
   const backBtn = createElement('button', { className: 'back-btn' });
   backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
   backBtn.addEventListener('click', async () => {
