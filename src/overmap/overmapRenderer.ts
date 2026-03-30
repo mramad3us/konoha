@@ -1,15 +1,12 @@
 /**
  * Overmap pixel art renderer — tile-based world map on canvas.
  *
- * Approach (inspired by One-Party):
- * - Each tile = 1 fillRect, 4×4 pixel scale
- * - Terrain generated from elevation/moisture noise seeded to match Naruto geography
- * - Countries defined by center-point Voronoi assignment, NOT polygon borders
- * - Biome classification from nation + elevation + moisture → terrain color
- * - Rivers as blue tile overrides
- * - Roads as lighter tile paths between nodes
- * - Settlements as colored dots
- * - No polygon outlines, no hard borders — terrain blends naturally
+ * Uses a continent mask approach for organic coastlines:
+ * 1. Define landmass shape via distance-from-center + warped noise
+ * 2. Smooth coastal transitions: deep ocean → shallow → beach → land
+ * 3. Nations influence biome tendency via soft gradient (no hard borders)
+ * 4. Rivers flow from high to low elevation
+ * 5. Roads connect settlement nodes
  */
 
 import { OVERMAP_CANVAS_WIDTH, OVERMAP_CANVAS_HEIGHT } from '../core/constants.ts';
@@ -27,24 +24,25 @@ const ROWS = Math.floor(H / TILE_SIZE);
 
 // ── TERRAIN COLORS ──
 const TERRAIN_COLORS: Record<string, string> = {
-  deep_water:    '#0f2942',
-  shallow_water: '#1a4a70',
-  beach:         '#c8b060',
-  plains:        '#4a7a2a',
-  forest:        '#2a5a1a',
-  dense_forest:  '#1a3a10',
-  hills:         '#8a7a4a',
+  deep_water:    '#1a3355',
+  shallow_water: '#2a5580',
+  beach:         '#c8b868',
+  dry_grass:     '#8a9a48',
+  plains:        '#5a8a30',
+  light_forest:  '#3a7a22',
+  forest:        '#2a6018',
+  dense_forest:  '#1a4210',
+  hills:         '#7a7a42',
   mountain:      '#6a6a6a',
-  peak:          '#d0d0d0',
+  peak:          '#c8c8c8',
   desert:        '#c8a848',
   arid_plains:   '#9a8a40',
   swamp:         '#3a4a20',
   tundra:        '#8a9aa0',
-  snow:          '#c8d8e0',
+  snow:          '#c0d0d8',
   rocky:         '#7a6a5a',
-  volcanic:      '#6a2218',
+  volcanic:      '#5a2218',
   river:         '#2a6aaa',
-  road:          '#7a6a5a',
 };
 
 // Settlement rendering
@@ -58,10 +56,10 @@ const CAMPFIRE_COLORS = ['#FF6600', '#FF9933', '#FFCC00', '#FF4400'];
 const PAWN_BODY = '#E8C080';
 const PAWN_HAIR = '#2A2A3A';
 const PAWN_OUTLINE = '#1A1A2A';
-const CLOUD_COLOR = 'rgba(200, 200, 220, 0.12)';
+const CLOUD_COLOR = 'rgba(200, 200, 220, 0.10)';
 
 // ── NATION CENTERS (pixel coords on 800×600 map) ──
-// Each defines the "heart" of a nation. Tiles are assigned to the nearest center.
+// Each defines the "heart" of a nation. Tiles blend toward the nearest center's biome.
 interface NationCenter {
   id: string;
   name: string;
@@ -74,30 +72,54 @@ interface NationCenter {
   moistBias: number;
   /** Label position (pixel coords) */
   labelX: number; labelY: number;
-  /** Whether this is ocean or land */
-  isOcean?: boolean;
 }
 
 const NATION_CENTERS: NationCenter[] = [
-  // Major nations — positioned to match canonical Naruto geography
-  { id: 'fire',      name: 'Land of Fire',      cx: 490, cy: 260, biome: 'temperate', elevBias: 0,   moistBias: 30,  labelX: 490, labelY: 265 },
+  { id: 'fire',      name: 'Land of Fire',       cx: 490, cy: 260, biome: 'temperate', elevBias: 0,   moistBias: 30,  labelX: 490, labelY: 265 },
   { id: 'wind',      name: 'Land of Wind',       cx: 270, cy: 310, biome: 'desert',    elevBias: -20, moistBias: -60, labelX: 270, labelY: 310 },
   { id: 'earth',     name: 'Land of Earth',      cx: 340, cy: 110, biome: 'rocky',     elevBias: 40,  moistBias: -10, labelX: 340, labelY: 120 },
   { id: 'lightning', name: 'Land of Lightning',   cx: 650, cy: 90,  biome: 'cold',      elevBias: 30,  moistBias: 10,  labelX: 650, labelY: 95 },
   { id: 'water',     name: 'Land of Water',       cx: 730, cy: 240, biome: 'misty',     elevBias: -10, moistBias: 50,  labelX: 720, labelY: 235 },
-  // Minor nations
   { id: 'rain',      name: 'Land of Rain',        cx: 400, cy: 180, biome: 'swamp',     elevBias: -5,  moistBias: 40,  labelX: 400, labelY: 180 },
   { id: 'grass',     name: 'Land of Grass',       cx: 380, cy: 140, biome: 'temperate', elevBias: -10, moistBias: 20,  labelX: 380, labelY: 140 },
   { id: 'sound',     name: 'Land of Sound',       cx: 510, cy: 180, biome: 'temperate', elevBias: 10,  moistBias: 0,   labelX: 505, labelY: 180 },
-  { id: 'tea',       name: 'Land of Tea',          cx: 610, cy: 380, biome: 'tropical',  elevBias: -15, moistBias: 20,  labelX: 610, labelY: 380 },
-  { id: 'rivers',    name: 'Land of Rivers',       cx: 425, cy: 355, biome: 'swamp',     elevBias: -10, moistBias: 50,  labelX: 425, labelY: 355 },
-  // Ocean zones (to fill edges)
-  { id: 'ocean_nw',  name: '', cx: 80,  cy: 80,  biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
-  { id: 'ocean_sw',  name: '', cx: 80,  cy: 520, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
-  { id: 'ocean_se',  name: '', cx: 700, cy: 520, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
-  { id: 'ocean_ne',  name: '', cx: 780, cy: 100, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
-  { id: 'ocean_s',   name: '', cx: 400, cy: 580, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
-  { id: 'ocean_e',   name: '', cx: 790, cy: 350, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'tea',       name: 'Land of Tea',         cx: 610, cy: 380, biome: 'tropical',  elevBias: -15, moistBias: 20,  labelX: 610, labelY: 380 },
+  { id: 'rivers',    name: 'Land of Rivers',      cx: 425, cy: 355, biome: 'swamp',     elevBias: -10, moistBias: 50,  labelX: 425, labelY: 355 },
+];
+
+// ── CONTINENT SHAPE ──
+// The continent is defined by anchor points that form the rough outline.
+// The continent mask uses distance-to-nearest-anchor + warped noise for organic edges.
+
+/** Anchor points that define the landmass extent */
+const CONTINENT_ANCHORS = [
+  // Main continent body
+  { x: 400, y: 260, r: 220 },  // Center of the continent (large radius)
+  { x: 490, y: 240, r: 180 },  // Fire country heart
+  { x: 340, y: 150, r: 140 },  // Earth country
+  { x: 540, y: 200, r: 120 },  // Sound/Fire border area
+  { x: 650, y: 100, r: 100 },  // Lightning — a peninsula
+  { x: 400, y: 350, r: 130 },  // Rivers/Tea direction
+  { x: 310, y: 280, r: 110 },  // Wind country edge
+  { x: 580, y: 340, r: 100 },  // Tea peninsula
+  { x: 270, y: 200, r: 80 },   // Wind north edge
+  // Peninsulas and extensions
+  { x: 680, y: 130, r: 60 },   // Lightning peninsula tip
+  { x: 620, y: 380, r: 70 },   // Tea peninsula tip
+  { x: 240, y: 340, r: 60 },   // Wind south coast
+  { x: 450, y: 400, r: 60 },   // South coast
+  { x: 500, y: 130, r: 60 },   // North fire
+];
+
+/** Small island patches for additional landmass detail */
+const ISLANDS = [
+  { x: 730, y: 230, r: 35 },   // Water country — island nation
+  { x: 750, y: 250, r: 25 },   // Water country island
+  { x: 710, y: 210, r: 20 },   // Small island
+  { x: 180, y: 240, r: 18 },   // Western islet
+  { x: 160, y: 370, r: 22 },   // Southwest island
+  { x: 550, y: 430, r: 15 },   // Southern islet
+  { x: 690, y: 300, r: 16 },   // Eastern islet
 ];
 
 // ── NOISE GENERATION ──
@@ -111,7 +133,7 @@ function noise2d(x: number, y: number, scale: number, seed: number): number {
   const fx = sx - ix;
   const fy = sy - iy;
 
-  // Smooth interpolation
+  // Smooth interpolation (cubic hermite)
   const ux = fx * fx * (3 - 2 * fx);
   const uy = fy * fy * (3 - 2 * fy);
 
@@ -140,6 +162,46 @@ function fbmNoise(x: number, y: number, octaves: number, scale: number, seed: nu
   return value / totalAmp;
 }
 
+// ── CONTINENT MASK ──
+
+/**
+ * Compute the "landness" of a pixel position (0 = deep ocean, 1 = solid land).
+ * Uses distance to continent anchors + domain-warped noise for organic edges.
+ */
+function continentMask(px: number, py: number): number {
+  // Domain warp — shift sample position by noise for organic coastlines
+  const warpScale = 80;
+  const warpAmt = 35;
+  const wx = px + (fbmNoise(px, py, 3, warpScale, 500) - 0.5) * warpAmt * 2;
+  const wy = py + (fbmNoise(px, py, 3, warpScale, 700) - 0.5) * warpAmt * 2;
+
+  // Find best contribution from continent anchors
+  let bestVal = 0;
+  for (const a of CONTINENT_ANCHORS) {
+    const dx = wx - a.x;
+    const dy = wy - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Smooth falloff from anchor center
+    const val = Math.max(0, 1 - dist / a.r);
+    if (val > bestVal) bestVal = val;
+  }
+
+  // Islands contribute separately with smaller influence
+  for (const isl of ISLANDS) {
+    const dx = wx - isl.x;
+    const dy = wy - isl.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const val = Math.max(0, 1 - dist / isl.r);
+    if (val > bestVal) bestVal = val;
+  }
+
+  // Add fine noise to the mask for rough coastlines
+  const coastNoise = fbmNoise(px, py, 4, 25, 300) * 0.35;
+  bestVal += coastNoise - 0.15;
+
+  return Math.max(0, Math.min(1, bestVal));
+}
+
 // ── TILE MAP GENERATION ──
 
 interface MapTile {
@@ -154,49 +216,21 @@ interface MapTile {
 function generateTileMap(): MapTile[] {
   const tiles: MapTile[] = new Array(COLS * ROWS);
 
-  // Step 1: Assign each tile to nearest nation center
-  const nationMap: string[] = new Array(COLS * ROWS);
-  const nationBiome: Map<string, NationCenter> = new Map();
-  for (const nc of NATION_CENTERS) {
-    nationBiome.set(nc.id, nc);
-  }
-
-  for (let ty = 0; ty < ROWS; ty++) {
-    for (let tx = 0; tx < COLS; tx++) {
-      const px = tx * TILE_SIZE + TILE_SIZE / 2;
-      const py = ty * TILE_SIZE + TILE_SIZE / 2;
-
-      let bestDist = Infinity;
-      let bestNation = 'fire';
-      for (const nc of NATION_CENTERS) {
-        const dx = px - nc.cx;
-        const dy = py - nc.cy;
-        // Add noise to distance for organic borders
-        const jitter = (cellHash(tx * 7 + 13, ty * 11 + 37) % 60) - 30;
-        const dist = dx * dx + dy * dy + jitter * 40;
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestNation = nc.id;
-        }
-      }
-      nationMap[ty * COLS + tx] = bestNation;
-    }
-  }
-
-  // Step 2: Generate elevation and moisture via noise
+  // Step 1: Generate continent mask, elevation, moisture, and assign nations
   for (let ty = 0; ty < ROWS; ty++) {
     for (let tx = 0; tx < COLS; tx++) {
       const idx = ty * COLS + tx;
-      const px = tx * TILE_SIZE;
-      const py = ty * TILE_SIZE;
-      const nationId = nationMap[idx];
-      const nation = nationBiome.get(nationId)!;
+      const px = tx * TILE_SIZE + TILE_SIZE / 2;
+      const py = ty * TILE_SIZE + TILE_SIZE / 2;
 
-      if (nation.isOcean) {
+      const landVal = continentMask(px, py);
+
+      // Ocean tiles
+      if (landVal < 0.15) {
         tiles[idx] = {
-          terrain: 'deep_water',
-          nationId,
-          elevation: 10,
+          terrain: landVal < 0.05 ? 'deep_water' : 'shallow_water',
+          nationId: 'ocean',
+          elevation: landVal * 100,
           moisture: 100,
           isRoad: false,
           isRiver: false,
@@ -204,29 +238,52 @@ function generateTileMap(): MapTile[] {
         continue;
       }
 
-      // Base elevation from noise
-      let elevation = fbmNoise(px, py, 4, 40, 42) * 255;
-      elevation += nation.elevBias;
-
-      // Edge falloff — gradually lower terrain toward map edges for ocean
-      const edgeDist = Math.min(px, py, W - px, H - py);
-      if (edgeDist < 80) {
-        elevation -= (80 - edgeDist) * 1.5;
+      // Beach transition
+      if (landVal < 0.22) {
+        tiles[idx] = {
+          terrain: 'beach',
+          nationId: 'coast',
+          elevation: 50 + landVal * 50,
+          moisture: 60,
+          isRoad: false,
+          isRiver: false,
+        };
+        continue;
       }
 
-      // Moisture from different noise seed
-      let moisture = fbmNoise(px, py, 3, 50, 137) * 255;
-      moisture += nation.moistBias;
+      // Determine nation influence (soft blend, not hard Voronoi)
+      let bestNation = NATION_CENTERS[0];
+      let bestScore = Infinity;
+      for (const nc of NATION_CENTERS) {
+        const dx = px - nc.cx;
+        const dy = py - nc.cy;
+        // Jitter distance for softer boundaries
+        const jitter = (cellHash(tx * 7 + 13, ty * 11 + 37) % 40) - 20;
+        const dist = Math.sqrt(dx * dx + dy * dy) + jitter;
+        if (dist < bestScore) {
+          bestScore = dist;
+          bestNation = nc;
+        }
+      }
 
-      elevation = Math.max(0, Math.min(255, elevation));
+      // Elevation from noise + nation bias
+      let elevation = fbmNoise(px, py, 5, 45, 42) * 200 + 55;
+      elevation += bestNation.elevBias;
+      // Terrain is naturally higher in the interior
+      elevation += landVal * 30;
+
+      // Moisture from different noise seed + nation bias
+      let moisture = fbmNoise(px, py, 4, 55, 137) * 255;
+      moisture += bestNation.moistBias;
+
+      elevation = Math.max(60, Math.min(255, elevation));
       moisture = Math.max(0, Math.min(255, moisture));
 
-      // Classify terrain
-      const terrain = classifyBiome(elevation, moisture, nation.biome);
+      const terrain = classifyBiome(elevation, moisture, bestNation.biome, landVal);
 
       tiles[idx] = {
         terrain,
-        nationId,
+        nationId: bestNation.id,
         elevation,
         moisture,
         isRoad: false,
@@ -235,47 +292,48 @@ function generateTileMap(): MapTile[] {
     }
   }
 
-  // Step 3: Stamp rivers — winding blue paths through terrain
+  // Step 2: Rivers
   stampRivers(tiles);
 
-  // Step 4: Stamp roads connecting nodes
+  // Step 3: Roads
   stampRoads(tiles);
 
   return tiles;
 }
 
-function classifyBiome(elev: number, moist: number, nationBiome: string): string {
-  // Water at very low elevations
-  if (elev < 35) return 'deep_water';
-  if (elev < 50) return 'shallow_water';
-  if (elev < 58) return 'beach';
+function classifyBiome(elev: number, moist: number, nationBiome: string, landVal: number): string {
+  // Near-coast areas tend to be lighter/drier
+  if (landVal < 0.3) {
+    if (moist > 140) return 'plains';
+    return 'dry_grass';
+  }
 
   // Mountain at very high elevations
   if (elev > 220) return 'peak';
-  if (elev > 190) return 'mountain';
-  if (elev > 165) return 'hills';
+  if (elev > 195) return 'mountain';
+  if (elev > 170) return 'hills';
 
-  // Nation-specific biomes for mid elevations
+  // Nation-specific biomes
   switch (nationBiome) {
     case 'desert':
       if (moist < 60) return 'desert';
       if (moist < 100) return 'arid_plains';
-      return 'plains';
+      return 'dry_grass';
 
     case 'rocky':
-      if (elev > 140) return 'rocky';
+      if (elev > 145) return 'rocky';
       if (moist > 150) return 'forest';
       return 'hills';
 
     case 'cold':
-      if (elev > 140) return 'snow';
+      if (elev > 145) return 'snow';
       if (moist > 120) return 'tundra';
       return 'hills';
 
     case 'misty':
       if (moist > 160) return 'dense_forest';
       if (moist > 100) return 'forest';
-      return 'plains';
+      return 'light_forest';
 
     case 'swamp':
       if (moist > 160) return 'swamp';
@@ -285,35 +343,36 @@ function classifyBiome(elev: number, moist: number, nationBiome: string): string
     case 'tropical':
       if (moist > 140) return 'dense_forest';
       if (moist > 80) return 'forest';
-      return 'plains';
+      return 'light_forest';
 
     case 'volcanic':
-      if (elev > 150) return 'volcanic';
+      if (elev > 155) return 'volcanic';
       return 'rocky';
 
     default: // temperate
       if (moist > 170) return 'dense_forest';
-      if (moist > 120) return 'forest';
-      if (moist > 60) return 'plains';
-      return 'arid_plains';
+      if (moist > 130) return 'forest';
+      if (moist > 90) return 'light_forest';
+      if (moist > 50) return 'plains';
+      return 'dry_grass';
   }
 }
 
 /** Stamp winding river paths through the terrain */
 function stampRivers(tiles: MapTile[]): void {
-  // River seeds — start from mountain areas, flow toward low elevation
   const riverStarts = [
     { tx: 85, ty: 25 },  // From Earth mountains
     { tx: 105, ty: 50 }, // Through Fire
     { tx: 160, ty: 20 }, // From Lightning mountains
     { tx: 70, ty: 70 },  // Through Grass/Rain
+    { tx: 120, ty: 65 }, // Fire interior
   ];
 
   for (const start of riverStarts) {
     let tx = start.tx;
     let ty = start.ty;
 
-    for (let step = 0; step < 80; step++) {
+    for (let step = 0; step < 100; step++) {
       if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) break;
       const idx = ty * COLS + tx;
       if (!tiles[idx]) break;
@@ -324,9 +383,22 @@ function stampRivers(tiles: MapTile[]): void {
       tiles[idx].isRiver = true;
       tiles[idx].terrain = 'river';
 
+      // Also set adjacent tile for wider river in places
+      if (step % 3 === 0) {
+        const side = (cellHash(tx + step, ty) % 2 === 0) ? 1 : -1;
+        const adjIdx = ty * COLS + (tx + side);
+        if (tx + side >= 0 && tx + side < COLS && tiles[adjIdx]) {
+          const adjTerr = tiles[adjIdx].terrain;
+          if (adjTerr !== 'deep_water' && adjTerr !== 'shallow_water' && adjTerr !== 'beach') {
+            tiles[adjIdx].isRiver = true;
+            tiles[adjIdx].terrain = 'river';
+          }
+        }
+      }
+
       // Flow toward lowest neighbor with some randomness
       let bestTx = tx;
-      let bestTy = ty + 1; // default: flow south
+      let bestTy = ty + 1;
       let bestElev = Infinity;
 
       for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1]]) {
@@ -357,33 +429,30 @@ function stampRoads(tiles: MapTile[]): void {
     const to = getOvermapNode(edge.to);
     if (!from || !to) continue;
 
-    // Build pixel point path
     const points = [
       { x: from.x, y: from.y },
       ...edge.waypoints,
       { x: to.x, y: to.y },
     ];
 
-    // Rasterize road along point segments
     for (let i = 0; i < points.length - 1; i++) {
       const ax = points[i].x;
       const ay = points[i].y;
       const bx = points[i + 1].x;
       const by = points[i + 1].y;
       const dist = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
-      const steps = Math.ceil(dist / 2); // step every 2px
+      const steps = Math.ceil(dist / 2);
 
       for (let s = 0; s <= steps; s++) {
         const t = s / Math.max(1, steps);
         const px = ax + (bx - ax) * t;
         const py = ay + (by - ay) * t;
-        const tx = Math.floor(px / TILE_SIZE);
-        const ty = Math.floor(py / TILE_SIZE);
-        if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) continue;
-        const idx = ty * COLS + tx;
+        const ttx = Math.floor(px / TILE_SIZE);
+        const tty = Math.floor(py / TILE_SIZE);
+        if (ttx < 0 || ttx >= COLS || tty < 0 || tty >= ROWS) continue;
+        const idx = tty * COLS + ttx;
         if (!tiles[idx]) continue;
-        // Don't overwrite water
-        if (tiles[idx].terrain === 'deep_water' || tiles[idx].terrain === 'shallow_water') continue;
+        if (tiles[idx].terrain === 'deep_water' || tiles[idx].terrain === 'shallow_water' || tiles[idx].terrain === 'river') continue;
         tiles[idx].isRoad = true;
       }
     }
@@ -424,13 +493,13 @@ export class OvermapRenderer {
     this.bgCtx.imageSmoothingEnabled = false;
 
     // Generate clouds
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
       this.clouds.push({
         x: cellHash(i, 0) % W,
         y: 30 + (cellHash(i, 1) % (H - 100)),
-        width: 40 + (cellHash(i, 2) % 60),
-        height: 12 + (cellHash(i, 3) % 16),
-        speed: 2 + (cellHash(i, 4) % 6),
+        width: 50 + (cellHash(i, 2) % 80),
+        height: 10 + (cellHash(i, 3) % 14),
+        speed: 1.5 + (cellHash(i, 4) % 4),
       });
     }
   }
@@ -478,7 +547,7 @@ export class OvermapRenderer {
     const ctx = this.bgCtx;
     const tiles = this.tileMap!;
 
-    // Draw each tile as a colored rect
+    // Draw each tile
     for (let ty = 0; ty < ROWS; ty++) {
       for (let tx = 0; tx < COLS; tx++) {
         const tile = tiles[ty * COLS + tx];
@@ -486,7 +555,6 @@ export class OvermapRenderer {
 
         let color: string;
         if (tile.isRoad && !tile.isRiver) {
-          // Road tiles: lighter brown path
           color = '#8a7a60';
         } else {
           color = TERRAIN_COLORS[tile.terrain] ?? '#333';
@@ -495,42 +563,38 @@ export class OvermapRenderer {
         ctx.fillStyle = color;
         ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
-        // Pixel variation — subtle lighter/darker speckling within each tile
+        // Subtle pixel variation for non-water tiles
         const h = cellHash(tx, ty);
         if (tile.terrain !== 'deep_water' && tile.terrain !== 'shallow_water' && tile.terrain !== 'river') {
           if (h % 7 === 0) {
-            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
             ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, 2, 2);
           } else if (h % 11 === 0) {
-            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fillStyle = 'rgba(0,0,0,0.06)';
             ctx.fillRect(tx * TILE_SIZE + 2, ty * TILE_SIZE + 2, 2, 2);
           }
         }
       }
     }
 
-    // Draw nation labels (text over terrain, no borders)
+    // Nation labels (subtle, over terrain)
     for (const nation of NATION_CENTERS) {
-      if (!nation.name || nation.isOcean) continue;
+      if (!nation.name) continue;
 
       ctx.font = '7px monospace';
       ctx.textAlign = 'center';
-
-      // Shadow
       ctx.fillStyle = LABEL_SHADOW;
       ctx.fillText(nation.name, nation.labelX + 1, nation.labelY + 1);
-      // Text
-      ctx.fillStyle = 'rgba(232, 224, 208, 0.5)';
+      ctx.fillStyle = 'rgba(232, 224, 208, 0.45)';
       ctx.fillText(nation.name, nation.labelX, nation.labelY);
     }
 
-    // Draw settlement nodes
+    // Settlement nodes
     for (const node of OVERMAP_NODES) {
       this.drawNode(ctx, node);
     }
   }
 
-  /** Draw a settlement node as a colored dot with label */
   private drawNode(ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D, node: typeof OVERMAP_NODES[0]): void {
     let color: string;
     let size: number;
@@ -560,23 +624,22 @@ export class OvermapRenderer {
     ctx.fillText(node.name, node.x, node.y + size + fontSize + 1);
   }
 
-  /** Animated water shimmer on ocean and river tiles */
+  /** Animated water shimmer */
   private drawWaterShimmer(): void {
     const ctx = this.ctx;
     const phase = this.waterPhase;
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       const bx = cellHash(i, 100) % W;
       const by = cellHash(i, 200) % H;
-      // Only shimmer on water tiles
       const tx = Math.floor(bx / TILE_SIZE);
       const ty = Math.floor(by / TILE_SIZE);
       if (tx >= 0 && tx < COLS && ty >= 0 && ty < ROWS) {
         const tile = this.tileMap?.[ty * COLS + tx];
         if (tile && (tile.terrain === 'deep_water' || tile.terrain === 'shallow_water' || tile.terrain === 'river')) {
           const offset = Math.sin(phase + i * 0.7) * 2;
-          ctx.fillStyle = 'rgba(120, 160, 200, 0.15)';
-          ctx.fillRect(bx + offset, by, 6, 1);
+          ctx.fillStyle = 'rgba(120, 160, 200, 0.12)';
+          ctx.fillRect(bx + offset, by, 5, 1);
         }
       }
     }
@@ -593,8 +656,8 @@ export class OvermapRenderer {
       const cx = Math.floor(cloud.x);
       const cy = Math.floor(cloud.y);
       ctx.fillRect(cx, cy, cloud.width, cloud.height);
-      ctx.fillRect(cx + cloud.width * 0.2, cy - 4, cloud.width * 0.3, 6);
-      ctx.fillRect(cx + cloud.width * 0.5, cy - 3, cloud.width * 0.25, 5);
+      ctx.fillRect(cx + cloud.width * 0.2, cy - 4, cloud.width * 0.3, 5);
+      ctx.fillRect(cx + cloud.width * 0.5, cy - 3, cloud.width * 0.25, 4);
     }
   }
 
@@ -638,194 +701,79 @@ export class OvermapRenderer {
       ctx.strokeStyle = '#FF6644';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(dest.x, dest.y, pulse, 0, Math.PI * 2);
+      ctx.arc(dest.x, dest.y, pulse + 4, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
 
-  /** Draw the chibi pawn at current travel position */
+  /** Draw the traveler pawn */
   private drawPawn(state: OvermapTravelState): void {
     const ctx = this.ctx;
-    const pos = this.getPawnPosition(state);
-    if (!pos) return;
+    const { currentX, currentY } = state;
 
-    const px = Math.floor(pos.x);
-    const py = Math.floor(pos.y);
+    // Walking bob
+    const bobY = Math.sin(this.animTime * 4) * 1.5;
+    const px = Math.floor(currentX);
+    const py = Math.floor(currentY + bobY);
 
-    if (state.isCamped) {
-      // Campfire
-      this.drawCampfire(px, py + 4);
-      // Sleeping pawn
-      ctx.fillStyle = PAWN_OUTLINE;
-      ctx.fillRect(px - 5, py - 1, 10, 4);
-      ctx.fillStyle = PAWN_BODY;
-      ctx.fillRect(px - 4, py, 8, 2);
-      ctx.fillStyle = PAWN_HAIR;
-      ctx.fillRect(px - 4, py, 2, 2);
-    } else {
-      // Walking pawn
-      const bobY = Math.floor(Math.sin(this.animTime * 6) * 1);
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(px - 3, py + 5, 6, 2);
 
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(px - 2, py + 5, 5, 2);
-      // Body outline
-      ctx.fillStyle = PAWN_OUTLINE;
-      ctx.fillRect(px - 3, py - 7 + bobY, 7, 12);
-      // Body
-      ctx.fillStyle = PAWN_BODY;
-      ctx.fillRect(px - 2, py - 6 + bobY, 5, 10);
-      // Hair
-      ctx.fillStyle = PAWN_HAIR;
-      ctx.fillRect(px - 2, py - 6 + bobY, 5, 3);
-      // Eyes
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(px - 1, py - 3 + bobY, 1, 1);
-      ctx.fillRect(px + 1, py - 3 + bobY, 1, 1);
-      // Headband
-      ctx.fillStyle = '#3366AA';
-      ctx.fillRect(px - 2, py - 4 + bobY, 5, 1);
+    // Body
+    ctx.fillStyle = PAWN_OUTLINE;
+    ctx.fillRect(px - 4, py - 8, 8, 14);
+    ctx.fillStyle = PAWN_BODY;
+    ctx.fillRect(px - 3, py - 7, 6, 12);
 
-      // Walking legs
-      const legPhase = Math.floor(this.animTime * 4) % 2;
-      ctx.fillStyle = PAWN_OUTLINE;
-      if (legPhase === 0) {
-        ctx.fillRect(px - 1, py + 4 + bobY, 1, 2);
-        ctx.fillRect(px + 1, py + 3 + bobY, 1, 2);
-      } else {
-        ctx.fillRect(px - 1, py + 3 + bobY, 1, 2);
-        ctx.fillRect(px + 1, py + 4 + bobY, 1, 2);
-      }
+    // Head
+    ctx.fillStyle = PAWN_OUTLINE;
+    ctx.fillRect(px - 3, py - 12, 6, 6);
+    ctx.fillStyle = PAWN_BODY;
+    ctx.fillRect(px - 2, py - 11, 4, 4);
+    // Hair
+    ctx.fillStyle = PAWN_HAIR;
+    ctx.fillRect(px - 2, py - 12, 4, 2);
+    // Headband
+    ctx.fillStyle = '#4466AA';
+    ctx.fillRect(px - 3, py - 10, 6, 1);
+
+    // Campfire at night (if stopped)
+    if (state.isCamping) {
+      const fireColor = CAMPFIRE_COLORS[Math.floor(this.animTime * 5) % CAMPFIRE_COLORS.length];
+      ctx.fillStyle = fireColor;
+      ctx.fillRect(px + 6, py, 3, 3);
+      ctx.fillRect(px + 7, py - 2, 1, 2);
+      // Glow
+      ctx.fillStyle = 'rgba(255, 120, 0, 0.15)';
+      ctx.fillRect(px, py - 6, 16, 16);
     }
   }
 
-  /** Draw a small animated campfire */
-  private drawCampfire(x: number, y: number): void {
-    const ctx = this.ctx;
-    const frame = Math.floor(this.animTime * 8) % 4;
-
-    // Fire glow
-    ctx.fillStyle = 'rgba(255, 120, 20, 0.15)';
-    ctx.beginPath();
-    ctx.arc(x, y, 8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Logs
-    ctx.fillStyle = '#5A3A1A';
-    ctx.fillRect(x - 3, y + 1, 6, 2);
-    ctx.fillRect(x - 2, y + 2, 4, 1);
-
-    // Flame
-    ctx.fillStyle = CAMPFIRE_COLORS[frame];
-    ctx.fillRect(x - 1, y - 2, 3, 3);
-    ctx.fillStyle = CAMPFIRE_COLORS[(frame + 1) % 4];
-    ctx.fillRect(x, y - 4, 1, 2);
-
-    // Sparks
-    if (frame % 2 === 0) {
-      ctx.fillStyle = '#FFCC00';
-      const sparkY = y - 5 - (cellHash(frame, Math.floor(this.animTime)) % 3);
-      ctx.fillRect(x + (frame % 3) - 1, sparkY, 1, 1);
-    }
-  }
-
-  /** Calculate pawn pixel position along travel route */
-  private getPawnPosition(state: OvermapTravelState): { x: number; y: number } | null {
-    const path = state.path;
-    if (path.length < 2) {
-      const node = getOvermapNode(path[0] ?? state.origin);
-      return node ? { x: node.x, y: node.y } : null;
-    }
-
-    const edgeIdx = Math.min(state.currentEdgeIndex, path.length - 2);
-    const fromNode = getOvermapNode(path[edgeIdx]);
-    const toNode = getOvermapNode(path[edgeIdx + 1]);
-    if (!fromNode || !toNode) return null;
-
-    const edge = getEdge(path[edgeIdx], path[edgeIdx + 1]);
-    const t = state.progressOnEdge;
-
-    const allPts = [
-      { x: fromNode.x, y: fromNode.y },
-      ...(edge?.waypoints ?? []),
-      { x: toNode.x, y: toNode.y },
-    ];
-
-    // Interpolate along segments
-    const totalLen = allPts.reduce((sum, pt, i) => {
-      if (i === 0) return 0;
-      const dx = pt.x - allPts[i - 1].x;
-      const dy = pt.y - allPts[i - 1].y;
-      return sum + Math.sqrt(dx * dx + dy * dy);
-    }, 0);
-
-    const targetDist = t * totalLen;
-    let accumulated = 0;
-
-    for (let i = 1; i < allPts.length; i++) {
-      const dx = allPts[i].x - allPts[i - 1].x;
-      const dy = allPts[i].y - allPts[i - 1].y;
-      const segLen = Math.sqrt(dx * dx + dy * dy);
-      if (accumulated + segLen >= targetDist || i === allPts.length - 1) {
-        const segT = segLen > 0 ? (targetDist - accumulated) / segLen : 0;
-        return {
-          x: allPts[i - 1].x + dx * Math.min(1, segT),
-          y: allPts[i - 1].y + dy * Math.min(1, segT),
-        };
-      }
-      accumulated += segLen;
-    }
-
-    return { x: toNode.x, y: toNode.y };
-  }
-
-  /** Draw travel HUD overlay */
+  /** Draw travel info HUD */
   private drawTravelInfo(state: OvermapTravelState): void {
     const ctx = this.ctx;
+    const dest = getOvermapNode(state.destination);
+    if (!dest) return;
 
-    // Bottom bar
+    const kmLeft = Math.max(0, state.totalDistanceKm - state.traveledKm);
+    const hours = kmLeft / 5; // ~5 km/h walk speed
+    const hoursDisp = hours < 1 ? 'Less than 1 hour' : `~${Math.ceil(hours)} hours`;
+
+    // Semi-transparent info box at top
     ctx.fillStyle = 'rgba(10, 10, 20, 0.7)';
-    ctx.fillRect(0, H - 40, W, 40);
+    ctx.fillRect(0, 0, W, 24);
 
     ctx.font = '8px monospace';
     ctx.textAlign = 'left';
-
-    const dest = getOvermapNode(state.destination);
-    const destName = dest?.name ?? 'Unknown';
-    const remaining = Math.max(0, state.totalDistanceKm - state.distanceCoveredKm);
-
     ctx.fillStyle = '#C0B090';
-    ctx.fillText(`Destination: ${destName}`, 8, H - 26);
-    ctx.fillText(`Distance: ${remaining.toFixed(0)} km remaining`, 8, H - 14);
+    ctx.fillText(`Destination: ${dest.name}`, 8, 10);
+    ctx.fillText(`Distance: ${kmLeft.toFixed(0)} km  |  ETA: ${hoursDisp}`, 8, 20);
 
-    if (state.isCamped) {
-      ctx.fillStyle = '#FFAA44';
+    if (state.isCamping) {
       ctx.textAlign = 'right';
-      ctx.fillText('Making camp for the night...', W - 8, H - 20);
-    } else {
-      const hoursLeft = remaining / state.travelSpeedKmPerHour;
-      ctx.fillStyle = '#90A090';
-      ctx.textAlign = 'right';
-      ctx.fillText(`~${hoursLeft.toFixed(1)} hours remaining`, W - 8, H - 20);
+      ctx.fillStyle = '#FFA040';
+      ctx.fillText('Camping for the night...', W - 8, 15);
     }
-
-    // Top bar
-    ctx.fillStyle = 'rgba(10, 10, 20, 0.5)';
-    ctx.fillRect(0, 0, W, 20);
-    ctx.fillStyle = '#C0B090';
-    ctx.font = '7px monospace';
-    ctx.textAlign = 'center';
-    const orig = getOvermapNode(state.origin);
-    ctx.fillText(`${orig?.name ?? 'Unknown'} → ${destName}`, W / 2, 13);
-  }
-
-  /** Force re-render of background */
-  invalidateBackground(): void {
-    this.bgRendered = false;
-    this.tileMap = null;
-  }
-
-  dispose(): void {
-    // Nothing to clean up
   }
 }
