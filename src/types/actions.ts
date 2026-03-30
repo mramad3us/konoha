@@ -6,7 +6,8 @@ export type GameAction =
   | { type: 'toggleKeybindings' }
   | { type: 'toggleCharacterSheet' }
   | { type: 'toggleMissionLog' }
-  | { type: 'interact' };
+  | { type: 'interact' }
+  | { type: 'toggleROE' };
 
 /** Log entry categories for color-coding */
 export type LogCategory =

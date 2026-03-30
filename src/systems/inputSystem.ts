@@ -7,6 +7,7 @@ import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngage
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
 import type { World } from '../engine/world.ts';
+import { toggleROE } from '../engine/squadSystem.ts';
 import type { Camera } from '../rendering/camera.ts';
 import type { GameHud } from '../ui/gameHud.ts';
 import type { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
@@ -152,6 +153,17 @@ export class InputSystem {
     if (action.type === 'toggleMissionLog') {
       const gameDay = Math.floor(this.world.gameTimeSeconds / 86400) + 1;
       this.missionLog.toggle(this.world.missionLog, gameDay);
+      return;
+    }
+
+    if (action.type === 'toggleROE') {
+      if (this.world.squadRoster.activeSquad && this.world.squadMembers.size > 0) {
+        const newRoe = toggleROE(this.world.squadRoster);
+        const roeLabel = newRoe === 'aggressive' ? 'AGGRESSIVE — squad engages on sight' : 'DEFENSIVE — squad holds formation';
+        this.world.log(`Squad ROE: ${roeLabel}`, 'system');
+      } else {
+        this.world.log('No squad deployed.', 'info');
+      }
       return;
     }
 

@@ -194,5 +194,13 @@ export interface CarriedComponent {
   carriedBy: EntityId;
 }
 
+/** Marks an entity as a player's squad member on mission maps */
+export interface SquadMemberComponent {
+  /** Persistent roster member ID (maps back to SquadRoster) */
+  rosterId: string;
+  /** Personality archetype for combat speech bubbles */
+  personality: import('./squad.ts').SquadPersonality;
+}
+
 // Re-export CharacterSheet as a component type
 export type { CharacterSheet } from './character.ts';

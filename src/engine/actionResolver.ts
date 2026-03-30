@@ -26,6 +26,7 @@ const KEY_MAP: Record<string, GameAction> = {
   'c': { type: 'toggleCharacterSheet' },
   'm': { type: 'toggleMissionLog' },
   'f': { type: 'interact' },
+  'r': { type: 'toggleROE' },
 };
 
 /** Resolve a key press to a GameAction, or null if not a game key */

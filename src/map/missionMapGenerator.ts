@@ -25,6 +25,7 @@ import { computeMaxHp, computeMaxChakra, computeMaxStamina, computeMaxWillpower 
 import type { CharacterAccents } from '../sprites/characters.ts';
 import { generateCharacterSprites, CIVILIAN_BODIES } from '../sprites/characters.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
+import type { SquadMember } from '../types/squad.ts';
 
 /** Seeded pseudo-random number generator */
 class SeededRng {
@@ -172,6 +173,7 @@ export interface MissionMapResult {
   playerEntityId: EntityId;
   targetEntityId: EntityId;
   banditEntityIds: EntityId[];
+  squadEntityIds: EntityId[];
   playerSpawnX: number;
   playerSpawnY: number;
 }
@@ -186,6 +188,7 @@ export function generateMissionMap(
   playerGender: 'shinobi' | 'kunoichi',
   playerSheet: import('../types/character.ts').CharacterSheet,
   gameTimeSeconds: number,
+  squadMembers: SquadMember[] = [],
 ): MissionMapResult {
   const W = config.width;
   const H = config.height;
@@ -271,11 +274,37 @@ export function generateMissionMap(
     targetX, targetY,
   );
 
+  // ── Layer 8: Squad members (allied NPCs near player) ──
+  const squadEntityIds: EntityId[] = [];
+  for (let i = 0; i < squadMembers.length; i++) {
+    const member = squadMembers[i];
+    // Place near player spawn in a formation
+    const offsets = [
+      { dx: -1, dy: 1 }, { dx: 1, dy: 1 }, { dx: -2, dy: 2 }, { dx: 2, dy: 2 },
+    ];
+    const off = offsets[i % offsets.length];
+    let sx = spawnX + off.dx;
+    let sy = spawnY + off.dy;
+
+    // Find valid tile
+    for (let attempt = 0; attempt < 10; attempt++) {
+      if (world.tileMap.isWalkable(sx, sy) && !world.isBlockedByEntity(sx, sy)) break;
+      sx += rng.nextInt(-1, 1);
+      sy += rng.nextInt(-1, 1);
+      sx = Math.max(4, Math.min(W - 4, sx));
+      sy = Math.max(4, Math.min(H - 4, sy));
+    }
+
+    const squadId = spawnSquadMember(world, member, sx, sy);
+    squadEntityIds.push(squadId);
+  }
+
   return {
     world,
     playerEntityId: playerId,
     targetEntityId: targetId,
     banditEntityIds: banditIds,
+    squadEntityIds,
     playerSpawnX: spawnX,
     playerSpawnY: spawnY,
   };
@@ -1151,6 +1180,116 @@ function spawnEnemy(
     targetId: null,
     state: 'idle',
     fleeHpThreshold: isNinja ? 0.20 : 0.40,
+  });
+
+  return id;
+}
+
+// ── SQUAD MEMBER SPAWNING ──
+
+let squadSpriteCounter = 0;
+
+/** Spawn an allied squad member entity on the mission map */
+function spawnSquadMember(
+  world: World,
+  member: SquadMember,
+  x: number,
+  y: number,
+): EntityId {
+  const id = world.createEntity();
+
+  // Register unique sprites for this squad member (Konoha ninja body)
+  const prefix = `squad_${squadSpriteCounter++}`;
+  const bodyOverride = member.female ? undefined : undefined; // ninja body (default) for all
+  const sprites = generateCharacterSprites(member.accents, bodyOverride);
+  for (const [dir, pattern] of Object.entries(sprites)) {
+    spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
+  }
+
+  const stats = member.stats;
+  const skills = member.skills;
+  const hp = computeMaxHp(stats);
+
+  world.setPosition(id, { x, y, facing: 'n' });
+  world.renderables.set(id, { spriteId: `${prefix}_n`, layer: 'character', offsetY: -16 });
+  world.blockings.set(id, { blocksMovement: true, blocksSight: false });
+  world.healths.set(id, { current: hp, max: hp });
+  world.combatStats.set(id, {
+    damage: Math.max(3, Math.floor(skills.taijutsu * 0.4 + stats.phy * 0.1 + skills.ninjutsu * 0.15)),
+    accuracy: 35 + skills.taijutsu + Math.floor(skills.ninjutsu * 0.2),
+    evasion: Math.max(5, Math.floor(skills.taijutsu * 0.15 + stats.phy * 0.05 + skills.ninjutsu * 0.1)),
+    attackVerb: 'strike',
+  });
+  world.characterSheets.set(id, {
+    class: 'shinobi',
+    rank: member.rank,
+    title: member.title,
+    skills,
+    stats,
+    learnedJutsus: getAccessibleJutsus(skills.ninjutsu),
+  });
+  world.names.set(id, { display: member.name, article: '' });
+
+  // Resources (chakra, stamina, willpower)
+  const maxChakra = 20 + Math.floor(skills.ninjutsu * 0.8);
+  const maxStam = 30 + Math.floor(stats.phy * 0.5);
+  const maxWill = 20 + Math.floor(stats.men * 0.6);
+  world.resources.set(id, {
+    chakra: maxChakra,
+    maxChakra,
+    chakraCeiling: maxChakra,
+    lastChakraExertionTick: 0,
+    willpower: maxWill,
+    maxWillpower: maxWill,
+    stamina: maxStam,
+    maxStamina: maxStam,
+    staminaCeiling: maxStam,
+    lastExertionTick: 0,
+    blood: 100,
+    maxBlood: 100,
+  });
+
+  // AI: squad members use 'wander' behavior but are overridden by squadAI
+  world.aiControlled.set(id, { behavior: 'static' });
+  world.objectSheets.set(id, {
+    description: `${member.name}, ${member.title}. A Konoha shinobi assigned to your squad for this mission.`,
+    category: 'npc',
+  });
+
+  // Squad member tag
+  world.squadMembers.set(id, {
+    rosterId: member.id,
+    personality: member.personality,
+  });
+
+  // Anchor (for sprite facing updates)
+  world.anchors.set(id, {
+    anchorX: x,
+    anchorY: y,
+    wanderRadius: 0,
+    lastMoveTick: world.currentTick,
+    moveIntervalTicks: 3,
+    spritePrefix: prefix,
+  });
+
+  world.npcLifecycles.set(id, {
+    category: 'fixed',
+    isNinja: true,
+    despawnAtNight: false,
+  });
+
+  // Squad members have proximity dialogue
+  world.proximityDialogue.set(id, {
+    lines: {
+      neutral: [
+        `"Ready when you are, team leader."`,
+        `"I've got your back."`,
+        `"Staying close."`,
+        `"Let's move."`,
+      ],
+    },
+    lastSpokeTick: -100,
+    cooldownTicks: 30,
   });
 
   return id;

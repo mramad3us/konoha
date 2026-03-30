@@ -1,4 +1,6 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent } from '../types/ecs.ts';
+import type { SquadRoster } from '../types/squad.ts';
+import { createSquadRoster } from './squadSystem.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
 import { MAX_LOG_ENTRIES, SUBTICKS_PER_TICK } from '../core/constants.ts';
@@ -41,6 +43,7 @@ export class World {
   restrained = new Map<EntityId, RestrainedComponent>();
   carrying = new Map<EntityId, CarryingComponent>();
   carried = new Map<EntityId, CarriedComponent>();
+  squadMembers = new Map<EntityId, SquadMemberComponent>();
 
   // Combat intent
   playerKillIntent = false;
@@ -53,6 +56,9 @@ export class World {
   missionSalt: number = Math.floor(Math.random() * 1_000_000);
   missionBoard: MissionBoard = createMissionBoard(1, 'genin', { D: 0, C: 0, B: 0, A: 0 }, this.missionSalt);
   missionLog: MissionLog = createMissionLog();
+
+  // Squad roster (persistent across missions)
+  squadRoster: SquadRoster = createSquadRoster(this.missionSalt);
 
   // Away mission state (null when not on an away mission)
   awayMissionState: import('../types/awayMission.ts').AwayMissionState | null = null;
@@ -186,6 +192,7 @@ export class World {
     this.restrained.delete(id);
     this.carrying.delete(id);
     this.carried.delete(id);
+    this.squadMembers.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -329,10 +336,12 @@ export class World {
       restrained: serializeMap(this.restrained),
       carrying: serializeMap(this.carrying),
       carried: serializeMap(this.carried),
+      squadMembers: serializeMap(this.squadMembers),
       playerKillIntent: this.playerKillIntent,
       missionSalt: this.missionSalt,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
+      squadRoster: this.squadRoster,
       awayMissionState: this.awayMissionState,
       meditationLastDay: this.meditationLastDay,
       meditationSessionsToday: this.meditationSessionsToday,
@@ -421,6 +430,9 @@ export class World {
     if (data['carried']) {
       deserializeMap(world.carried, data['carried'] as Record<string, CarriedComponent>);
     }
+    if (data['squadMembers']) {
+      deserializeMap(world.squadMembers, data['squadMembers'] as Record<string, SquadMemberComponent>);
+    }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
     }
@@ -432,6 +444,9 @@ export class World {
     }
     if (data['missionLog']) {
       world.missionLog = data['missionLog'] as MissionLog;
+    }
+    if (data['squadRoster']) {
+      world.squadRoster = data['squadRoster'] as SquadRoster;
     }
     if (data['awayMissionState']) {
       world.awayMissionState = data['awayMissionState'] as typeof world.awayMissionState;

@@ -30,6 +30,7 @@ export class KeybindingsPanel {
       [
         { keys: '.', descs: 'Wait' },
         { keys: 'f', descs: 'Interact' },
+        { keys: 'r', descs: 'Squad ROE' },
         { keys: 'c', descs: 'Character' },
         { keys: 'm', descs: 'Missions' },
         { keys: '?', descs: 'Keys' },

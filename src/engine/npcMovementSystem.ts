@@ -12,6 +12,8 @@ import type { Direction, EntityId, AggroComponent } from '../types/ecs.ts';
 import { npcFaceTowardPlayer } from './surpriseAttack.ts';
 import { initiateNpcEngagement } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
+import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
+import { getCurrentROE } from './squadSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -146,6 +148,12 @@ export function tickNpcMovement(world: World): void {
     // NPCs turn to face the player when they perceive them within 2 tiles
     // This happens before movement so the NPC reacts to player proximity
     npcFaceTowardPlayer(world, id);
+
+    // ── Squad member AI (separate from enemy AI) ──
+    if (world.squadMembers.has(id)) {
+      tickSquadMember(world, id, getCurrentROE(world.squadRoster));
+      continue; // Squad members don't use the regular NPC behavior tree
+    }
 
     // ── Aggro tick (mission maps only) ──
     if (world.awayMissionState) {
@@ -390,15 +398,34 @@ function tickAggro(
 
   switch (aggro.state) {
     case 'idle': {
-      // Check if NPC can see the player within detection range
+      // Check if NPC can see the player (or any squad member) within detection range
       if (dist <= AGGRO_DETECTION_RANGE && hasLineOfSight(world, pos.x, pos.y, playerPos.x, playerPos.y)) {
         aggro.state = 'aggro';
-        aggro.targetId = world.playerEntityId;
+        // Target closest party member (player or squad)
+        aggro.targetId = findClosestPartyMember(world, pos.x, pos.y);
         ai.behavior = 'chase';
         const health = world.healths.get(id);
         if (health) aggro.lastKnownHp = health.current;
         world.log(`${npcName} spots you!`, 'hit_incoming');
         spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
+      } else {
+        // Also check if any squad member is in range
+        for (const [sqId] of world.squadMembers) {
+          const sqPos = world.positions.get(sqId);
+          if (!sqPos) continue;
+          if (world.unconscious.has(sqId) || world.dead.has(sqId)) continue;
+          const sqDist = chebyshev(pos.x, pos.y, sqPos.x, sqPos.y);
+          if (sqDist <= AGGRO_DETECTION_RANGE && hasLineOfSight(world, pos.x, pos.y, sqPos.x, sqPos.y)) {
+            aggro.state = 'aggro';
+            aggro.targetId = findClosestPartyMember(world, pos.x, pos.y);
+            ai.behavior = 'chase';
+            const health = world.healths.get(id);
+            if (health) aggro.lastKnownHp = health.current;
+            world.log(`${npcName} spots your squad!`, 'hit_incoming');
+            spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
+            break;
+          }
+        }
       }
       break;
     }
@@ -443,31 +470,43 @@ function tickAggro(
   }
 }
 
-/** Chase behavior: step toward the player each tick, engage when adjacent */
+/** Chase behavior: step toward the target each tick, engage when adjacent */
 function tickChase(
   world: World,
   id: EntityId,
   pos: { x: number; y: number },
 ): void {
-  const playerPos = world.positions.get(world.playerEntityId);
-  if (!playerPos) return;
+  // Chase the aggro target (could be player or squad member)
+  const aggro = world.aggros.get(id);
+  const targetId = aggro?.targetId ?? world.playerEntityId;
+  const targetPos = world.positions.get(targetId);
+  if (!targetPos) return;
 
-  const dist = chebyshev(pos.x, pos.y, playerPos.x, playerPos.y);
+  // If target is dead/unconscious, retarget to closest party member
+  if (world.unconscious.has(targetId) || world.dead.has(targetId)) {
+    const newTarget = findClosestPartyMember(world, pos.x, pos.y);
+    if (aggro) aggro.targetId = newTarget;
+    return;
+  }
 
-  // Adjacent to player — initiate real combat engagement
+  const dist = chebyshev(pos.x, pos.y, targetPos.x, targetPos.y);
+
+  // Adjacent to target — initiate real combat engagement
   if (dist <= 1) {
     const npcName = world.names.get(id)?.display ?? 'An enemy';
-    const isNew = initiateNpcEngagement(world, id, world.playerEntityId);
+    const isNew = initiateNpcEngagement(world, id, targetId);
     if (isNew) {
-      world.log(`${npcName} engages you in combat!`, 'hit_incoming');
+      const targetName = world.names.get(targetId)?.display ?? 'their target';
+      const isPlayer = targetId === world.playerEntityId;
+      world.log(`${npcName} engages ${isPlayer ? 'you' : targetName} in combat!`, isPlayer ? 'hit_incoming' : 'info');
       const ENGAGE_SHOUTS = ['You\'re mine!', 'Fight me!', 'Prepare yourself!', 'Here I come!', 'Don\'t move!'];
       spawnFloatingText(pos.x, pos.y, ENGAGE_SHOUTS[Math.floor(Math.random() * ENGAGE_SHOUTS.length)], '#ff6644', 1.8);
     }
     return;
   }
 
-  // Step toward player (greedy cardinal)
-  const { dx, dy } = pickDirectionToward(pos, playerPos.x, playerPos.y);
+  // Step toward target (greedy cardinal)
+  const { dx, dy } = pickDirectionToward(pos, targetPos.x, targetPos.y);
   tryStepToward(world, id, pos, dx, dy);
 }
 

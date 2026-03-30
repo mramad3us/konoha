@@ -44,6 +44,8 @@ import { tickTravel } from '../overmap/overmapTravel.ts';
 import { beginAwayMission, createMissionWorld, beginReturnTrip } from '../engine/awayMissionFlow.ts';
 import { computeCRankRewards, applyMissionRewards } from '../engine/missionRewards.ts';
 import { OVERMAP_WALK_SPEED_KMH } from '../core/constants.ts';
+import { autoAssignSquad, deploySquad, returnSquadFromMission, getSquadMember } from '../engine/squadSystem.ts';
+import type { SquadMember } from '../types/squad.ts';
 
 const MEDIC_HEAL_MESSAGES = [
   '{medic} examines your injuries with practiced hands. "Hold still." Green chakra glows at their fingertips.',
@@ -320,6 +322,19 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     canvasContainer.classList.add('game-canvas-container--blackout');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
 
+    // Auto-assign squad for C-rank+ missions
+    const missionRank = active.mission.rank;
+    if (missionRank !== 'D') {
+      const squad = autoAssignSquad(world.squadRoster, missionRank, world.gameTimeSeconds);
+      if (squad && squad.memberIds.length > 0) {
+        deploySquad(world.squadRoster, squad);
+        const names = squad.memberIds
+          .map(id => getSquadMember(world.squadRoster, id)?.name ?? 'Unknown')
+          .join(', ');
+        world.log(`Squad assigned: ${names}`, 'system');
+      }
+    }
+
     // Begin away mission — serializes village world
     const awayState = beginAwayMission(world, active);
     if (!awayState) {
@@ -365,13 +380,24 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
     if (!playerSheet) return;
 
+    // Resolve squad members from roster
+    const squadMembers: SquadMember[] = [];
+    const activeSquad = villageWorld?.squadRoster.activeSquad;
+    if (activeSquad) {
+      for (const memberId of activeSquad.memberIds) {
+        const member = getSquadMember(villageWorld!.squadRoster, memberId);
+        if (member) squadMembers.push(member);
+      }
+    }
+
     // Generate mission map
-    const result = createMissionWorld(awayState, data, playerName, playerGender, playerSheet, world.gameTimeSeconds);
+    const result = createMissionWorld(awayState, data, playerName, playerGender, playerSheet, world.gameTimeSeconds, squadMembers);
 
     // Swap world reference
     world = result.world;
     world.awayMissionState = awayState;
     world.missionLog = villageWorld!.missionLog;
+    world.squadRoster = villageWorld!.squadRoster;
 
     // End overmap, enter mission phase
     endOvermapPhase();
@@ -413,6 +439,32 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.log('You abandon the mission and retreat.', 'system');
     } else {
       world.log('You extract from the area and head back to Konoha.', 'system');
+    }
+
+    // Process squad casualties before leaving the mission map
+    if (world.squadRoster.activeSquad) {
+      const casualties = new Map<string, 'dead' | 'injured'>();
+      for (const sqEntityId of (awayState.squadEntityIds ?? [])) {
+        const tag = world.squadMembers.get(sqEntityId);
+        if (!tag) continue;
+        if (world.dead.has(sqEntityId)) {
+          casualties.set(tag.rosterId, 'dead');
+          const name = world.names.get(sqEntityId)?.display ?? 'A squad member';
+          world.log(`${name} was killed in action.`, 'system');
+        } else if (world.unconscious.has(sqEntityId)) {
+          casualties.set(tag.rosterId, 'injured');
+          const name = world.names.get(sqEntityId)?.display ?? 'A squad member';
+          world.log(`${name} was injured during the mission.`, 'system');
+        } else {
+          const health = world.healths.get(sqEntityId);
+          if (health && health.current < health.max * 0.3) {
+            casualties.set(tag.rosterId, 'injured');
+            const name = world.names.get(sqEntityId)?.display ?? 'A squad member';
+            world.log(`${name} took heavy injuries.`, 'system');
+          }
+        }
+      }
+      returnSquadFromMission(world.squadRoster, casualties, world.gameTimeSeconds);
     }
 
     canvasContainer.classList.add('game-canvas-container--blackout');

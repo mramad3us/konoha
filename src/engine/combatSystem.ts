@@ -23,6 +23,7 @@ import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { tryCastJutsu } from './jutsuResolver.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
+import { SQUAD_COMBAT_LINES } from './squadSystem.ts';
 
 /** Active engagements keyed by "smaller_id:larger_id" */
 const engagements = new Map<string, CombatEngagement>();
@@ -322,11 +323,15 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   {
     const defPos = world.positions.get(outcome.defenderId);
     const atkPos = world.positions.get(outcome.attackerId);
+    const defSquad = world.squadMembers.get(outcome.defenderId);
+    const atkSquad = world.squadMembers.get(outcome.attackerId);
 
     // Defender reacts to being hit
     if (outcome.damage > 0 && defPos) {
-      const HIT_REACTIONS = ['Argh!', 'Tch!', 'Ngh!', 'Gah!', 'Kuh!'];
-      spawnFloatingText(defPos.x, defPos.y, HIT_REACTIONS[Math.floor(Math.random() * HIT_REACTIONS.length)], '#ff6666');
+      const lines = defSquad
+        ? SQUAD_COMBAT_LINES[defSquad.personality].hit
+        : ['Argh!', 'Tch!', 'Ngh!', 'Gah!', 'Kuh!'];
+      spawnFloatingText(defPos.x, defPos.y, lines[Math.floor(Math.random() * lines.length)], defSquad ? '#66aaff' : '#ff6666');
     }
 
     // Attacker reacts on whiff/parry
@@ -337,8 +342,10 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
 
     // Critical hit — attacker exclaims
     if (outcome.isCritical && atkPos) {
-      const CRIT_SHOUTS = ['Hah!', 'There!', 'Got you!', 'Take this!'];
-      spawnFloatingText(atkPos.x, atkPos.y, CRIT_SHOUTS[Math.floor(Math.random() * CRIT_SHOUTS.length)], '#ffcc44');
+      const lines = atkSquad
+        ? SQUAD_COMBAT_LINES[atkSquad.personality].kill
+        : ['Hah!', 'There!', 'Got you!', 'Take this!'];
+      spawnFloatingText(atkPos.x, atkPos.y, lines[Math.floor(Math.random() * lines.length)], '#ffcc44');
     }
   }
 

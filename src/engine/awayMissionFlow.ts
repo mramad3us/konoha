@@ -23,6 +23,7 @@ import { beginTravel } from '../overmap/overmapTravel.ts';
 import { generateMissionMap } from '../map/missionMapGenerator.ts';
 import { OVERMAP_WALK_SPEED_KMH, MISSION_MAP_WIDTH, MISSION_MAP_HEIGHT, SECONDS_PER_DAY } from '../core/constants.ts';
 import type { MissionMapResult } from '../map/missionMapGenerator.ts';
+import type { SquadMember } from '../types/squad.ts';
 
 /**
  * Initiate departure for an away mission.
@@ -63,6 +64,7 @@ export function beginAwayMission(
     missionPlayerEntityId: null,
     targetEntityId: null,
     banditEntityIds: [],
+    squadEntityIds: [],
   };
 }
 
@@ -77,6 +79,7 @@ export function createMissionWorld(
   playerGender: 'shinobi' | 'kunoichi',
   playerSheet: import('../types/character.ts').CharacterSheet,
   gameTimeSeconds: number,
+  squadMembers: SquadMember[] = [],
 ): MissionMapResult {
   const config = {
     width: MISSION_MAP_WIDTH,
@@ -89,13 +92,14 @@ export function createMissionWorld(
     playerSpawnEdge: 's' as const, // Always enter from the south
   };
 
-  const result = generateMissionMap(config, missionData, playerName, playerGender, playerSheet, gameTimeSeconds);
+  const result = generateMissionMap(config, missionData, playerName, playerGender, playerSheet, gameTimeSeconds, squadMembers);
 
   // Update away state with entity references
   awayState.phase = 'on_mission';
   awayState.missionPlayerEntityId = result.playerEntityId;
   awayState.targetEntityId = result.targetEntityId;
   awayState.banditEntityIds = result.banditEntityIds;
+  awayState.squadEntityIds = result.squadEntityIds;
   awayState.overmapState = null;
 
   return result;

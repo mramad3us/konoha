@@ -74,6 +74,8 @@ export interface AwayMissionState {
   targetEntityId: EntityId | null;
   /** IDs of bandit entities */
   banditEntityIds: EntityId[];
+  /** IDs of squad member entities on the mission map */
+  squadEntityIds: EntityId[];
 }
 
 /** Configuration for procedural mission map generation */
