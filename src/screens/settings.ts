@@ -15,6 +15,21 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
     settings = { ...DEFAULT_SETTINGS };
   }
 
+  // Override the .screen flex centering — settings needs a top-aligned scrollable layout
+  container.style.justifyContent = 'flex-start';
+  container.style.overflow = 'auto';
+
+  // ── Back button (in normal flow at the top) ──
+  const backBtn = createElement('button', { className: 'back-btn' });
+  backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
+  backBtn.addEventListener('click', async () => {
+    sfxMenuClick();
+    await saveSystem.saveSettings(settings);
+    updateVolumeSettings(settings);
+    screenManager.goBack();
+  });
+  container.appendChild(backBtn);
+
   // ── Title ──
   container.appendChild(createElement('h2', { className: 'section-title', text: 'Settings' }));
 
@@ -22,7 +37,7 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
   const settingsWrap = createElement('div', {
     className: 'settings-wrap',
   });
-  settingsWrap.style.cssText = 'display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:480px;align-items:stretch;';
+  settingsWrap.style.cssText = 'display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:480px;align-items:stretch;padding-bottom:var(--space-5);';
 
   const rows: HTMLElement[] = [];
 
@@ -127,17 +142,6 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
   addToggle('Show FPS', 'showFps');
 
   container.appendChild(settingsWrap);
-
-  // ── Back button (appended last so it renders on top of all content) ──
-  const backBtn = createElement('button', { className: 'back-btn' });
-  backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
-  backBtn.addEventListener('click', async () => {
-    sfxMenuClick();
-    await saveSystem.saveSettings(settings);
-    updateVolumeSettings(settings);
-    screenManager.goBack();
-  });
-  container.appendChild(backBtn);
 
   // Stagger reveal
   setTimeout(() => staggerReveal(rows, MENU_STAGGER_MS), 100);
