@@ -22,6 +22,7 @@ import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina 
 import { stampBuilding, stampInternalWalls, stampRoad, stampRiver, fillRect } from './buildingStamper.ts';
 import { spawnVillageNpcs } from '../data/villageNpcs.ts';
 import { spawnVillageObjects, spawnDoor } from '../data/villageObjects.ts';
+import { MAX_THROWN_AMMO } from '../core/constants.ts';
 
 /** Buildings whose doors should NOT lock at night (public/essential buildings).
  *  Format: [x, y, w, h] bounding boxes for each building. */
@@ -441,6 +442,7 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
     blood: 100, maxBlood: 100,
   });
   world.names.set(playerId, { display: playerName, article: '' });
+  world.thrownAmmo.set(playerId, { kunai: MAX_THROWN_AMMO, shuriken: MAX_THROWN_AMMO });
 
   // ╔══════════════════════════════════════╗
   // ║  SPAWN DOORS (entity on every door tile) ║

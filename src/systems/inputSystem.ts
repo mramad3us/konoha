@@ -119,7 +119,7 @@ export class InputSystem {
         this.world.log(failMsg, 'info');
       }
 
-      this.hud.update(this.world);
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       this.tempoBeads.update(getPlayerTempo(this.world));
       this.conditionIndicator.update(getPlayerCondition(this.world));
       return;
@@ -132,7 +132,7 @@ export class InputSystem {
         const res = this.world.resources.get(this.world.playerEntityId);
         if (res && res.stamina <= 0) {
           this.world.log('Too exhausted to attack.', 'info');
-          this.hud.update(this.world);
+          this.hud.update(this.world, this._throwingMode, this._throwWeapon);
           return;
         }
         // Consume stamina for attack attempt
@@ -148,7 +148,7 @@ export class InputSystem {
         // Advance world by one combat pass — ticks NPC movement and NPC-vs-NPC fights
         advanceCombatPass(this.world);
 
-        this.hud.update(this.world);
+        this.hud.update(this.world, this._throwingMode, this._throwWeapon);
         this.tempoBeads.update(getPlayerTempo(this.world));
         this.conditionIndicator.update(getPlayerCondition(this.world));
 
@@ -214,7 +214,7 @@ export class InputSystem {
     }
 
     // Update HUD + tempo + condition
-    this.hud.update(this.world);
+    this.hud.update(this.world, this._throwingMode, this._throwWeapon);
     this.tempoBeads.update(getPlayerTempo(this.world));
     this.conditionIndicator.update(getPlayerCondition(this.world));
 
@@ -311,7 +311,7 @@ export class InputSystem {
 
     const targetName = this.world.names.get(targets[0])?.display ?? 'target';
     this.world.log(`Throwing mode: ${this._throwWeapon} — aiming at ${targetName} [j/k: cycle, TAB: switch, Enter: throw, Esc: cancel]`, 'system');
-    this.hud.update(this.world);
+    this.hud.update(this.world, this._throwingMode, this._throwWeapon);
   }
 
   /** Handle key input while in throwing mode */
@@ -337,7 +337,7 @@ export class InputSystem {
 
       const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
       this.world.log(`Throwing: ${this._throwWeapon} — aiming at ${targetName}`, 'system');
-      this.hud.update(this.world);
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       return;
     }
 
@@ -346,7 +346,7 @@ export class InputSystem {
       this._throwTargetIndex = (this._throwTargetIndex + 1) % this._throwTargets.length;
       const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
       this.world.log(`Aiming at: ${targetName}`, 'system');
-      this.hud.update(this.world);
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       return;
     }
 
@@ -355,7 +355,7 @@ export class InputSystem {
       this._throwTargetIndex = (this._throwTargetIndex - 1 + this._throwTargets.length) % this._throwTargets.length;
       const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
       this.world.log(`Aiming at: ${targetName}`, 'system');
-      this.hud.update(this.world);
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       return;
     }
 
@@ -384,7 +384,7 @@ export class InputSystem {
       // Advance time by one combat pass (throwing takes time)
       advanceCombatPass(this.world);
 
-      this.hud.update(this.world);
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       this.tempoBeads.update(getPlayerTempo(this.world));
       this.conditionIndicator.update(getPlayerCondition(this.world));
       clearStaleEngagements(this.world);
@@ -414,7 +414,7 @@ export class InputSystem {
     this._throwingMode = false;
     this._throwTargets = [];
     this._throwTargetIndex = 0;
-    this.hud.update(this.world);
+    this.hud.update(this.world, this._throwingMode, this._throwWeapon);
   }
 
   /** Whether the player is currently in throwing mode (for rendering target highlights) */

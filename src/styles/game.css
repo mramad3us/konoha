@@ -408,6 +408,67 @@
   margin-left: auto;
 }
 
+/* ── Ammo Display ── */
+.hud-ammo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-bg-hover);
+}
+
+.hud-ammo__title {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-1);
+}
+
+.hud-ammo__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 24px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.hud-ammo__row--selected {
+  background: rgba(178, 34, 52, 0.2);
+  outline: 1px solid rgba(178, 34, 52, 0.5);
+}
+
+.hud-ammo__row--empty {
+  opacity: 0.35;
+}
+
+.hud-ammo__sprite {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.hud-ammo__label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  min-width: 28px;
+  letter-spacing: 0.05em;
+}
+
+.hud-ammo__count {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-muted);
+  margin-left: auto;
+}
+
 /* ── Game Log ── */
 .game-log {
   flex: 1;

@@ -1,7 +1,9 @@
 import { createElement } from '../utils/dom.ts';
 import { ResourceBar } from './resourceBar.ts';
+import { AmmoDisplay } from './ammoDisplay.ts';
 import { GameLog } from './gameLog.ts';
 import type { World } from '../engine/world.ts';
+import type { ThrownWeaponType } from '../types/throwing.ts';
 import { CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
 import { getChakraSprintSpeed, getChakraSprintTier, hasTechnique } from '../data/techniques.ts';
 
@@ -16,6 +18,7 @@ export class GameHud {
   private stanceValue: HTMLElement;
   private stanceTicks: HTMLElement;
   private stanceEl: HTMLElement | null = null;
+  private ammoDisplay: AmmoDisplay;
   private gameLog: GameLog;
 
   constructor() {
@@ -54,6 +57,10 @@ export class GameHud {
     this.stanceEl = stance;
     this.element.appendChild(stance);
 
+    // ── Ammo Display ──
+    this.ammoDisplay = new AmmoDisplay();
+    this.element.appendChild(this.ammoDisplay.element);
+
     // ── Game Log ──
     this.gameLog = new GameLog();
     this.element.appendChild(this.gameLog.element);
@@ -61,7 +68,7 @@ export class GameHud {
   }
 
   /** Update all HUD elements from world state */
-  update(world: World): void {
+  update(world: World, throwingMode = false, selectedWeapon: ThrownWeaponType = 'kunai'): void {
     const playerId = world.playerEntityId;
     const health = world.healths.get(playerId);
     const resources = world.resources.get(playerId);
@@ -125,6 +132,10 @@ export class GameHud {
         }
       }
     }
+
+    // Ammo display
+    const ammo = world.thrownAmmo.get(playerId);
+    this.ammoDisplay.update(ammo, selectedWeapon, throwingMode);
 
     this.gameLog.update(world.gameLog, world.gameTimeSeconds);
   }

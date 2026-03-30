@@ -148,7 +148,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   desk(world, 64, 73, 'Hokage\'s desk', 'The desk where the Hokage reviews missions and signs orders. Scrolls are piled high.');
   desk(world, 68, 74, 'war table', 'A large table with a map of the shinobi nations. Pins mark known threats.');
   shelf(world, 57, 77, 'scroll shelf', 'Village records and sealed documents dating back generations.');
-  weaponsRack(world, 73, 77, 'weapons rack', 'Ceremonial weapons displayed on the wall. Each has a story.');
+  weaponsRack(world, 73, 77, 'weapons rack', 'Ceremonial weapons displayed on the wall. Help yourself.', true);
   shelf(world, 60, 80, 'archive shelf', 'Historical records of every mission the village has undertaken.');
   shelf(world, 69, 80, 'sealed shelf', 'Classified documents. Several bear the Hokage\'s personal seal.');
   desk(world, 63, 81, 'meeting table', 'A table strewn with reports from various shinobi squads.');
@@ -165,7 +165,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
     category: 'object', interactType: 'mission_board', interactLabel: 'Pick Mission' });
   // Back Office: x=59-70, y=90-91
   desk(world, 62, 91, 'filing desk', 'Where completed mission reports are reviewed and archived.');
-  shelf(world, 68, 91, 'record shelf', 'Binders of mission completion records sorted by year.');
+  weaponsRack(world, 68, 91, 'mission prep rack', 'Weapons for departing teams. Restock before heading out.', true);
 
   // Council Chamber (55,93 10×6) — single room: x=56-63, y=94-97
   torch(world, 57, 94, 'Council room torch.');
@@ -445,7 +445,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Hyuga Dojo (28,7 12×8) — single room: x=29-38, y=8-13
   torch(world, 30, 8, 'Dojo torch.', 4);
   torch(world, 38, 8, 'Dojo torch.', 4);
-  weaponsRack(world, 34, 9, 'training weapons', 'Wooden bokken and padded sparring gear.');
+  weaponsRack(world, 34, 9, 'training weapons', 'Wooden bokken, padded sparring gear, and throwing weapons. Help yourself.', true);
   spawn(world, { x: 33, y: 12, spriteId: 'obj_dummy', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'practice target', article: 'a',
     description: 'A target dummy marked with tenketsu points for Gentle Fist practice.', category: 'object' });
@@ -658,6 +658,9 @@ function spawnTrainingGroundsObjects(world: World, _devMode: boolean): void {
       blocksMove: true, blocksSight: true, name: 'tree', article: 'a',
       description: 'A tree in the training grounds.', category: 'terrain' });
   }
+
+  // Training grounds weapons rack (near entrance)
+  weaponsRack(world, ox + 20, oy + 1, 'training rack', 'Kunai and shuriken for target practice. Take what you need.', true);
 
   // Training grounds torches
   for (const [dx, dy] of [[5,1],[20,1],[35,1],[1,15],[38,15],[1,30],[38,30],[18,38],[22,38]]) {
