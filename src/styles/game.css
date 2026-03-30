@@ -461,6 +461,11 @@
   color: var(--color-ink-faint);
 }
 
+.game-log__entry--skill_up {
+  color: var(--color-gold-bright);
+  text-shadow: 0 0 3px rgba(255, 200, 50, 0.25);
+}
+
 .game-log__tick {
   color: var(--color-ink-faint);
   opacity: 0.5;
@@ -781,6 +786,78 @@
 
 .charsheet-mission-total .charsheet-mission-label {
   color: var(--color-ink-muted);
+}
+
+/* Ninjutsu Techniques */
+.charsheet-techniques {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.charsheet-technique {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0 var(--space-2);
+  align-items: center;
+  padding: var(--space-1) 0;
+}
+
+.charsheet-technique__scroll {
+  width: 14px;
+  height: 16px;
+  grid-row: 1 / 3;
+  position: relative;
+  background: linear-gradient(135deg, #c4a86b 0%, #d4bc88 30%, #b89858 70%, #a88848 100%);
+  border-radius: 2px;
+  border: 1px solid #8a7040;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Scroll rod top & bottom */
+.charsheet-technique__scroll::before,
+.charsheet-technique__scroll::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  height: 3px;
+  background: linear-gradient(90deg, #6b5530 0%, #8a7040 40%, #6b5530 100%);
+  border-radius: 1px;
+}
+
+.charsheet-technique__scroll::before { top: -1px; }
+.charsheet-technique__scroll::after { bottom: -1px; }
+
+.charsheet-technique__name {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink);
+  letter-spacing: 0.04em;
+}
+
+.charsheet-technique__detail {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-gold-dark);
+  justify-self: end;
+}
+
+.charsheet-technique__desc {
+  grid-column: 2 / -1;
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faded);
+  line-height: 1.5;
+}
+
+.charsheet-technique--locked {
+  opacity: 0.4;
+}
+
+.charsheet-technique__scroll--locked {
+  background: var(--color-ink-faded);
 }
 
 /* ── Context Menu (pixel art styled) ── */

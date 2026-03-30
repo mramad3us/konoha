@@ -40,6 +40,13 @@ export class TileMap {
     return TILE_REGISTRY[type].walkable;
   }
 
+  /** Check if the tile at (x,y) is a water tile (water or deep_water) */
+  isWater(x: number, y: number): boolean {
+    if (!this.isInBounds(x, y)) return false;
+    const type = this.getTileType(x, y);
+    return type === 'water' || type === 'deep_water';
+  }
+
   isTransparent(x: number, y: number): boolean {
     if (!this.isInBounds(x, y)) return false;
     const type = this.getTileType(x, y);

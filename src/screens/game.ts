@@ -12,13 +12,15 @@ import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
 import { setPlayerRespawnCallback, killEntity, reviveEntity, stopBleeding } from '../engine/entityState.ts';
+import { executeSurpriseAttack } from '../engine/surpriseAttack.ts';
+import { restrainEntity, releaseEntity, startCarrying, stopCarrying } from '../engine/restraintCarry.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { MissionBoardUI } from '../ui/missionBoardUI.ts';
 import { interactWithEntity } from '../engine/turnSystem.ts';
-import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus, getMissionXpMultiplier } from '../engine/missions.ts';
+import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus, getMissionXpMultiplier, getCRankData } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { executeRespawn, TRAINING_GROUNDS_RESPAWN, RESPAWN_FADE_MS } from '../engine/respawn.ts';
 import { screenManager } from '../systems/screenManager.ts';
@@ -27,12 +29,57 @@ import { computeFOV } from '../engine/fov.ts';
 import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
-import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS } from '../core/constants.ts';
+import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
 import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { reshuffleWanderingNpcs, tickDuskTransition, tickDawnTransition } from '../engine/npcLifecycleSystem.ts';
+import { checkSkillUp } from '../engine/skillFeedback.ts';
+import type { EntityId } from '../types/ecs.ts';
+import { OvermapRenderer } from '../overmap/overmapRenderer.ts';
+import { tickTravel } from '../overmap/overmapTravel.ts';
+import { beginAwayMission, createMissionWorld, beginReturnTrip } from '../engine/awayMissionFlow.ts';
+import { computeCRankRewards, applyMissionRewards } from '../engine/missionRewards.ts';
+import { OVERMAP_WALK_SPEED_KMH } from '../core/constants.ts';
+
+const MEDIC_HEAL_MESSAGES = [
+  '{medic} examines your injuries with practiced hands. "Hold still." Green chakra glows at their fingertips.',
+  '"Let me take a look at that." {medic}\'s hands glow with healing chakra as they work.',
+  '{medic} places a warm hand on your shoulder. You feel chakra flowing into the wound.',
+  '"You should be more careful out there." {medic} channels healing energy into your injuries.',
+  '{medic} runs a diagnostic jutsu over your body, then begins treating the worst of it.',
+];
+
+/** Apply healing from a medical NPC to the player */
+function applyMedicHealing(world: World, medicId: EntityId): void {
+  const medicSheet = world.characterSheets.get(medicId);
+  const medicName = world.names.get(medicId)?.display ?? 'The medic';
+  const playerHp = world.healths.get(world.playerEntityId);
+  if (!playerHp || !medicSheet) return;
+
+  // Heal based on medic's skill: 30-80% of max HP
+  const medSkill = medicSheet.skills.med;
+  const healPct = Math.min(0.8, 0.3 + medSkill / 200);
+  const healAmount = Math.max(5, Math.floor(playerHp.max * healPct));
+  playerHp.current = Math.min(playerHp.max, playerHp.current + healAmount);
+
+  // Also stop bleeding if any
+  const bleeding = world.bleeding.get(world.playerEntityId);
+  if (bleeding) {
+    world.bleeding.delete(world.playerEntityId);
+    world.log(`${medicName} cleans and closes the wound. The bleeding stops.`, 'info');
+  }
+
+  // Flavor
+  const msg = MEDIC_HEAL_MESSAGES[Math.floor(Math.random() * MEDIC_HEAL_MESSAGES.length)]
+    .replace(/\{medic\}/g, medicName);
+  world.log(msg, 'info');
+  world.log(`(+${healAmount} HP)`, 'system');
+
+  // Takes time — 6 seconds
+  world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+}
 
 export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Loading overlay ──
@@ -166,7 +213,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     origUpdate(w);
     timeLabel.textContent = formatGameTime(w.gameTimeSeconds);
     const pp = w.positions.get(w.playerEntityId);
-    if (pp) zoneLabel.textContent = getZoneName(pp.x, pp.y);
+    if (pp) {
+      if (gamePhase === 'mission') {
+        const data = w.missionLog.active ? getCRankData(w.missionLog.active.mission) : null;
+        zoneLabel.textContent = data?.targetLocationName ?? 'Mission Area';
+      } else {
+        zoneLabel.textContent = getZoneName(pp.x, pp.y);
+      }
+    }
   };
   const origFullRender = hud.fullRender.bind(hud);
   hud.fullRender = (w: World) => {
@@ -201,6 +255,229 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     loading.classList.add('game-loading--fade');
     setTimeout(() => loading.remove(), 500);
   });
+
+  // ── Away Mission Phase System ──
+  // Tracks whether we're in village, overmap, or mission map
+  type GamePhase = 'village' | 'overmap_out' | 'mission' | 'overmap_back';
+  let gamePhase: GamePhase = 'village';
+  let villageWorld: World | null = null;      // cached village world during away missions
+  let overmapRenderer: OvermapRenderer | null = null;
+  let overmapCanvas: HTMLCanvasElement | null = null;
+
+  // Create overmap canvas (hidden until needed)
+  overmapCanvas = document.createElement('canvas');
+  overmapCanvas.style.display = 'none';
+  overmapCanvas.style.position = 'absolute';
+  overmapCanvas.style.top = '0';
+  overmapCanvas.style.left = '0';
+  overmapCanvas.style.width = '100%';
+  overmapCanvas.style.height = '100%';
+  overmapCanvas.style.imageRendering = 'pixelated';
+  overmapCanvas.style.zIndex = '10';
+  canvasContainer.appendChild(overmapCanvas);
+
+  /** Start overmap travel phase */
+  const startOvermapPhase = (phase: 'overmap_out' | 'overmap_back') => {
+    gamePhase = phase;
+    overmapCanvas!.style.display = 'block';
+    keybindingsPanel.element.style.display = 'none';
+    killToggle.element.style.display = 'none';
+    if (!overmapRenderer) {
+      overmapRenderer = new OvermapRenderer(overmapCanvas!);
+    }
+  };
+
+  /** End overmap travel phase */
+  const endOvermapPhase = () => {
+    overmapCanvas!.style.display = 'none';
+    keybindingsPanel.element.style.display = '';
+    killToggle.element.style.display = '';
+  };
+
+  /** Depart on an away mission — serialize village, start overmap travel */
+  const departOnMission = async () => {
+    const active = world.missionLog.active;
+    if (!active) return;
+
+    const data = getCRankData(active.mission);
+    if (!data) return;
+
+    // Blackout transition
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+
+    // Begin away mission — serializes village world
+    const awayState = beginAwayMission(world, active);
+    if (!awayState) {
+      world.log('Unable to find a route to the destination.', 'system');
+      canvasContainer.classList.remove('game-canvas-container--blackout');
+      return;
+    }
+
+    world.awayMissionState = awayState;
+    world.log(`You depart Konohagakure, heading for ${data.targetLocationName}.`, 'system');
+
+    // Cache village world reference
+    villageWorld = world;
+
+    // Start overmap
+    startOvermapPhase('overmap_out');
+
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  /** Arrive at mission destination — generate mission map */
+  const arriveAtMission = async () => {
+    const awayState = world.awayMissionState;
+    if (!awayState) return;
+
+    const active = world.missionLog.active;
+    if (!active) return;
+
+    const data = getCRankData(active.mission);
+    if (!data) return;
+
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+
+    // Get player info from village world
+    const playerSheet = villageWorld?.characterSheets.get(villageWorld.playerEntityId);
+    const playerName = villageWorld?.names.get(villageWorld.playerEntityId)?.display ?? 'Shinobi';
+    const playerRenderable = villageWorld?.renderables.get(villageWorld.playerEntityId);
+    const playerGender: 'shinobi' | 'kunoichi' = playerRenderable?.spriteId.includes('kunoichi') ? 'kunoichi' : 'shinobi';
+
+    if (!playerSheet) return;
+
+    // Generate mission map
+    const result = createMissionWorld(awayState, data, playerName, playerGender, playerSheet, world.gameTimeSeconds);
+
+    // Swap world reference
+    world = result.world;
+    world.awayMissionState = awayState;
+    world.missionLog = villageWorld!.missionLog;
+
+    // End overmap, enter mission phase
+    endOvermapPhase();
+    gamePhase = 'mission';
+
+    // Reset camera and rendering for new world
+    const pp = world.positions.get(world.playerEntityId);
+    if (pp) {
+      camera.snapTo(pp.x, pp.y);
+      const nr = getNightFovReduction(world.gameTimeSeconds);
+      computeFOV(world, pp.x, pp.y, Math.max(3, FOV_RADIUS - nr));
+    }
+
+    // Update input system to use new world
+    inputSystem.swapWorld(world);
+    renderer.draw(world);
+    hud.fullRender(world);
+
+    world.log(`You arrive near ${data.targetLocationName}. The forest stretches before you.`, 'system');
+
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  /** Extract from mission map — begin return trip */
+  const extractFromMission = async (abandon: boolean) => {
+    const awayState = world.awayMissionState;
+    if (!awayState) return;
+
+    const active = world.missionLog.active;
+    if (!active) return;
+
+    const data = getCRankData(active.mission);
+    if (!data) return;
+
+    if (abandon) {
+      world.log('You abandon the mission and retreat.', 'system');
+    } else {
+      world.log('You extract from the area and head back to Konoha.', 'system');
+    }
+
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+
+    // Begin return overmap travel
+    beginReturnTrip(awayState, data, world.gameTimeSeconds);
+    startOvermapPhase('overmap_back');
+
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  /** Return to village after overmap travel back */
+  const returnToVillage = async () => {
+    const awayState = world.awayMissionState;
+    if (!awayState || !villageWorld) return;
+
+    canvasContainer.classList.add('game-canvas-container--blackout');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+
+    endOvermapPhase();
+
+    // Restore village world
+    world = villageWorld;
+    villageWorld = null;
+
+    // Advance village time to match travel time
+    if (awayState.overmapState) {
+      const totalKm = awayState.overmapState.totalDistanceKm;
+      const travelHours = totalKm / OVERMAP_WALK_SPEED_KMH;
+      // Add camping time estimate
+      const campHours = (travelHours / 14) * 10;
+      world.gameTimeSeconds += (travelHours + campHours) * 3600;
+    }
+
+    // Clear away state
+    world.awayMissionState = null;
+    gamePhase = 'village';
+
+    // Apply mission rewards if objective was completed
+    const active = world.missionLog.active;
+    // Sync: objective completion is tracked on the mission log, not awayState
+    const objectiveComplete = active?.objectiveComplete || awayState.objectiveComplete;
+    if (active && objectiveComplete) {
+      const playerSheet = world.characterSheets.get(world.playerEntityId);
+      if (playerSheet) {
+        const rewards = computeCRankRewards(playerSheet, active.mission.rank, (active.mission.templateData as any).missionType ?? 'gang_elimination');
+        const changes = applyMissionRewards(playerSheet, rewards);
+        // Log reward summary
+        for (const [stat, delta] of Object.entries(changes)) {
+          world.log(`[Mission XP] ${stat}: ${delta.before.toFixed(1)} → ${delta.after.toFixed(1)}`, 'system');
+        }
+      }
+      world.log('Mission objective complete! Report to the Mission Desk for final confirmation.', 'system');
+    } else {
+      world.log('You return to the village.', 'system');
+    }
+
+    // Reset camera and rendering for village world
+    const pp = world.positions.get(world.playerEntityId);
+    if (pp) {
+      camera.snapTo(pp.x, pp.y);
+      const nr = getNightFovReduction(world.gameTimeSeconds);
+      computeFOV(world, pp.x, pp.y, Math.max(3, FOV_RADIUS - nr));
+    }
+
+    inputSystem.swapWorld(world);
+    renderer.draw(world);
+    hud.fullRender(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+
+    canvasContainer.classList.remove('game-canvas-container--blackout');
+    canvasContainer.classList.add('game-canvas-container--fadein');
+    await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+    canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
 
   // ── Input System ──
   // Character sheet overlay
@@ -242,6 +519,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     if (res) {
       res.staminaCeiling = res.maxStamina;
       res.stamina = Math.min(res.maxStamina, res.stamina + res.maxStamina * 0.8);
+      res.chakraCeiling = res.maxChakra;
+      res.chakra = Math.min(res.maxChakra, res.chakra + res.maxChakra * 0.8);
     }
     const hp = world.healths.get(world.playerEntityId);
     if (hp) hp.current = Math.min(hp.max, hp.current + Math.floor(hp.max * 0.5));
@@ -313,28 +592,15 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
       // Improve ninjutsu (~50% of a level 1→2 per session)
       const oldNinjutsu = playerSheet.skills.ninjutsu;
-      playerSheet.skills.ninjutsu = computeImprovement(
-        playerSheet.skills.ninjutsu,
-        MEDITATION_NINJUTSU_GAIN,
-        2.0,
-        mxp,
-      );
+      playerSheet.skills.ninjutsu = computeImprovement(oldNinjutsu, MEDITATION_NINJUTSU_GAIN, 2.0, mxp);
 
       // Also improve chakra and mental stats (equivalent of 4 hours of meditation ticks)
       // 4 hours = 14,400 seconds = 7,200 2-second combat passes
       const meditationPasses = 7200;
-      playerSheet.stats.cha = computeImprovement(
-        playerSheet.stats.cha,
-        STAT_IMPROVEMENT_RATES.cha_meditation * meditationPasses,
-        2.0,
-        mxp,
-      );
-      playerSheet.stats.men = computeImprovement(
-        playerSheet.stats.men,
-        STAT_IMPROVEMENT_RATES.men_meditation * meditationPasses,
-        2.0,
-        mxp,
-      );
+      const oldCha = playerSheet.stats.cha;
+      const oldMen = playerSheet.stats.men;
+      playerSheet.stats.cha = computeImprovement(oldCha, STAT_IMPROVEMENT_RATES.cha_meditation * meditationPasses, 2.0, mxp);
+      playerSheet.stats.men = computeImprovement(oldMen, STAT_IMPROVEMENT_RATES.men_meditation * meditationPasses, 2.0, mxp);
 
       // Update chakra reserves
       const res = world.resources.get(world.playerEntityId);
@@ -343,6 +609,11 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         res.maxChakra = newMaxChakra;
         res.chakra = Math.min(newMaxChakra, res.chakra + Math.floor(newMaxChakra * 0.3));
       }
+
+      // Level-up checks
+      checkSkillUp(world, 'ninjutsu', oldNinjutsu, playerSheet.skills.ninjutsu);
+      checkSkillUp(world, 'cha', oldCha, playerSheet.stats.cha);
+      checkSkillUp(world, 'men', oldMen, playerSheet.stats.men);
 
       const ninjutsuGain = playerSheet.skills.ninjutsu - oldNinjutsu;
       if (ninjutsuGain > 0.01) {
@@ -354,7 +625,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.log(MEDITATION_DIMINISHED_MESSAGES[sessionSeed % MEDITATION_DIMINISHED_MESSAGES.length], 'info');
     }
 
-    world.currentTick += 1;
+    world.currentSubtick += SUBTICKS_PER_TICK;
+    world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
     // Process day/night transitions that may have occurred during meditation
     tickDuskTransition(world);
     tickDawnTransition(world);
@@ -365,6 +637,112 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     canvasContainer.classList.add('game-canvas-container--fadein');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
     canvasContainer.classList.remove('game-canvas-container--fadein');
+  };
+
+  // ── Shared context menu choice handler ──
+  const handleContextChoice = async (choice: string | null, entityId: number) => {
+    if (!choice) return;
+
+    if (choice === 'examine') {
+      const lines = getExamineText(world, entityId);
+      for (const line of lines) {
+        world.log(line, 'info');
+      }
+      // Check if this is a search mission collect (D-rank)
+      if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+        const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId }, world);
+        if (msg) world.log(msg, 'system');
+      }
+      // Check if searching dead bandit target for trophy (C-rank away missions)
+      if (world.awayMissionState && world.missionLog.active && !world.awayMissionState.hasTrophy) {
+        const away = world.awayMissionState;
+        const isDead = world.dead.has(entityId);
+        const isTarget = away.targetEntityId === entityId || away.banditEntityIds.includes(entityId);
+        if (isDead && isTarget) {
+          away.hasTrophy = true;
+          const data = getCRankData(world.missionLog.active.mission);
+          const trophyName = data?.trophyItem ?? 'proof';
+          world.log(`You find ${trophyName} on the body.`, 'info');
+          const missionMsg = processMissionEvent(world.missionLog, { type: 'trophy_collected' });
+          if (missionMsg) world.log(missionMsg, 'system');
+        }
+      }
+    } else if (choice === 'talk') {
+      // Check if this NPC is a delivery target
+      const npcName = world.names.get(entityId)?.display;
+      if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
+        const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
+        if (msg) world.log(msg, 'system');
+      }
+    } else if (choice === 'request_healing') {
+      applyMedicHealing(world, entityId);
+    } else if (choice === 'revive') {
+      reviveEntity(world, entityId, 0.3);
+      world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+    } else if (choice === 'kill' || choice === 'execute') {
+      killEntity(world, entityId, world.playerEntityId, true);
+      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+    } else if (choice === 'assassinate') {
+      killEntity(world, entityId, world.playerEntityId, true);
+      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+    } else if (choice === 'surprise_subdue') {
+      executeSurpriseAttack(world, world.playerEntityId, entityId, false);
+    } else if (choice === 'surprise_assassinate') {
+      executeSurpriseAttack(world, world.playerEntityId, entityId, true);
+    } else if (choice === 'restrain') {
+      restrainEntity(world, entityId, world.playerEntityId);
+      // Fire mission capture event for away missions
+      if (world.awayMissionState && world.missionLog.active) {
+        const away = world.awayMissionState;
+        if (away.targetEntityId === entityId || away.banditEntityIds.includes(entityId)) {
+          const missionMsg = processMissionEvent(
+            world.missionLog,
+            { type: 'target_captured', entityId },
+            world,
+          );
+          if (missionMsg) world.log(missionMsg, 'system');
+        }
+      }
+    } else if (choice === 'release') {
+      releaseEntity(world, entityId);
+    } else if (choice === 'carry') {
+      startCarrying(world, world.playerEntityId, entityId);
+    } else if (choice === 'drop_carried') {
+      stopCarrying(world, world.playerEntityId);
+    } else if (choice === 'patch_up') {
+      stopBleeding(world, entityId);
+      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+      const playerSheet = world.characterSheets.get(world.playerEntityId);
+      if (playerSheet) {
+        const oldMed = playerSheet.skills.med;
+        playerSheet.skills.med = computeImprovement(oldMed, SKILL_IMPROVEMENT_RATES.med);
+        checkSkillUp(world, 'med', oldMed, playerSheet.skills.med);
+      }
+    } else if (choice === 'first_aid') {
+      const targetHp = world.healths.get(entityId);
+      const playerSheet = world.characterSheets.get(world.playerEntityId);
+      if (targetHp && playerSheet) {
+        const healPct = (5 + Math.floor(playerSheet.skills.med / 4)) / 100;
+        const healAmount = Math.max(1, Math.floor(targetHp.max * healPct));
+        targetHp.current = Math.min(targetHp.max, targetHp.current + healAmount);
+        const targetName = world.names.get(entityId)?.display ?? 'them';
+        world.log(`You treat ${targetName}'s wounds. (+${healAmount} HP)`, 'info');
+        const oldMed2 = playerSheet.skills.med;
+        playerSheet.skills.med = computeImprovement(oldMed2, SKILL_IMPROVEMENT_RATES.med);
+        checkSkillUp(world, 'med', oldMed2, playerSheet.skills.med);
+      }
+      world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+    } else if (choice === 'use_sleep') {
+      doSleep();
+    } else if (choice === 'use_meditate') {
+      await doMeditate();
+    } else if (choice === 'use_mission_board') {
+      await openMissionBoard();
+    } else if (choice === 'depart_mission') {
+      await departOnMission();
+    } else if (choice === 'extract_complete' || choice === 'extract_abandon') {
+      await extractFromMission(choice === 'extract_abandon');
+    }
   };
 
   // Universal context menu for all entity interactions
@@ -379,65 +757,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }
 
     const choice = await contextMenu.show(name, options);
-
-    if (choice === 'examine') {
-      const lines = getExamineText(world, entityId);
-      for (const line of lines) {
-        world.log(line, 'info');
-      }
-      // Check if this is a search mission collect
-      if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
-        const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId }, world);
-        if (msg) world.log(msg, 'system');
-      }
-    } else if (choice === 'talk') {
-      // Check if this NPC is a delivery target
-      const npcName = world.names.get(entityId)?.display;
-      if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
-        const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
-        if (msg) world.log(msg, 'system');
-      }
-    } else if (choice === 'revive') {
-      reviveEntity(world, entityId, 0.3);
-      world.gameTimeSeconds += 6;
-      world.currentTick += 1;
-    } else if (choice === 'kill') {
-      killEntity(world, entityId, world.playerEntityId);
-      world.gameTimeSeconds += 2;
-      world.currentTick += 1;
-    } else if (choice === 'assassinate') {
-      killEntity(world, entityId, world.playerEntityId, true);
-      world.gameTimeSeconds += 2;
-      world.currentTick += 1;
-    } else if (choice === 'patch_up') {
-      stopBleeding(world, entityId);
-      world.gameTimeSeconds += 2;
-      world.currentTick += 1;
-      // Improve MED skill
-      const playerSheet = world.characterSheets.get(world.playerEntityId);
-      if (playerSheet) {
-        playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
-      }
-    } else if (choice === 'first_aid') {
-      const targetHp = world.healths.get(entityId);
-      const playerSheet = world.characterSheets.get(world.playerEntityId);
-      if (targetHp && playerSheet) {
-        const healPct = (5 + Math.floor(playerSheet.skills.med / 4)) / 100;
-        const healAmount = Math.max(1, Math.floor(targetHp.max * healPct));
-        targetHp.current = Math.min(targetHp.max, targetHp.current + healAmount);
-        const targetName = world.names.get(entityId)?.display ?? 'them';
-        world.log(`You treat ${targetName}'s wounds. (+${healAmount} HP)`, 'info');
-        playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
-      }
-      world.gameTimeSeconds += 6;
-      world.currentTick += 1;
-    } else if (choice === 'use_sleep') {
-      doSleep();
-    } else if (choice === 'use_meditate') {
-      await doMeditate();
-    } else if (choice === 'use_mission_board') {
-      await openMissionBoard();
-    }
+    await handleContextChoice(choice, entityId);
 
     hud.update(world);
     timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
@@ -536,55 +856,38 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         return;
       }
       const ctxChoice = await contextMenu.show(name, ctxOptions);
-      // Handle context menu choice (reuse same logic)
-      if (ctxChoice === 'examine') {
-        const lines = getExamineText(world, interaction.entityId);
-        for (const line of lines) world.log(line, 'info');
-        // Check if this is a search mission collect
-        if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
-          const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId: interaction.entityId }, world);
-          if (msg) world.log(msg, 'system');
-        }
-      } else if (ctxChoice === 'talk') {
-        // Check if this NPC is a delivery target
-        const npcName = world.names.get(interaction.entityId)?.display;
-        if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
-          const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
-          if (msg) world.log(msg, 'system');
-        }
-      } else if (ctxChoice === 'revive') {
-        reviveEntity(world, interaction.entityId, 0.3);
-        world.gameTimeSeconds += 6; world.currentTick += 1;
-      } else if (ctxChoice === 'kill') {
-        killEntity(world, interaction.entityId, world.playerEntityId);
-        world.gameTimeSeconds += 2; world.currentTick += 1;
-      } else if (ctxChoice === 'assassinate') {
-        killEntity(world, interaction.entityId, world.playerEntityId, true);
-        world.gameTimeSeconds += 2; world.currentTick += 1;
-      } else if (ctxChoice === 'patch_up') {
-        stopBleeding(world, interaction.entityId);
-        world.gameTimeSeconds += 2; world.currentTick += 1;
-        const playerSheet = world.characterSheets.get(world.playerEntityId);
-        if (playerSheet) playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
-      } else if (ctxChoice === 'first_aid') {
-        const targetHp = world.healths.get(interaction.entityId);
-        const playerSheet = world.characterSheets.get(world.playerEntityId);
-        if (targetHp && playerSheet) {
-          const healPct = (5 + Math.floor(playerSheet.skills.med / 4)) / 100;
-          const healAmount = Math.max(1, Math.floor(targetHp.max * healPct));
-          targetHp.current = Math.min(targetHp.max, targetHp.current + healAmount);
-          const targetName = world.names.get(interaction.entityId)?.display ?? 'them';
-          world.log(`You treat ${targetName}'s wounds. (+${healAmount} HP)`, 'info');
-          playerSheet.skills.med = computeImprovement(playerSheet.skills.med, SKILL_IMPROVEMENT_RATES.med);
-        }
-        world.gameTimeSeconds += 6; world.currentTick += 1;
-      } else if (ctxChoice === 'use_sleep') {
-        doSleep();
-      } else if (ctxChoice === 'use_meditate') {
-        await doMeditate();
-      } else if (ctxChoice === 'use_mission_board') {
-        await openMissionBoard();
-      }
+      await handleContextChoice(ctxChoice, interaction.entityId);
+    }
+
+    hud.update(world);
+    timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+  });
+
+  // Edge extraction — player reached map boundary on mission map
+  const extractionMenu = new ContextMenu();
+  inputSystem.setEdgeExtractionCallback(async () => {
+    if (gamePhase !== 'mission') return;
+
+    const active = world.missionLog.active;
+    if (!active) return;
+
+    const objectiveComplete = active.objectiveComplete;
+    const options: { id: string; label: string }[] = [];
+
+    if (objectiveComplete) {
+      options.push({ id: 'extract_complete', label: 'Extract — Mission Complete' });
+    }
+    options.push({ id: 'extract_abandon', label: objectiveComplete ? 'Extract — Skip Reward' : 'Abandon Mission' });
+    options.push({ id: 'retreat', label: 'Retreat (Come back later)' });
+
+    const choice = await extractionMenu.show('Map Edge', options);
+    if (!choice) return;
+
+    if (choice === 'extract_complete' || choice === 'extract_abandon') {
+      await extractFromMission(choice === 'extract_abandon');
+    } else if (choice === 'retreat') {
+      // Retreat: leave map but don't fail mission — can return if not expired
+      await extractFromMission(false);
     }
 
     hud.update(world);
@@ -600,9 +903,33 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     const dt = (time - lastTime) / 1000;
     lastTime = time;
 
-    camera.update(dt);
-    updateParticles(dt);
-    renderer.draw(world);
+    if (gamePhase === 'overmap_out' || gamePhase === 'overmap_back') {
+      // Overmap travel animation
+      if (overmapRenderer && world.awayMissionState?.overmapState) {
+        const travelState = world.awayMissionState.overmapState;
+        const hour = Math.floor((world.gameTimeSeconds % 86400) / 3600);
+        const isNight = hour >= 20 || hour < 6;
+
+        const { result, gameSecondsElapsed } = tickTravel(travelState, world.gameTimeSeconds);
+        world.gameTimeSeconds += gameSecondsElapsed;
+        timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+
+        overmapRenderer.draw(travelState, dt, isNight);
+
+        if (result.type === 'arrived') {
+          if (gamePhase === 'overmap_out') {
+            arriveAtMission();
+          } else {
+            returnToVillage();
+          }
+        }
+      }
+    } else {
+      // Normal game rendering (village or mission map)
+      camera.update(dt);
+      updateParticles(dt);
+      renderer.draw(world);
+    }
 
     rafId = requestAnimationFrame(renderLoop);
   };

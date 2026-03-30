@@ -79,13 +79,27 @@ export const DUSK_HOUR = 18;
 export const NIGHT_MAX_DIM = 0.55;        // max darkness alpha at midnight
 export const NIGHT_FOV_REDUCTION = 4;     // tiles of FOV lost at deepest night
 
+// ── Subtick System ──
+// The world ticks at 0.5s granularity. Coarse "ticks" = 6 subticks = 3 seconds.
+// Slow systems (NPC movement, dialogue, day/night) only fire when a coarse tick boundary is crossed.
+// Fast actions (combat, chakra sprint) don't cross boundaries → world doesn't react.
+export const SUBTICK_DURATION = 0.5;      // seconds per subtick
+export const SUBTICKS_PER_TICK = 6;       // 6 subticks = 3 seconds = 1 coarse tick
+export const COMBAT_PASS_SUBTICKS = 4;    // 2 seconds = 4 subticks (1 combat exchange)
+
 // ── Stamina Rework ──
 export const STAMINA_ATTACK_COST = 1;     // per combat key press (attack only)
 export const STAMINA_SPRINT_COST = 2;     // per sprint step
 export const STAMINA_RESTORE_RATE = 0.02; // fraction of max per tick when resting
-export const STAMINA_REST_TICKS = 3;      // consecutive non-exerting passes before regen
+export const STAMINA_REST_TICKS = 3;      // coarse ticks of rest before regen starts
 export const STAMINA_FATIGUE_DRAIN = 0.1; // ceiling drop per exertion
 export const STAMINA_FATIGUE_FLOOR = 0.3; // min ceiling as fraction of max
+
+// ── Chakra Regen (mirrors stamina, uses CHA stat) ──
+export const CHAKRA_RESTORE_RATE = 0.02;  // fraction of max per tick when resting
+export const CHAKRA_REST_TICKS = 3;       // coarse ticks of rest before regen starts
+export const CHAKRA_FATIGUE_DRAIN = 0.1;  // ceiling drop per exertion
+export const CHAKRA_FATIGUE_FLOOR = 0.3;  // min ceiling as fraction of max
 // STAMINA_PHY_SCALING defined above in base stats section
 
 // ── Respawn ──
@@ -125,25 +139,89 @@ export const NPC_WANDER_INTERVAL_MAX = 5;  // max ticks between idle steps
 export const NPC_DESPAWN_MAX_WALK = 30;    // max tiles a civilian walks before forced despawn
 
 // ── Combat Disengagement ──
-export const DISENGAGE_STAMINA_COST = 2;
-export const DISENGAGE_CHAKRA_COST = 5;
+// Same cost as one chakra-sprint step: 3 stamina + 3 chakra for a clean 1-pass retreat.
+// Without chakra: slow retreat (3 passes, 3 free hits from opponent).
+// Without stamina: can't disengage at all.
+export const DISENGAGE_STAMINA_COST = 3;
+export const DISENGAGE_CHAKRA_COST = 3;
 export const CIVILIAN_DISENGAGE_HITS = 3;
 export const NPC_FLEE_HP_THRESHOLD = 0.25;
 
 // ── Input ──
 export const INPUT_DEBOUNCE_MS = 50;
 
-// ── Stance Tick Costs ──
-export const STANCE_TICK_COST = {
+// ── Stance Subtick Costs ──
+// How many subticks each step costs. 6 subticks = 1 coarse tick = 3 seconds.
+export const STANCE_SUBTICK_COST: Record<string, number> = {
+  sprint: 6,          // 3s — NPCs act once per step
+  walk: 12,           // 6s — NPCs act twice per step
+  creep: 18,          // 9s — NPCs act 3 times
+  crawl: 24,          // 12s — NPCs act 4 times
+  chakra_sprint: 4,   // 2s base (dynamic: 4/2/1 subticks at nin 10/30/50)
+};
+
+/** @deprecated — use STANCE_SUBTICK_COST. Kept for HUD display (coarse ticks per move). */
+export const STANCE_TICK_COST: Record<string, number> = {
   sprint: 1,
   walk: 2,
   creep: 3,
   crawl: 4,
-} as const;
+  chakra_sprint: 0,   // sub-tick (shows special display in HUD)
+};
 
-export const STANCE_STAMINA_COST = {
+export const STANCE_STAMINA_COST: Record<string, number> = {
   sprint: 2,
   walk: 0,
   creep: 0,
   crawl: 0,
-} as const;
+  chakra_sprint: 0,
+};
+
+// ── Chakra Sprint ──
+export const CHAKRA_SPRINT_COST = 3;    // chakra per step
+
+// ── Water Walk ──
+export const WATER_WALK_CHAKRA_COST = 2;  // chakra per step on water
+
+// ── Away Missions ──
+export const MISSION_MAP_WIDTH = 160;
+export const MISSION_MAP_HEIGHT = 160;
+export const MISSION_MAP_EDGE_ZONE = 3;   // tiles from edge where extraction is available
+
+// Overmap travel
+export const OVERMAP_WALK_SPEED_KMH = 5;  // leisurely walking pace
+export const OVERMAP_CAMP_START_HOUR = 20; // make camp at 8 PM
+export const OVERMAP_CAMP_END_HOUR = 6;    // break camp at 6 AM
+export const OVERMAP_CANVAS_WIDTH = 800;
+export const OVERMAP_CANVAS_HEIGHT = 600;
+
+// Rank tier thresholds (per skill/stat)
+export const RANK_TIER_GENIN_MAX = 25;
+export const RANK_TIER_CHUUNIN_MAX = 50;
+export const RANK_TIER_JONIN_MAX = 70;
+
+// Mission XP scaling
+export const MISSION_XP_BELOW_RANK = 1.5;   // skill below mission rank: 150% bulk
+export const MISSION_XP_AT_RANK = 1.0;       // skill at mission rank: 100% bulk
+export const MISSION_XP_ABOVE_RANK = 0.5;    // skill one rank above: 50% bulk
+export const MISSION_XP_FAR_ABOVE = 0.1;     // skill two+ ranks above: 10% bulk (floor)
+
+export const MISSION_ACTION_XP_BELOW_RANK = 10;  // x10 during mission if below rank
+export const MISSION_ACTION_XP_AT_RANK = 5;       // x5 at rank
+export const MISSION_ACTION_XP_ABOVE_RANK = 2;    // x2 above rank (floor)
+
+// C-rank mission bulk rewards (base values before scaling)
+export const C_RANK_BULK_REWARD: Record<string, number> = {
+  taijutsu: 0.8,
+  ninjutsu: 0.3,
+  phy: 0.5,
+  cha: 0.2,
+  men: 0.1,
+};
+
+// Mission-type-specific bonus rewards (added to base)
+export const C_RANK_TYPE_BONUS: Record<string, Record<string, number>> = {
+  bandit_capture: { taijutsu: 0.4, phy: 0.3 },
+  gang_elimination: { taijutsu: 0.6, phy: 0.4, men: 0.2 },
+  escort: { men: 0.3, cha: 0.2 },
+};

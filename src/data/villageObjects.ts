@@ -155,7 +155,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Mission Desk (58,86 14×7) — wall: h@89(door@64)
   // Counter Area (front): x=59-70, y=87-88
   torch(world, 60, 87, 'The mission desk is always busy.');
-  counter(world, 64, 87, 'mission counter', 'Stacks of mission scrolls sorted by rank: D, C, B, A, S.');
+  counter(world, 62, 87, 'mission counter', 'Stacks of mission scrolls sorted by rank: D, C, B, A, S.');
   // Mission board — interactable
   spawn(world, { x: 67, y: 87, spriteId: 'obj_shelf', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name: 'Mission Board', article: 'the',
@@ -232,10 +232,10 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   bed(world, 69, 117);
   torch(world, 68, 116, 'A quiet lamp by the bedside.', 3);
   shelf(world, 70, 118, 'nightstand', 'Clean linens stacked neatly. The inn is well-kept.');
-  // Lobby (bottom): x=61-70, y=120-123
+  // Lobby (bottom): x=61-70, y=120-123. Door is on east wall at (71,120).
   torch(world, 62, 120, 'A warm lobby lantern.', 4);
-  counter(world, 64, 120, 'front desk', 'The innkeeper\'s desk. A guest ledger sits open, ink still wet.');
-  bench(world, 69, 120, 'lobby bench', 'A bench for travelers waiting to check in.');
+  counter(world, 65, 122, 'front desk', 'The innkeeper\'s desk. A guest ledger sits open, ink still wet.');
+  bench(world, 69, 121, 'lobby bench', 'A bench for travelers waiting to check in.');
   shelf(world, 62, 123, 'luggage shelf', 'A shelf holding a few forgotten bags and parcels.');
   bench(world, 69, 123, 'waiting seat', 'A comfortable spot near the door. A pot of tea stays warm.');
 
@@ -515,6 +515,17 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 91, 148, 'Gate guard torch.', 5);
   desk(world, 89, 150, 'checkpoint desk', 'A logbook tracking every arrival and departure.');
 
+  // Village gate interactable (for away mission departure)
+  {
+    const gateId = world.createEntity();
+    world.setPosition(gateId, { x: 77, y: 155, facing: 's' });
+    world.renderables.set(gateId, { spriteId: 'obj_rock_small', layer: 'object', offsetY: -4 });
+    world.blockings.set(gateId, { blocksMovement: false, blocksSight: false });
+    world.names.set(gateId, { display: 'village gate', article: 'the' });
+    world.objectSheets.set(gateId, { description: 'The main gate of Konohagakure. Beyond lies the world.', category: 'object' });
+    world.interactables.set(gateId, { interactionType: 'village_gate', label: 'Approach Gate' });
+  }
+
   // ─── SHRINE ───────────────────────────────
 
   // Shrine (143,73 8×6) — interior: 144-149, 74-77
@@ -607,8 +618,6 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // --- Training Grounds objects ---
   spawnTrainingGroundsObjects(world, devMode);
 
-  // --- Meditation carpet near training grounds ---
-  meditationCarpet(world, TG_OFFSET_X + 21, TG_OFFSET_Y + 36);
 }
 
 function spawnTrainingGroundsObjects(world: World, _devMode: boolean): void {

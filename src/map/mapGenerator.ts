@@ -209,7 +209,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         title: 'Elite Shinobi',
         skills: { taijutsu: 90, bukijutsu: 90, ninjutsu: 90, genjutsu: 90, med: 90 },
         stats: { phy: 90, cha: 90, men: 90, soc: 90 },
-        learnedJutsus: ['substitution'],
+        learnedJutsus: ['substitution', 'chakra_sprint', 'water_walk'],
       }
     : { ...DEFAULT_SHINOBI_SHEET, title: 'Academy Graduate' };
   world.characterSheets.set(playerId, playerSheet);
@@ -231,6 +231,8 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   world.resources.set(playerId, {
     chakra: maxChakra,
     maxChakra,
+    chakraCeiling: maxChakra,
+    lastChakraExertionTick: 0,
     willpower: maxWillpower,
     maxWillpower,
     stamina: maxStamina,

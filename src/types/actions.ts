@@ -1,7 +1,8 @@
 export type GameAction =
   | { type: 'move'; dx: number; dy: number }
   | { type: 'wait' }
-  | { type: 'cycleStance' }
+  | { type: 'stanceFaster' }
+  | { type: 'stanceSlower' }
   | { type: 'toggleKeybindings' }
   | { type: 'toggleCharacterSheet' }
   | { type: 'interact' };
@@ -18,6 +19,7 @@ export type LogCategory =
   | 'info'            // General info
   | 'system'          // System messages
   | 'movement'        // Movement descriptions
+  | 'skill_up'        // Skill or stat level-up (golden)
   // Legacy compat
   | 'combat'
   | 'damage';

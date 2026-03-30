@@ -30,14 +30,24 @@ export function computeMaxStamina(stats: CharacterStats): number {
 /** Recalculate all max resource values from character sheet stats */
 export function recalcResources(
   stats: CharacterStats,
-  resources: { maxStamina: number; maxChakra: number; maxWillpower: number; staminaCeiling: number },
+  resources: { maxStamina: number; maxChakra: number; maxWillpower: number; staminaCeiling: number; chakraCeiling: number },
   health: { max: number },
 ): void {
   health.max = computeMaxHp(stats);
-  resources.maxChakra = computeMaxChakra(stats);
+
+  const newMaxChakra = computeMaxChakra(stats);
+  // Adjust chakra ceiling proportionally if max changed
+  if (resources.maxChakra > 0) {
+    resources.chakraCeiling = Math.floor(resources.chakraCeiling * (newMaxChakra / resources.maxChakra));
+  } else {
+    resources.chakraCeiling = newMaxChakra;
+  }
+  resources.maxChakra = newMaxChakra;
+
   resources.maxWillpower = computeMaxWillpower(stats);
+
   const newMaxStamina = computeMaxStamina(stats);
-  // Adjust ceiling proportionally if max changed
+  // Adjust stamina ceiling proportionally if max changed
   if (resources.maxStamina > 0) {
     resources.staminaCeiling = Math.floor(resources.staminaCeiling * (newMaxStamina / resources.maxStamina));
   } else {

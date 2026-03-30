@@ -8,6 +8,8 @@ import {
   SHINOBI_RANK_LABELS,
 } from '../types/character.ts';
 import type { MissionRank } from '../engine/missions.ts';
+import { getAvailableTechniques, getNextTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
+import type { NinjutsuTechnique } from '../data/techniques.ts';
 
 export interface MissionRecord {
   completed: Record<MissionRank, number>;
@@ -114,6 +116,33 @@ export class CharacterSheetUI {
       ));
     }
     this.content.appendChild(statsGrid);
+
+    // ── Ninjutsu Techniques ──
+    const techniques = getAvailableTechniques(sheet.skills.ninjutsu);
+    const nextTech = getNextTechnique(sheet.skills.ninjutsu);
+
+    this.content.appendChild(
+      createElement('div', { className: 'charsheet-section-title', text: '// Ninjutsu Techniques' })
+    );
+    const techGrid = createElement('div', { className: 'charsheet-techniques' });
+
+    if (techniques.length > 0) {
+      for (const tech of techniques) {
+        techGrid.appendChild(this.renderTechnique(tech, sheet.skills.ninjutsu));
+      }
+    }
+
+    // Show next locked technique as a teaser
+    if (nextTech) {
+      techGrid.appendChild(this.renderLockedTechnique(nextTech));
+    }
+
+    // Show "none yet" if no techniques AND no upcoming ones (shouldn't happen, but safe)
+    if (techniques.length === 0 && !nextTech) {
+      techGrid.appendChild(createElement('div', { className: 'charsheet-technique charsheet-technique--locked', text: 'No techniques known yet.' }));
+    }
+
+    this.content.appendChild(techGrid);
   }
 
   private renderRow(label: string, value: number, description: string, showTier: boolean): HTMLElement {
@@ -122,10 +151,11 @@ export class CharacterSheetUI {
 
     row.appendChild(createElement('div', { className: 'charsheet-row__label', text: label }));
 
-    // Bar
+    // Bar — shows progress toward the next whole level (fractional part)
+    const progressPct = (value - Math.floor(value)) * 100;
     const barWrap = createElement('div', { className: 'charsheet-row__bar' });
     const barFill = createElement('div', { className: 'charsheet-row__fill' });
-    barFill.style.width = `${value}%`;
+    barFill.style.width = `${progressPct}%`;
     barFill.style.backgroundColor = showTier ? tier.color : 'var(--color-ink-muted)';
     barWrap.appendChild(barFill);
     row.appendChild(barWrap);
@@ -145,6 +175,55 @@ export class CharacterSheetUI {
 
     // Description
     row.appendChild(createElement('div', { className: 'charsheet-row__desc', text: description }));
+
+    return row;
+  }
+
+  private renderTechnique(tech: NinjutsuTechnique, ninjutsuLevel: number): HTMLElement {
+    const row = createElement('div', { className: 'charsheet-technique' });
+
+    // Scroll icon
+    const scrollIcon = createElement('span', { className: 'charsheet-technique__scroll' });
+    row.appendChild(scrollIcon);
+
+    // Name
+    row.appendChild(createElement('span', {
+      className: 'charsheet-technique__name',
+      text: tech.name,
+    }));
+
+    // Extra info for scaling techniques
+    if (tech.id === 'chakra_sprint') {
+      const speed = getChakraSprintSpeed(ninjutsuLevel);
+      const tier = getChakraSprintTier(ninjutsuLevel);
+      row.appendChild(createElement('span', {
+        className: 'charsheet-technique__detail',
+        text: `${tier} · ${speed}s/step`,
+      }));
+    }
+
+    // Description
+    const desc = createElement('div', {
+      className: 'charsheet-technique__desc',
+      text: tech.description,
+    });
+    row.appendChild(desc);
+
+    return row;
+  }
+
+  private renderLockedTechnique(tech: NinjutsuTechnique): HTMLElement {
+    const row = createElement('div', { className: 'charsheet-technique charsheet-technique--locked' });
+
+    // Locked scroll icon (dimmed)
+    const scrollIcon = createElement('span', { className: 'charsheet-technique__scroll charsheet-technique__scroll--locked' });
+    row.appendChild(scrollIcon);
+
+    // Name (with requirement)
+    row.appendChild(createElement('span', {
+      className: 'charsheet-technique__name',
+      text: `??? — Ninjutsu ${tech.requiredNinjutsu}`,
+    }));
 
     return row;
   }

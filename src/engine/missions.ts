@@ -61,7 +61,11 @@ export interface MissionLog {
 export type MissionEvent =
   | { type: 'interact_npc'; npcName: string }
   | { type: 'reach_area'; x: number; y: number }
-  | { type: 'collect_entity'; entityId: number };
+  | { type: 'collect_entity'; entityId: number }
+  | { type: 'target_killed'; entityId: number }
+  | { type: 'target_captured'; entityId: number }
+  | { type: 'trophy_collected' }
+  | { type: 'reached_extraction'; x: number; y: number };
 
 // ── CONSTANTS ──
 
@@ -270,21 +274,150 @@ const D_RANK_PATROL: MissionTemplate = {
   },
 };
 
-// C/B/A templates — placeholder until we build maps for them
-const C_RANK_PLACEHOLDER: MissionTemplate = {
+// ══════════════════════════════════════
+//  C-RANK TEMPLATES — Away missions
+// ══════════════════════════════════════
+
+import { getCRankDestinations } from '../overmap/overmapData.ts';
+import type { CRankMissionData } from '../types/awayMission.ts';
+
+/** Bandit leader names for procedural generation */
+const BANDIT_LEADER_NAMES = [
+  'Goro the Scarred', 'Tetsu Iron Fist', 'Kenta the Viper', 'Ryu Shadow Blade',
+  'Masa the Butcher', 'Shin Red Hand', 'Nobu the Jackal', 'Genji Thunderstrike',
+  'Juzo One-Eye', 'Sabu the Serpent', 'Hachi Stone Wall', 'Bunta the Fox',
+];
+
+const TROPHY_ITEMS = [
+  'a signet ring bearing the gang\'s mark',
+  'a blood-stained ledger of stolen goods',
+  'an engraved dagger used as proof of authority',
+  'a distinctive tattoo sketch matching the bounty poster',
+  'a sealed letter with orders from a crime lord',
+];
+
+const C_RANK_CLIENTS = [
+  'Lord Matsuda, a provincial magistrate',
+  'A merchant guild representative',
+  'A border village elder',
+  'The Fire Country trade commission',
+  'A caravan master from Tanzaku',
+  'Lord Hayashi, a rice paddy landowner',
+  'A teamster union foreman',
+  'The Otafuku town council',
+];
+
+const C_RANK_BANDIT_CAPTURE: MissionTemplate = {
   rank: 'C',
-  titles: ['Bandit Deterrence', 'Road Security', 'Trade Route Patrol', 'Outskirts Sweep', 'Threat Assessment'],
-  clients: ['A trade official from the capital', 'Village border patrol office', 'A merchant caravan leader', 'Lord Matsuda, a minor provincial lord', 'A tax collector from the eastern towns'],
+  titles: ['Bandit Apprehension', 'Outlaw Roundup', 'Highway Robbers', 'Bandit Deterrence', 'Criminal Pursuit'],
+  clients: C_RANK_CLIENTS,
   descriptions: [
-    'Bandits have been spotted near the trade routes.',
-    'The roads outside the village need to be secured.',
-    'Reports of suspicious activity near the outskirts.',
+    'A group of bandits has been terrorizing travelers on the trade routes. The local authorities want them captured alive for trial.',
+    'Highwaymen have been ambushing merchants near a remote village. They need to be subdued and restrained.',
+    'Bandits have set up camp near a trade route. The client wants them neutralized without unnecessary bloodshed.',
   ],
-  templateKey: 'not_implemented',
-  generateData: () => ({
-    objective: 'This mission type is not yet available.',
-    templateData: { notImplemented: true },
-  }),
+  templateKey: 'c_bandit_capture',
+  generateData: (seed) => {
+    const destinations = getCRankDestinations();
+    const dest = destinations[seed % destinations.length];
+    const leaderName = BANDIT_LEADER_NAMES[seed % BANDIT_LEADER_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const banditCount = 3 + (seed % 4); // 3-6 bandits
+
+    const data: CRankMissionData = {
+      missionType: 'bandit_capture',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: C_RANK_CLIENTS[(seed >> 8) % C_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 7),
+      terrainType: 'forest',
+      hasCamp: true,
+    };
+
+    return {
+      objective: `Travel to ${dest.name}, locate ${leaderName}'s bandit camp, capture the leader, and return with proof.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+const C_RANK_GANG_ELIMINATION: MissionTemplate = {
+  rank: 'C',
+  titles: ['Threat Elimination', 'Gang Suppression', 'Bounty Hunt', 'Road Security', 'HVT Neutralization'],
+  clients: C_RANK_CLIENTS,
+  descriptions: [
+    'A dangerous gang leader has been ambushing caravans and killing travelers. A local lord wants him permanently dealt with.',
+    'Reports indicate a gang has established a base of operations near a trade route. The target must be eliminated.',
+    'A bounty has been placed on a bandit leader who has grown too bold. Lethal force is authorized.',
+  ],
+  templateKey: 'c_gang_elimination',
+  generateData: (seed) => {
+    const destinations = getCRankDestinations();
+    const dest = destinations[seed % destinations.length];
+    const leaderName = BANDIT_LEADER_NAMES[(seed + 3) % BANDIT_LEADER_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const banditCount = 4 + (seed % 5); // 4-8 bandits
+
+    const data: CRankMissionData = {
+      missionType: 'gang_elimination',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: C_RANK_CLIENTS[(seed >> 8) % C_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 13),
+      terrainType: 'forest',
+      hasCamp: true,
+    };
+
+    return {
+      objective: `Travel to the area near ${dest.name}, eliminate ${leaderName} and his gang, and return with proof.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+const C_RANK_ESCORT: MissionTemplate = {
+  rank: 'C',
+  titles: ['Escort Duty', 'Safe Passage', 'Trade Escort', 'VIP Protection', 'Caravan Guard'],
+  clients: C_RANK_CLIENTS,
+  descriptions: [
+    'A merchant needs safe escort through bandit territory. Expect ambushes along the route.',
+    'A minor official requires protection traveling to a remote outpost. Intelligence suggests bandits are active in the area.',
+    'A supply caravan is traveling through dangerous territory and needs shinobi escort.',
+  ],
+  templateKey: 'c_escort',
+  generateData: (seed) => {
+    const destinations = getCRankDestinations();
+    const dest = destinations[seed % destinations.length];
+    const leaderName = BANDIT_LEADER_NAMES[(seed + 7) % BANDIT_LEADER_NAMES.length];
+    const banditCount = 3 + (seed % 3); // 3-5 bandits (ambush party)
+
+    const data: CRankMissionData = {
+      missionType: 'escort',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: C_RANK_CLIENTS[(seed >> 8) % C_RANK_CLIENTS.length],
+      trophyItem: 'n/a',
+      banditCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 17),
+      terrainType: 'forest',
+      hasCamp: false, // ambush, no camp
+    };
+
+    return {
+      objective: `Escort the client safely to ${dest.name}. Expect bandit ambushes. Eliminate threats and ensure safe arrival.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
 };
 
 const B_RANK_PLACEHOLDER: MissionTemplate = {
@@ -319,7 +452,7 @@ const A_RANK_PLACEHOLDER: MissionTemplate = {
 
 const ALL_TEMPLATES: MissionTemplate[] = [
   D_RANK_DELIVERY, D_RANK_SEARCH, D_RANK_PATROL,
-  C_RANK_PLACEHOLDER,
+  C_RANK_BANDIT_CAPTURE, C_RANK_GANG_ELIMINATION, C_RANK_ESCORT,
   B_RANK_PLACEHOLDER,
   A_RANK_PLACEHOLDER,
 ];
@@ -591,6 +724,59 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
       }
       break;
     }
+
+    // C-rank: bandit capture
+    case 'c_bandit_capture': {
+      if (event.type === 'target_captured') {
+        active.progress.targetCaptured = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `${targetName} has been captured! Search them for proof, then extract.`;
+      }
+      if (event.type === 'trophy_collected') {
+        active.progress.hasTrophy = true;
+        if (active.progress.targetCaptured) {
+          active.objectiveComplete = true;
+          return `Proof collected. Head to the map edge to extract, then return to Konoha.`;
+        }
+        return `You have the proof. Now capture the target.`;
+      }
+      break;
+    }
+
+    // C-rank: gang elimination
+    case 'c_gang_elimination': {
+      if (event.type === 'target_killed') {
+        active.progress.targetEliminated = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `${targetName} has been eliminated! Search them for proof, then extract.`;
+      }
+      if (event.type === 'trophy_collected') {
+        active.progress.hasTrophy = true;
+        if (active.progress.targetEliminated) {
+          active.objectiveComplete = true;
+          return `Proof collected. Head to the map edge to extract, then return to Konoha.`;
+        }
+        return `You have the proof. Now eliminate the target.`;
+      }
+      break;
+    }
+
+    // C-rank: escort
+    case 'c_escort': {
+      // For escort missions, objective completes when all bandits are dealt with
+      // (simplified — the escort NPC is implied, not physically present)
+      if (event.type === 'target_killed' || event.type === 'target_captured') {
+        const banditsDown = ((active.progress.banditsDown as number) ?? 0) + 1;
+        active.progress.banditsDown = banditsDown;
+        const total = (mission.templateData as unknown as CRankMissionData).banditCount;
+        if (banditsDown >= total) {
+          active.objectiveComplete = true;
+          return `All threats neutralized! The route is secure. Extract and return to Konoha.`;
+        }
+        return `Threat neutralized (${banditsDown}/${total}). Keep clearing the area.`;
+      }
+      break;
+    }
   }
 
   return null;
@@ -611,7 +797,10 @@ export function getGameDay(gameTimeSeconds: number): number {
 }
 
 export function getMissionXpMultiplier(log: MissionLog): number {
-  return log.active && !log.active.objectiveComplete ? 2 : 1;
+  if (!log.active || log.active.objectiveComplete) return 1;
+  // Away missions use per-skill multipliers (handled separately in missionRewards.ts)
+  // D-rank village missions use flat 2x
+  return 2;
 }
 
 /** Get a human-readable status for the active mission */
@@ -633,6 +822,19 @@ export function getActiveMissionStatus(log: MissionLog): string | null {
 }
 
 // ── RANK DISPLAY ──
+
+/** Check if a mission template requires away travel */
+export function isAwayMission(templateKey: string): boolean {
+  return templateKey === 'c_bandit_capture' ||
+         templateKey === 'c_gang_elimination' ||
+         templateKey === 'c_escort';
+}
+
+/** Get the CRankMissionData from a mission's templateData */
+export function getCRankData(mission: Mission): CRankMissionData | null {
+  if (!isAwayMission(mission.templateKey)) return null;
+  return mission.templateData as unknown as CRankMissionData;
+}
 
 export const RANK_COLORS: Record<MissionRank, string> = {
   D: '#5b8c5a',

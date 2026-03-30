@@ -174,6 +174,41 @@ export class IsoRenderer {
       ctx.fillStyle = `rgba(5, 5, 20, ${nightDim})`;
       ctx.fillRect(0, 0, this.camera.viewportWidth, this.camera.viewportHeight);
     }
+
+    // ── Carry indicator above player (drawn after night overlay so it's always visible) ──
+    this.drawCarryIndicator(ctx, world, offset);
+  }
+
+  /** Draw carry weight indicator above player when carrying a body */
+  private drawCarryIndicator(ctx: CanvasRenderingContext2D, world: World, offset: { ox: number; oy: number }): void {
+    const carry = world.carrying.get(world.playerEntityId);
+    if (!carry) return;
+
+    const pos = world.positions.get(world.playerEntityId);
+    if (!pos) return;
+    if (!world.fovVisible.has(world.fovKey(pos.x, pos.y))) return;
+
+    const halfTW = TILE_WIDTH / 2;
+    const halfTH = TILE_HEIGHT / 2;
+    const sx = (pos.x - pos.y) * halfTW + offset.ox;
+    const sy = (pos.x + pos.y) * halfTH + offset.oy;
+    const centerX = sx + TILE_WIDTH / 2;
+    const aboveY = sy - 28; // above character head
+
+    // Draw a small weight/burden symbol: a down arrow (burden)
+    ctx.globalAlpha = 0.85;
+
+    // Body icon — small person silhouette
+    ctx.fillStyle = '#8a7a6a';
+    // Head
+    ctx.fillRect(centerX - 1, aboveY, 3, 2);
+    // Body
+    ctx.fillRect(centerX - 2, aboveY + 2, 5, 3);
+    // Legs
+    ctx.fillRect(centerX - 2, aboveY + 5, 2, 2);
+    ctx.fillRect(centerX + 1, aboveY + 5, 2, 2);
+
+    ctx.globalAlpha = 1.0;
   }
 
   /** Draw tempo beads and condition icons above characters in combat */

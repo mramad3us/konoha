@@ -19,7 +19,8 @@ export class KeybindingsPanel {
         { keys: 'n', descs: 'SE' },
       ],
       [
-        { keys: ',', descs: 'Stance' },
+        { keys: ',', descs: 'Faster' },
+        { keys: ';', descs: 'Slower' },
         { keys: '@', descs: 'Jutsu' },
       ],
       [

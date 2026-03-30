@@ -6,7 +6,9 @@
 
 import type { JutsuDefinition, JutsuCooldowns } from '../types/jutsu.ts';
 import { JUTSU_REGISTRY, getJutsuByCombatKey } from '../data/jutsus.ts';
-import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
+import { checkSkillUp } from './skillFeedback.ts';
+import { COMBAT_PASS_SUBTICKS, FOV_RADIUS, PASS_DURATION_SECONDS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR } from '../core/constants.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -14,7 +16,6 @@ import { spawnSmokePuff } from '../systems/particleSystem.ts';
 import { sfxSubstitution } from '../systems/audioSystem.ts';
 import { clearStaleEngagements } from './combatSystem.ts';
 import { computeFOV } from './fov.ts';
-import { FOV_RADIUS, PASS_DURATION_SECONDS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 
 /** Per-entity cooldown tracking */
@@ -85,24 +86,25 @@ export function tryCastJutsu(
 
   // Consume chakra
   resources.chakra -= jutsu.chakraCost;
+  resources.chakraCeiling = Math.max(resources.maxChakra * CHAKRA_FATIGUE_FLOOR, resources.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
+  resources.lastChakraExertionTick = world.currentTick;
 
   // Set cooldown
   cd[jutsuId] = world.currentTick + jutsu.cooldownPasses;
 
-  // Improve ninjutsu
+  // Improve ninjutsu + CHA
   if (sheet) {
     const mxp = getMissionXpMultiplier(world.missionLog);
-    sheet.skills.ninjutsu = computeImprovement(
-      sheet.skills.ninjutsu,
-      SKILL_IMPROVEMENT_RATES.ninjutsu,
-      2.0,
-      mxp,
-    );
+    const oldNin = sheet.skills.ninjutsu;
+    sheet.skills.ninjutsu = computeImprovement(oldNin, SKILL_IMPROVEMENT_RATES.ninjutsu, 2.0, mxp);
+    checkSkillUp(world, 'ninjutsu', oldNin, sheet.skills.ninjutsu);
+    const oldCha = sheet.stats.cha;
+    sheet.stats.cha = computeImprovement(oldCha, STAT_IMPROVEMENT_RATES.cha_ninjutsu_use, 2.0, mxp);
+    checkSkillUp(world, 'cha', oldCha, sheet.stats.cha);
   }
 
-  // Advance time
-  world.currentTick += 1;
-  world.gameTimeSeconds += PASS_DURATION_SECONDS;
+  // Advance time — jutsu cast = 1 combat pass (4 subticks, 2s)
+  world.advanceTime(COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
 
   // Pick a random cast message
   const casterName = world.names.get(casterId)?.display ?? 'Unknown';

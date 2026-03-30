@@ -6,6 +6,7 @@
 
 import type { World } from './world.ts';
 import { isUnconscious, isDead } from './entityState.ts';
+import { canNpcPerceivePlayer } from './surpriseAttack.ts';
 
 const PROXIMITY_RANGE = 2; // tiles (reduced from 3 to prevent spam)
 
@@ -19,6 +20,9 @@ export function tickProximityDialogue(world: World): void {
 
   for (const [entityId, dialogue] of world.proximityDialogue) {
     if (isDead(world, entityId)) continue;
+
+    // NPCs that can't perceive the player don't speak
+    if (!canNpcPerceivePlayer(world, entityId)) continue;
 
     // Invisible NPCs don't speak to those who can't see them
     if (world.isInvisibleToPlayer(entityId)) continue;

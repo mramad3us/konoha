@@ -199,6 +199,40 @@ export const STAT_IMPROVEMENT_RATES = {
   soc_training: 0.000050,       // special trainer
 } as const;
 
+// ── RANK TIER HELPERS ──
+
+import type { SkillRankTier } from './awayMission.ts';
+import { RANK_TIER_GENIN_MAX, RANK_TIER_CHUUNIN_MAX, RANK_TIER_JONIN_MAX } from '../core/constants.ts';
+
+/** Determine the effective rank tier for a given skill/stat value */
+export function getSkillRankTier(value: number): SkillRankTier {
+  if (value < RANK_TIER_GENIN_MAX) return 'genin';
+  if (value < RANK_TIER_CHUUNIN_MAX) return 'chuunin';
+  if (value < RANK_TIER_JONIN_MAX) return 'jonin';
+  return 'elite';
+}
+
+/** Numeric rank for comparison (higher = stronger) */
+export function rankTierToNumber(tier: SkillRankTier): number {
+  switch (tier) {
+    case 'genin': return 0;
+    case 'chuunin': return 1;
+    case 'jonin': return 2;
+    case 'elite': return 3;
+  }
+}
+
+/** Convert mission rank letter to SkillRankTier */
+export function missionRankToTier(rank: string): SkillRankTier {
+  switch (rank) {
+    case 'D': return 'genin';
+    case 'C': return 'chuunin';
+    case 'B': return 'jonin';
+    case 'A': return 'elite';
+    default: return 'genin';
+  }
+}
+
 // ── DEFAULTS FOR NEW CHARACTERS ──
 
 export const DEFAULT_SHINOBI_SHEET: CharacterSheet = {

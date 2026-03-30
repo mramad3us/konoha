@@ -28,6 +28,7 @@ export class InputSystem {
   private onSleep: (() => void) | null = null;
   private onContextMenu: ((entityId: number) => void) | null = null;
   private onTargetSelect: ((candidates: number[]) => void) | null = null;
+  private onEdgeExtraction: (() => void) | null = null;
 
   constructor(
     world: World,
@@ -171,6 +172,8 @@ export class InputSystem {
         this.onTargetSelect(interaction.candidates);
       } else if (interaction.type === 'context_menu' && this.onContextMenu) {
         this.onContextMenu(interaction.entityId);
+      } else if (interaction.type === 'edge_extraction' && this.onEdgeExtraction) {
+        this.onEdgeExtraction();
       }
     }
   }
@@ -193,6 +196,16 @@ export class InputSystem {
   /** Set callback for target selection (multiple interactables nearby) */
   setTargetSelectCallback(cb: (candidates: number[]) => void): void {
     this.onTargetSelect = cb;
+  }
+
+  /** Set callback for edge extraction (mission map boundary) */
+  setEdgeExtractionCallback(cb: () => void): void {
+    this.onEdgeExtraction = cb;
+  }
+
+  /** Swap the world reference (for away mission transitions) */
+  swapWorld(newWorld: World): void {
+    this.world = newWorld;
   }
 
   /** Remove event listener */

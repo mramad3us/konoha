@@ -5,8 +5,10 @@
 
 import type { World } from './world.ts';
 import { reviveEntity } from './entityState.ts';
+import { clearEntityEngagements } from './combatSystem.ts';
+import { stopCarrying } from './restraintCarry.ts';
 import { computeFOV } from './fov.ts';
-import { FOV_RADIUS, VILLAGE_PLAYER_START_X, VILLAGE_PLAYER_START_Y, TRAINING_RESPAWN_TIME_S, RESPAWN_FADE_MS } from '../core/constants.ts';
+import { FOV_RADIUS, TRAINING_RESPAWN_TIME_S, RESPAWN_FADE_MS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 
 export interface RespawnConfig {
@@ -20,15 +22,19 @@ export interface RespawnConfig {
   message: string;
 }
 
+/** Hospital bed — Ward 1, bed 1 (17, 84) */
+const HOSPITAL_BED_X = 17;
+const HOSPITAL_BED_Y = 84;
+
 export const TRAINING_GROUNDS_RESPAWN: RespawnConfig = {
   gameTimePassSeconds: TRAINING_RESPAWN_TIME_S,
   restoreHp: true,
   restoreStamina: true,
   restoreChakra: true,
   restoreWillpower: true,
-  spawnX: VILLAGE_PLAYER_START_X,
-  spawnY: VILLAGE_PLAYER_START_Y,
-  message: 'You awaken on the training grounds. An hour has passed.',
+  spawnX: HOSPITAL_BED_X,
+  spawnY: HOSPITAL_BED_Y,
+  message: 'You open your eyes... bandages, the sharp smell of antiseptic. You\'re lying in a hospital bed.',
 };
 
 /**
@@ -39,6 +45,17 @@ export function executeRespawn(world: World, config: RespawnConfig): void {
   const playerId = world.playerEntityId;
   const resources = world.resources.get(playerId);
   const pos = world.positions.get(playerId);
+
+  // Clear any combat engagements (player teleported away from the fight)
+  clearEntityEngagements(playerId);
+
+  // Drop anything being carried (can't keep carrying while unconscious)
+  if (world.carrying.has(playerId)) {
+    stopCarrying(world, playerId);
+  }
+
+  // Clear bleeding (hospital staff patched us up)
+  world.bleeding.delete(playerId);
 
   // Revive via centralized state manager (restores HP, clears unconscious, restores sprite)
   reviveEntity(world, playerId, 1.0);
@@ -57,6 +74,8 @@ export function executeRespawn(world: World, config: RespawnConfig): void {
     }
     if (config.restoreChakra) {
       resources.chakra = resources.maxChakra;
+      resources.chakraCeiling = resources.maxChakra;
+      resources.lastChakraExertionTick = 0;
     }
     if (config.restoreWillpower) {
       resources.willpower = resources.maxWillpower;

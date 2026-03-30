@@ -9,6 +9,7 @@
 
 import type { World } from './world.ts';
 import type { Direction, EntityId } from '../types/ecs.ts';
+import { npcFaceTowardPlayer } from './surpriseAttack.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -55,10 +56,17 @@ export function tickNpcMovement(world: World): void {
   for (const [id, ai] of world.aiControlled) {
     if (id === world.playerEntityId) continue;
 
+    // Skip unconscious, dead, restrained, or carried NPCs
+    if (world.unconscious.has(id) || world.dead.has(id) || world.restrained.has(id) || world.carried.has(id)) continue;
+
     const anchor = world.anchors.get(id);
     if (!anchor) continue;
     const pos = world.positions.get(id);
     if (!pos) continue;
+
+    // NPCs turn to face the player when they perceive them within 2 tiles
+    // This happens before movement so the NPC reacts to player proximity
+    npcFaceTowardPlayer(world, id);
 
     switch (ai.behavior) {
       case 'wander':

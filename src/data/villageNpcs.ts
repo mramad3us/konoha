@@ -465,7 +465,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
 
   // ── Innkeeper ──
   spawnNpc(world, {
-    x: 65, y: 121, name: 'Jinsuke', accents: ACCENTS_CHEF,
+    x: 65, y: 123, name: 'Jinsuke', accents: ACCENTS_CHEF,
     rank: 'civilian', title: 'Innkeeper', charClass: 'civilian',
     skills: { taijutsu: 3, bukijutsu: 5, ninjutsu: 0, genjutsu: 0, med: 8 },
     stats: { phy: 15, cha: 3, men: 12, soc: 50 },

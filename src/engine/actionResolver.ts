@@ -17,8 +17,9 @@ const KEY_MAP: Record<string, GameAction> = {
   // Wait
   '.': { type: 'wait' },
 
-  // Stance cycling
-  ',': { type: 'cycleStance' },
+  // Stance speed — ',' faster, ';' slower (no loop)
+  ',': { type: 'stanceFaster' },
+  ';': { type: 'stanceSlower' },
 
   // UI toggles
   '?': { type: 'toggleKeybindings' },

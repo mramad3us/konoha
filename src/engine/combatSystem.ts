@@ -14,8 +14,9 @@ import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, gene
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkEntityState, applyBleeding, tickBleeding, killEntity as killEntityDirect } from './entityState.ts';
-import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE } from '../core/constants.ts';
+import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RESTORE_RATE, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
 import { getMissionXpMultiplier } from './missions.ts';
+import { checkSkillUp } from './skillFeedback.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
@@ -315,8 +316,12 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
         : SKILL_IMPROVEMENT_RATES.taijutsu_dummy);
 
     const mxp = getMissionXpMultiplier(world.missionLog);
-    playerSheet.skills.taijutsu = computeImprovement(playerSheet.skills.taijutsu, rate, 2.0, mxp);
-    playerSheet.stats.phy = computeImprovement(playerSheet.stats.phy, STAT_IMPROVEMENT_RATES.phy_combat, 2.0, mxp);
+    const oldTai = playerSheet.skills.taijutsu;
+    const oldPhy = playerSheet.stats.phy;
+    playerSheet.skills.taijutsu = computeImprovement(oldTai, rate, 2.0, mxp);
+    playerSheet.stats.phy = computeImprovement(oldPhy, STAT_IMPROVEMENT_RATES.phy_combat, 2.0, mxp);
+    checkSkillUp(world, 'taijutsu', oldTai, playerSheet.skills.taijutsu);
+    checkSkillUp(world, 'phy', oldPhy, playerSheet.stats.phy);
   }
 
   // ── Tick conditions down ──
@@ -356,6 +361,12 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
       const regenAmount = res.maxStamina * STAMINA_RESTORE_RATE;
       res.stamina = Math.min(res.staminaCeiling, res.stamina + regenAmount);
     }
+    // Chakra restoration (mirrors stamina)
+    const ticksSinceChakraUse = world.currentTick - res.lastChakraExertionTick;
+    if (ticksSinceChakraUse >= CHAKRA_REST_TICKS && res.chakra < res.chakraCeiling) {
+      const chakraRegen = res.maxChakra * CHAKRA_RESTORE_RATE;
+      res.chakra = Math.min(res.chakraCeiling, res.chakra + chakraRegen);
+    }
   }
 
   eng.round++;
@@ -387,10 +398,10 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     }
   }
 
-  world.currentTick += 1;
-  world.gameTimeSeconds += 2; // 1 combat pass = 2s in-game
+  // Combat pass = 4 subticks (2s). Stays within a coarse tick so NPCs don't react.
+  world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
 
-  // Tick bleeding for all entities
+  // Tick bleeding for all entities (always runs in combat)
   tickBleeding(world);
 
   return true;
@@ -429,6 +440,15 @@ export function clearStaleEngagements(world: World): void {
     const posB = world.positions.get(eng.entityB);
     if (!posA || !posB) { engagements.delete(key); continue; }
     if (Math.max(Math.abs(posA.x - posB.x), Math.abs(posA.y - posB.y)) > 1) {
+      engagements.delete(key);
+    }
+  }
+}
+
+/** Clear ALL engagements involving a specific entity (used on respawn/teleport) */
+export function clearEntityEngagements(entityId: EntityId): void {
+  for (const [key, eng] of engagements) {
+    if (eng.entityA === entityId || eng.entityB === entityId) {
       engagements.delete(key);
     }
   }

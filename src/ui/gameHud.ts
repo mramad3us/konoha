@@ -2,7 +2,8 @@ import { createElement } from '../utils/dom.ts';
 import { ResourceBar } from './resourceBar.ts';
 import { GameLog } from './gameLog.ts';
 import type { World } from '../engine/world.ts';
-import { STANCE_TICK_COST } from '../core/constants.ts';
+import { CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
+import { getChakraSprintSpeed, getChakraSprintTier, hasTechnique } from '../data/techniques.ts';
 
 export class GameHud {
   readonly element: HTMLElement;
@@ -80,14 +81,49 @@ export class GameHud {
     }
 
     if (playerCtrl) {
-      const stanceNames = {
+      const stanceNames: Record<string, string> = {
         sprint: 'Sprint',
         walk: 'Walk',
         creep: 'Creep',
         crawl: 'Crawl',
+        chakra_sprint: 'Chakra Sprint',
       };
-      this.stanceValue.textContent = stanceNames[playerCtrl.movementStance];
-      this.stanceTicks.textContent = `${STANCE_TICK_COST[playerCtrl.movementStance]} ticks/move`;
+
+      const isCarrying = world.carrying.has(playerId);
+      const carryLabel = isCarrying ? ' [Carrying]' : '';
+
+      // Check if swimming (on water without water walk)
+      const playerPos = world.positions.get(playerId);
+      const onWater = playerPos ? world.tileMap.isWater(playerPos.x, playerPos.y) : false;
+      const playerSheet = world.characterSheets.get(playerId);
+      const playerNin = playerSheet?.skills.ninjutsu ?? 0;
+      const playerRes = world.resources.get(playerId);
+      const canWaterWalk = onWater && hasTechnique(playerNin, 'water_walk') && (playerRes ? playerRes.chakra >= WATER_WALK_CHAKRA_COST : false);
+      const isSwimming = onWater && !canWaterWalk;
+
+      if (isSwimming) {
+        this.stanceValue.textContent = 'Swim';
+        const displaySecs = isCarrying ? 48 : 24;
+        this.stanceTicks.textContent = `${displaySecs}s/step${carryLabel}`;
+      } else {
+        this.stanceValue.textContent = stanceNames[playerCtrl.movementStance] ?? playerCtrl.movementStance;
+
+        // Show seconds per step for all stances
+        const STANCE_SECONDS: Record<string, number> = {
+          sprint: 3, walk: 6, creep: 9, crawl: 12, chakra_sprint: 2,
+        };
+
+        if (playerCtrl.movementStance === 'chakra_sprint') {
+          const nin = world.characterSheets.get(playerId)?.skills.ninjutsu ?? 10;
+          const speed = getChakraSprintSpeed(nin);
+          const tier = getChakraSprintTier(nin);
+          this.stanceTicks.textContent = `${tier} · ${speed}s/step · ${CHAKRA_SPRINT_COST} ckr+sta${carryLabel}`;
+        } else {
+          const secs = STANCE_SECONDS[playerCtrl.movementStance] ?? 6;
+          const displaySecs = isCarrying ? secs * 2 : secs;
+          this.stanceTicks.textContent = `${displaySecs}s/step${carryLabel}`;
+        }
+      }
     }
 
     this.gameLog.update(world.gameLog, world.gameTimeSeconds);

@@ -422,7 +422,7 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   const playerSheet = devMode
     ? { class: 'shinobi' as const, rank: 'jounin' as const, title: 'Elite Shinobi',
         skills: { taijutsu: 90, bukijutsu: 90, ninjutsu: 90, genjutsu: 90, med: 90 },
-        stats: { phy: 90, cha: 90, men: 90, soc: 90 }, learnedJutsus: ['substitution'] }
+        stats: { phy: 90, cha: 90, men: 90, soc: 90 }, learnedJutsus: ['substitution', 'chakra_sprint', 'water_walk'] }
     : { ...DEFAULT_SHINOBI_SHEET, title: 'Academy Graduate' };
   world.characterSheets.set(playerId, playerSheet);
 
@@ -435,7 +435,8 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   world.combatStats.set(playerId, { damage: BASE_PLAYER_DAMAGE, accuracy: BASE_PLAYER_ACCURACY, evasion: BASE_PLAYER_EVASION, attackVerb: 'strike' });
   world.playerControlled.set(playerId, { movementStance: 'walk' });
   world.resources.set(playerId, {
-    chakra: maxChakra, maxChakra, willpower: maxWillpower, maxWillpower,
+    chakra: maxChakra, maxChakra, chakraCeiling: maxChakra, lastChakraExertionTick: 0,
+    willpower: maxWillpower, maxWillpower,
     stamina: maxStamina, maxStamina, staminaCeiling: maxStamina, lastExertionTick: 0,
     blood: 100, maxBlood: 100,
   });

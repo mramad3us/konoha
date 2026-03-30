@@ -3,47 +3,65 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, STANCE_TICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS } from '../core/constants.ts';
+import { FOV_RADIUS, STANCE_SUBTICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
-import { tickUnconsciousRecovery, tickBleeding } from './entityState.ts';
+import { hasTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
+import { tickUnconsciousRecovery, tickBleeding, checkEntityState } from './entityState.ts';
 import { tickProximityDialogue } from './proximityDialogue.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
-import { checkPatrolProgress } from './missions.ts';
+import { checkPatrolProgress, getMissionXpMultiplier } from './missions.ts';
 import { tickNpcMovement } from './npcMovementSystem.ts';
 import { tickDuskTransition, tickDawnTransition } from './npcLifecycleSystem.ts';
 import { getActiveEngagements, clearStaleEngagements } from './combatSystem.ts';
+import { computeImprovement, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
+import { checkSkillUp } from './skillFeedback.ts';
 import { calculateDamage } from '../types/combat.ts';
-import { DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS } from '../core/constants.ts';
 import type { EntityId } from '../types/ecs.ts';
+import { updateCarriedPosition } from './restraintCarry.ts';
 
-/** Advance game time and recompute FOV with night reduction */
-function advanceTurn(world: World, ticks: number, gameSeconds: number): void {
-  world.currentTick += ticks;
+/**
+ * Advance game time by subticks and recompute FOV.
+ * Slow systems (NPC movement, dialogue, day/night) only fire when a
+ * coarse tick boundary (6 subticks = 3s) is crossed.
+ * Fast actions (combat, chakra sprint) don't cross boundaries → world stays frozen.
+ */
+function advanceTurn(world: World, subticks: number, gameSeconds: number): void {
+  const oldTick = world.currentTick;
+  world.currentSubtick += subticks;
   world.gameTimeSeconds += gameSeconds;
+  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
+
+  // Always recompute FOV
   const playerPos = world.positions.get(world.playerEntityId);
   if (playerPos) {
     const nightReduction = getNightFovReduction(world.gameTimeSeconds);
     const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
     computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
   }
-  // Check auto-recovery for unconscious entities + tick bleeding + NPC dialogue
-  tickUnconsciousRecovery(world);
-  tickBleeding(world);
-  tickProximityDialogue(world);
-  // NPC movement (wandering, despawn walk-off, return-to-anchor)
-  tickNpcMovement(world);
-  // Day/night lifecycle transitions
-  tickDuskTransition(world);
-  tickDawnTransition(world);
+
+  // Slow systems — only when coarse ticks actually advance
+  const ticksElapsed = world.currentTick - oldTick;
+  for (let t = 0; t < ticksElapsed; t++) {
+    tickUnconsciousRecovery(world);
+    tickBleeding(world);
+    tickProximityDialogue(world);
+    tickNpcMovement(world);
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+  }
 }
 
-/** Stance to game seconds per step */
+/** Stance to game seconds per step (chakra_sprint is dynamic, handled separately) */
 const STANCE_SECONDS: Record<string, number> = {
   sprint: 3,
   walk: 6,
   creep: 9,
   crawl: 12,
+  chakra_sprint: 2, // fallback; actual value computed from ninjutsu tier
 };
+
+/** Swimming speed (no water walk) — very slow */
+const SWIM_SECONDS = 24;
 
 /** Map dx,dy to a facing direction */
 function vectorToDirection(dx: number, dy: number): Direction {
@@ -98,64 +116,106 @@ export function executeTurn(action: GameAction, world: World): boolean {
       // ── Check combat disengagement ──
       const engagedTarget = findEngagedTarget(world, playerId);
       if (engagedTarget !== null) {
-        const res = world.resources.get(playerId);
-        if (!res || res.stamina < DISENGAGE_STAMINA_COST) {
-          world.log('Too exhausted to disengage — you can\'t pull away.', 'info');
-          advanceTurn(world, 1, PASS_DURATION_SECONDS);
-          return true;
-        }
-
-        // Check terrain
+        // Check terrain first
         if (!world.tileMap.isWalkable(newX, newY) || (world.isBlockedByEntity(newX, newY))) {
           world.log('No room to disengage in that direction.', 'info');
           return false;
         }
 
-        // Pay costs
-        res.stamina = Math.max(0, res.stamina - DISENGAGE_STAMINA_COST);
-        res.chakra = Math.max(0, res.chakra - DISENGAGE_CHAKRA_COST);
-        res.lastExertionTick = world.currentTick;
-
-        // Check if player has tempo to dodge the opportunity attack
-        const engagements = getActiveEngagements();
-        const key = playerId < engagedTarget ? `${playerId}:${engagedTarget}` : `${engagedTarget}:${playerId}`;
-        const eng = engagements.get(key);
-        const playerTempo = eng ? (eng.entityA === playerId ? eng.tempoA : eng.tempoB) : null;
-        const targetName = world.names.get(engagedTarget)?.display ?? 'your opponent';
-
-        if (playerTempo && playerTempo.current > 0) {
-          // Spend tempo to dodge cleanly
-          playerTempo.current--;
-          world.log(`You use your momentum to slip past ${targetName}'s guard and disengage!`, 'combat_tempo');
-        } else {
-          // Take a free hit
-          const targetSheet = world.characterSheets.get(engagedTarget);
-          const targetTaijutsu = targetSheet?.skills.taijutsu ?? 10;
-          const targetPhy = targetSheet?.stats.phy ?? 10;
-          const damage = calculateDamage(targetTaijutsu, targetPhy);
-          const health = world.healths.get(playerId);
-          if (health) health.current = Math.max(0, health.current - damage);
-
-          const DISENGAGE_HIT_FLAVORS = [
-            `${targetName} strikes as you pull away — you take the hit but create distance.`,
-            `A blow catches you mid-retreat. ${targetName}'s fist connects, but you manage to break free.`,
-            `You feel ${targetName}'s strike land as you leap back. Painful, but you're free.`,
-            `${targetName} doesn't let you go cleanly — a parting blow rocks you as you disengage.`,
-            `The price of retreat: ${targetName} lands a solid hit as you pull away.`,
-          ];
-          world.log(DISENGAGE_HIT_FLAVORS[Math.floor(Math.random() * DISENGAGE_HIT_FLAVORS.length)], 'hit_incoming');
+        // Destructibles (training dummies) don't fight back — free disengage
+        if (world.destructibles.has(engagedTarget)) {
+          world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
+          playerPos.x = newX;
+          playerPos.y = newY;
+          sfxStep();
+          clearStaleEngagements(world);
+          world.log('You step away from the training dummy.', 'info');
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+          return true;
         }
 
-        // Move
-        world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
-        playerPos.x = newX;
-        playerPos.y = newY;
-        sfxStep();
+        // Real opponents: need stamina to disengage at all
+        const res = world.resources.get(playerId);
+        if (!res || res.stamina < DISENGAGE_STAMINA_COST) {
+          world.log('Too exhausted to disengage — you can\'t pull away.', 'info');
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+          return true;
+        }
 
-        // Break engagement
-        clearStaleEngagements(world);
+        const targetName = world.names.get(engagedTarget)?.display ?? 'your opponent';
+        const playerNin = world.characterSheets.get(playerId)?.skills.ninjutsu ?? 0;
+        const canFastDisengage = playerNin >= 10 && res.chakra >= DISENGAGE_CHAKRA_COST;
 
-        advanceTurn(world, 1, PASS_DURATION_SECONDS);
+        // Pay stamina (always required)
+        res.stamina = Math.max(0, res.stamina - DISENGAGE_STAMINA_COST);
+        res.lastExertionTick = world.currentTick;
+
+        if (canFastDisengage) {
+          // ── Fast disengage (1 pass = 2s) — pay chakra, check tempo for opportunity attack ──
+          res.chakra = Math.max(0, res.chakra - DISENGAGE_CHAKRA_COST);
+          res.chakraCeiling = Math.max(res.maxChakra * CHAKRA_FATIGUE_FLOOR, res.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
+          res.lastChakraExertionTick = world.currentTick;
+
+          const engagements = getActiveEngagements();
+          const key = playerId < engagedTarget ? `${playerId}:${engagedTarget}` : `${engagedTarget}:${playerId}`;
+          const eng = engagements.get(key);
+          const playerTempo = eng ? (eng.entityA === playerId ? eng.tempoA : eng.tempoB) : null;
+
+          if (playerTempo && playerTempo.current > 0) {
+            // Spend tempo to dodge cleanly
+            playerTempo.current--;
+            world.log(`You channel chakra to your feet and slip past ${targetName}'s guard!`, 'combat_tempo');
+          } else {
+            // Take 1 free hit
+            applyFreeHit(world, engagedTarget, playerId, targetName);
+          }
+
+          // Check if player was KO'd by the opportunity attack
+          checkEntityState(world, playerId);
+          const hp = world.healths.get(playerId);
+          if (hp && hp.current > 0) {
+            world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
+            playerPos.x = newX;
+            playerPos.y = newY;
+            sfxStep();
+            clearStaleEngagements(world);
+          } else {
+            world.log('You collapse before you can get away.', 'hit_incoming');
+          }
+
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+        } else {
+          // ── Slow disengage (low ninjutsu or no chakra) — stamina-only, 3 passes (6s), 3 free hits ──
+          if (playerNin < 10) {
+            world.log(`Without the skill to channel chakra, you scramble to pull away from ${targetName}...`, 'combat_neutral');
+          } else {
+            world.log(`Without chakra to boost your retreat, you scramble to pull away from ${targetName}...`, 'combat_neutral');
+          }
+
+          for (let i = 0; i < 3; i++) {
+            applyFreeHit(world, engagedTarget, playerId, targetName);
+            checkEntityState(world, playerId);
+            const hp = world.healths.get(playerId);
+            if (hp && hp.current <= 0) break;
+          }
+
+          // Move (if still conscious)
+          const hp = world.healths.get(playerId);
+          if (hp && hp.current > 0) {
+            world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
+            playerPos.x = newX;
+            playerPos.y = newY;
+            sfxStep();
+            clearStaleEngagements(world);
+            world.log('You finally break free, battered but clear.', 'combat_neutral');
+          } else {
+            world.log('You collapse before you can get away.', 'hit_incoming');
+          }
+
+          // 3 passes = 3 × 4 subticks = 12 subticks (6s)
+          advanceTurn(world, COMBAT_PASS_SUBTICKS * 3, PASS_DURATION_SECONDS * 3);
+        }
+
         return true;
       }
 
@@ -172,8 +232,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
         } else {
           world.log(`Blocked by ${desc}.`, 'info');
         }
-      } else if (!world.tileMap.isWalkable(newX, newY)) {
-        // Terrain blocks
+      } else if (!world.tileMap.isWalkable(newX, newY) && !world.tileMap.isWater(newX, newY)) {
+        // Solid terrain blocks
         world.log('The way is blocked.', 'info');
       } else {
         // Move!
@@ -182,8 +242,63 @@ export function executeTurn(action: GameAction, world: World): boolean {
         playerPos.y = newY;
         sfxStep();
 
-        // Stamina cost for sprinting
-        const staminaCost = STANCE_STAMINA_COST[playerCtrl.movementStance];
+        // ── Update carried entity position ──
+        updateCarriedPosition(world, playerId);
+
+        // ── Chakra sprint cost (3 chakra + 3 stamina per step) ──
+        if (playerCtrl.movementStance === 'chakra_sprint') {
+          const resources = world.resources.get(playerId);
+          if (resources) {
+            if (resources.stamina < CHAKRA_SPRINT_COST) {
+              world.log('Too exhausted to maintain chakra sprint. Switching to walk.', 'system');
+              playerCtrl.movementStance = 'walk';
+            } else if (resources.chakra < CHAKRA_SPRINT_COST) {
+              world.log('Not enough chakra to maintain chakra sprint. Switching to walk.', 'system');
+              playerCtrl.movementStance = 'walk';
+            } else {
+              resources.chakra = Math.max(0, resources.chakra - CHAKRA_SPRINT_COST);
+              resources.stamina = Math.max(0, resources.stamina - CHAKRA_SPRINT_COST);
+              resources.lastExertionTick = world.currentTick;
+              resources.lastChakraExertionTick = world.currentTick;
+              resources.chakraCeiling = Math.max(resources.maxChakra * CHAKRA_FATIGUE_FLOOR, resources.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
+              // Chakra sprint trains both PHY and CHA
+              const sheet = world.characterSheets.get(playerId);
+              if (sheet) {
+                const mxp = getMissionXpMultiplier(world.missionLog);
+                const oldPhy = sheet.stats.phy;
+                const oldCha = sheet.stats.cha;
+                sheet.stats.phy = computeImprovement(oldPhy, STAT_IMPROVEMENT_RATES.phy_combat, 2.0, mxp);
+                sheet.stats.cha = computeImprovement(oldCha, STAT_IMPROVEMENT_RATES.cha_ninjutsu_use, 2.0, mxp);
+                checkSkillUp(world, 'phy', oldPhy, sheet.stats.phy);
+                checkSkillUp(world, 'cha', oldCha, sheet.stats.cha);
+              }
+            }
+          }
+        }
+
+        // ── Water walk chakra cost (only if actually water-walking, not swimming) ──
+        if (world.tileMap.isWater(newX, newY) && canWaterWalk(world, playerId, newX, newY)) {
+          const resources = world.resources.get(playerId);
+          if (resources) {
+            resources.chakra = Math.max(0, resources.chakra - WATER_WALK_CHAKRA_COST);
+            resources.chakraCeiling = Math.max(resources.maxChakra * CHAKRA_FATIGUE_FLOOR, resources.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
+            resources.lastChakraExertionTick = world.currentTick;
+            // Water walking trains CHA
+            const wwSheet = world.characterSheets.get(playerId);
+            if (wwSheet) {
+              const mxp = getMissionXpMultiplier(world.missionLog);
+              const oldCha = wwSheet.stats.cha;
+              wwSheet.stats.cha = computeImprovement(oldCha, STAT_IMPROVEMENT_RATES.cha_ninjutsu_use, 2.0, mxp);
+              checkSkillUp(world, 'cha', oldCha, wwSheet.stats.cha);
+            }
+            if (resources.chakra <= 0) {
+              world.log('Your chakra falters — you can barely keep your footing on the water!', 'system');
+            }
+          }
+        }
+
+        // ── Stamina cost for regular sprint (chakra sprint handles its own above) ──
+        const staminaCost = playerCtrl.movementStance === 'chakra_sprint' ? 0 : (STANCE_STAMINA_COST[playerCtrl.movementStance] ?? 0);
         if (staminaCost > 0) {
           const resources = world.resources.get(playerId);
           if (resources) {
@@ -192,12 +307,20 @@ export function executeTurn(action: GameAction, world: World): boolean {
               playerCtrl.movementStance = 'walk';
             } else {
               resources.stamina = Math.max(0, resources.stamina - staminaCost);
+              // Sprinting trains PHY
+              const sprintSheet = world.characterSheets.get(playerId);
+              if (sprintSheet) {
+                const mxp = getMissionXpMultiplier(world.missionLog);
+                const oldPhy = sprintSheet.stats.phy;
+                sprintSheet.stats.phy = computeImprovement(oldPhy, STAT_IMPROVEMENT_RATES.phy_combat, 2.0, mxp);
+                checkSkillUp(world, 'phy', oldPhy, sprintSheet.stats.phy);
+              }
             }
           }
         }
 
         // Stamina regeneration when not sprinting and resting long enough
-        if (playerCtrl.movementStance !== 'sprint') {
+        if (playerCtrl.movementStance !== 'sprint' && playerCtrl.movementStance !== 'chakra_sprint') {
           const resources = world.resources.get(playerId);
           if (resources) {
             const ticksSinceExertion = world.currentTick - resources.lastExertionTick;
@@ -206,18 +329,68 @@ export function executeTurn(action: GameAction, world: World): boolean {
               resources.stamina = Math.min(resources.staminaCeiling, resources.stamina + regenAmount);
             }
           }
-        } else {
+        } else if (playerCtrl.movementStance === 'sprint') {
           // Sprint marks exertion
           const resources = world.resources.get(playerId);
           if (resources) {
             resources.lastExertionTick = world.currentTick;
           }
         }
+
+        // Chakra regeneration when not using chakra-consuming stances and resting long enough
+        if (playerCtrl.movementStance !== 'chakra_sprint') {
+          const resources = world.resources.get(playerId);
+          if (resources) {
+            const ticksSinceChakraUse = world.currentTick - resources.lastChakraExertionTick;
+            if (ticksSinceChakraUse >= CHAKRA_REST_TICKS && resources.chakra < resources.chakraCeiling) {
+              const regenAmount = resources.maxChakra * CHAKRA_RESTORE_RATE;
+              resources.chakra = Math.min(resources.chakraCeiling, resources.chakra + regenAmount);
+            }
+          }
+        }
       }
 
-      // Advance time
-      const tickCost = STANCE_TICK_COST[playerCtrl.movementStance];
-      advanceTurn(world, tickCost, STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);
+      // Advance time — subtick cost + game seconds
+      let subtickCost: number;
+      let moveGameSeconds: number;
+
+      // Swimming overrides stance speed (24s/step) when on water without water walk
+      const isSwimming = world.tileMap.isWater(playerPos.x, playerPos.y)
+        && !canWaterWalk(world, playerId, playerPos.x, playerPos.y);
+
+      if (isSwimming) {
+        moveGameSeconds = SWIM_SECONDS;
+        subtickCost = Math.max(1, Math.round(SWIM_SECONDS / 0.5));
+        // Swimming trains PHY
+        const swimSheet = world.characterSheets.get(playerId);
+        if (swimSheet) {
+          const mxp = getMissionXpMultiplier(world.missionLog);
+          const oldPhy = swimSheet.stats.phy;
+          swimSheet.stats.phy = computeImprovement(oldPhy, STAT_IMPROVEMENT_RATES.phy_training, 2.0, mxp);
+          checkSkillUp(world, 'phy', oldPhy, swimSheet.stats.phy);
+        }
+      } else if (playerCtrl.movementStance === 'chakra_sprint') {
+        const nin = world.characterSheets.get(playerId)?.skills.ninjutsu ?? 10;
+        moveGameSeconds = getChakraSprintSpeed(nin);
+        subtickCost = Math.max(1, Math.round(moveGameSeconds / 0.5)); // 0.5s per subtick
+      } else {
+        subtickCost = STANCE_SUBTICK_COST[playerCtrl.movementStance] ?? 12;
+        moveGameSeconds = STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS;
+      }
+      // Carrying a body doubles movement time
+      if (world.carrying.has(playerId)) {
+        subtickCost *= 2;
+        moveGameSeconds *= 2;
+        // Carrying trains PHY
+        const carrySheet = world.characterSheets.get(playerId);
+        if (carrySheet) {
+          const mxp = getMissionXpMultiplier(world.missionLog);
+          const oldPhy = carrySheet.stats.phy;
+          carrySheet.stats.phy = computeImprovement(oldPhy, STAT_IMPROVEMENT_RATES.phy_training, 2.0, mxp);
+          checkSkillUp(world, 'phy', oldPhy, carrySheet.stats.phy);
+        }
+      }
+      advanceTurn(world, subtickCost, moveGameSeconds);
 
       // Check patrol mission waypoints after move
       const patrolMsg = checkPatrolProgress(world.missionLog, playerPos.x, playerPos.y);
@@ -237,21 +410,60 @@ export function executeTurn(action: GameAction, world: World): boolean {
           const regenAmount = resources.maxStamina * STAMINA_RESTORE_RATE;
           resources.stamina = Math.min(resources.staminaCeiling, resources.stamina + regenAmount);
         }
+        // Chakra regen on wait (not exerting chakra)
+        const ticksSinceChakraUse = world.currentTick - resources.lastChakraExertionTick;
+        if (ticksSinceChakraUse >= CHAKRA_REST_TICKS && resources.chakra < resources.chakraCeiling) {
+          const chakraRegen = resources.maxChakra * CHAKRA_RESTORE_RATE;
+          resources.chakra = Math.min(resources.chakraCeiling, resources.chakra + chakraRegen);
+        }
       }
 
-      advanceTurn(world, STANCE_TICK_COST[playerCtrl.movementStance], STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS);
+      // Wait always passes 1 coarse tick (6s) regardless of stance
+      advanceTurn(world, SUBTICKS_PER_TICK, TICK_DURATION_SECONDS);
       return true;
     }
 
-    case 'cycleStance': {
-      const cycle: Array<import('../types/ecs.ts').MovementStance> = ['walk', 'sprint', 'creep', 'crawl'];
+    case 'stanceFaster':
+    case 'stanceSlower': {
+      // Stances ordered fastest → slowest
+      const playerNin = world.characterSheets.get(playerId)?.skills.ninjutsu ?? 0;
+      const ordered: Array<import('../types/ecs.ts').MovementStance> = [];
+      if (hasTechnique(playerNin, 'chakra_sprint')) {
+        ordered.push('chakra_sprint');
+      }
+      ordered.push('sprint', 'walk', 'creep', 'crawl');
+
       const stanceNames: Record<string, string> = {
+        chakra_sprint: 'Chakra Sprint',
         sprint: 'Sprint', walk: 'Walk', creep: 'Creep', crawl: 'Crawl',
       };
-      const idx = cycle.indexOf(playerCtrl.movementStance);
-      const next = cycle[(idx + 1) % cycle.length];
+
+      const idx = ordered.indexOf(playerCtrl.movementStance);
+      let nextIdx: number;
+      if (action.type === 'stanceFaster') {
+        nextIdx = idx - 1;
+        if (nextIdx < 0) {
+          world.log('Already at fastest stance.', 'system');
+          return false;
+        }
+      } else {
+        nextIdx = idx + 1;
+        if (nextIdx >= ordered.length) {
+          world.log('Already at slowest stance.', 'system');
+          return false;
+        }
+      }
+
+      const next = ordered[nextIdx];
       playerCtrl.movementStance = next;
-      world.log(`Stance: ${stanceNames[next]}.`, 'system');
+
+      if (next === 'chakra_sprint') {
+        const speed = getChakraSprintSpeed(playerNin);
+        const tier = getChakraSprintTier(playerNin);
+        world.log(`Stance: Chakra Sprint — ${tier} (${speed}s/step, ${CHAKRA_SPRINT_COST} chakra + ${CHAKRA_SPRINT_COST} stamina/step).`, 'system');
+      } else {
+        world.log(`Stance: ${stanceNames[next]}.`, 'system');
+      }
       return false;
     }
 
@@ -289,6 +501,25 @@ export function executeTurn(action: GameAction, world: World): boolean {
       }
 
       if (candidates.length === 0) {
+        // Check if player is on mission map edge (extraction zone)
+        if (world.awayMissionState?.phase === 'on_mission') {
+          const edgeZone = 3; // MISSION_MAP_EDGE_ZONE
+          const px = playerPos.x;
+          const py = playerPos.y;
+          const mw = world.tileMap.width;
+          const mh = world.tileMap.height;
+          if (px < edgeZone || px >= mw - edgeZone || py < edgeZone || py >= mh - edgeZone) {
+            // Show extraction context menu
+            world._pendingInteraction = { entityId: playerId, type: 'edge_extraction' };
+            return false;
+          }
+        }
+
+        // If carrying a body, pressing interact shows drop option
+        if (world.carrying.has(playerId)) {
+          world._pendingInteraction = { entityId: playerId, type: 'context_menu' };
+          return false;
+        }
         world.log('Nothing to interact with nearby.', 'info');
         return false;
       }
@@ -328,7 +559,7 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
     const interactable = world.interactables.get(eid);
     if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
     world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');
-    advanceTurn(world, 1, 2);
+    advanceTurn(world, COMBAT_PASS_SUBTICKS, 2); // ~2 seconds to open a door
     return true;
   }
 
@@ -351,6 +582,35 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
   }
 
   return false;
+}
+
+/** Apply a single free hit from attacker to target during disengagement */
+function applyFreeHit(world: World, attackerId: EntityId, targetId: EntityId, attackerName: string): void {
+  const attackerSheet = world.characterSheets.get(attackerId);
+  const attackerTaijutsu = attackerSheet?.skills.taijutsu ?? 10;
+  const attackerPhy = attackerSheet?.stats.phy ?? 10;
+  const damage = calculateDamage(attackerTaijutsu, attackerPhy);
+  const health = world.healths.get(targetId);
+  if (health) health.current = Math.max(0, health.current - damage);
+
+  const DISENGAGE_HIT_FLAVORS = [
+    `${attackerName} strikes as you pull away — you take the hit but keep moving.`,
+    `A blow catches you mid-retreat. ${attackerName}'s fist connects.`,
+    `You feel ${attackerName}'s strike land as you try to escape.`,
+    `${attackerName} doesn't let you go cleanly — a parting blow rocks you.`,
+    `The price of retreat: ${attackerName} lands a solid hit.`,
+  ];
+  world.log(DISENGAGE_HIT_FLAVORS[Math.floor(Math.random() * DISENGAGE_HIT_FLAVORS.length)], 'hit_incoming');
+}
+
+/** Check if an entity can water-walk onto a tile (has technique + enough chakra) */
+function canWaterWalk(world: World, entityId: EntityId, x: number, y: number): boolean {
+  if (!world.tileMap.isWater(x, y)) return false;
+  const sheet = world.characterSheets.get(entityId);
+  if (!sheet || !hasTechnique(sheet.skills.ninjutsu, 'water_walk')) return false;
+  const resources = world.resources.get(entityId);
+  if (!resources || resources.chakra < WATER_WALK_CHAKRA_COST) return false;
+  return true;
 }
 
 /** Check if the player is currently in an active combat engagement. Returns target ID or null. */

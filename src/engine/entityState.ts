@@ -6,6 +6,8 @@
 
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
+import { onRestrainedWake } from './restraintCarry.ts';
+import { processMissionEvent } from './missions.ts';
 
 // ── STATE QUERIES ──
 
@@ -171,6 +173,19 @@ export function killEntity(
   // Flavor text
   const msg = KILL_TEXT[Math.floor(Math.random() * KILL_TEXT.length)].replace(/\{name\}/g, name);
   world.log(msg, 'system');
+
+  // Fire mission events when on an away mission
+  if (world.awayMissionState && world.missionLog.active) {
+    const away = world.awayMissionState;
+    if (away.targetEntityId === entityId || away.banditEntityIds.includes(entityId)) {
+      const missionMsg = processMissionEvent(
+        world.missionLog,
+        { type: 'target_killed', entityId },
+        world,
+      );
+      if (missionMsg) world.log(missionMsg, 'system');
+    }
+  }
 
   return true;
 }
@@ -382,6 +397,15 @@ export function tickUnconsciousRecovery(world: World): void {
     if (entityId === world.playerEntityId) continue; // Player respawns differently
     if (world.dead.has(entityId)) continue; // Dead don't recover
     if (world.currentTick >= state.recoveryTick) {
+      // If restrained, they wake but stay incapacitated
+      if (world.restrained.has(entityId)) {
+        onRestrainedWake(world, entityId);
+        // Restore a tiny bit of HP
+        const health = world.healths.get(entityId);
+        if (health) health.current = Math.max(1, Math.floor(health.max * 0.05));
+        continue;
+      }
+
       const name = world.names.get(entityId)?.display ?? 'Someone';
       const msg = RECOVERY_TEXT[Math.floor(Math.random() * RECOVERY_TEXT.length)].replace(/\{name\}/g, name);
       reviveEntity(world, entityId, 0.05); // Wake at 5% HP

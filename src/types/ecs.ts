@@ -3,7 +3,7 @@ export type EntityId = number;
 
 export type Direction = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 export type RenderLayer = 'floor' | 'object' | 'character' | 'effect';
-export type MovementStance = 'sprint' | 'walk' | 'creep' | 'crawl';
+export type MovementStance = 'sprint' | 'walk' | 'creep' | 'crawl' | 'chakra_sprint';
 export type AIBehavior = 'static' | 'wander' | 'patrol' | 'chase' | 'flee' | 'return_to_anchor' | 'despawning';
 
 /** Direction vectors for grid movement */
@@ -65,6 +65,8 @@ export interface PlayerControlledComponent {
 export interface ResourcesComponent {
   chakra: number;
   maxChakra: number;
+  chakraCeiling: number;        // max natural restore point (chakra fatigue)
+  lastChakraExertionTick: number; // tick of last chakra-consuming action
   willpower: number;
   maxWillpower: number;
   stamina: number;
@@ -139,7 +141,7 @@ export interface DeadComponent {
 }
 
 export interface InteractableComponent {
-  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate';
+  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate' | 'village_gate';
   label: string;
 }
 
@@ -168,6 +170,27 @@ export interface ProximityDialogueComponent {
 export interface InvisibleComponent {
   /** Ninjutsu skill of the caster — detection threshold = this + 5 */
   casterNinjutsu: number;
+}
+
+// ── Restraints ──
+
+export interface RestrainedComponent {
+  /** Who applied the restraint */
+  restrainedBy: EntityId;
+  /** Tick when restrained */
+  tickRestrained: number;
+}
+
+// ── Carrying ──
+
+export interface CarryingComponent {
+  /** Entity being carried */
+  carriedEntityId: EntityId;
+}
+
+export interface CarriedComponent {
+  /** Entity doing the carrying */
+  carriedBy: EntityId;
 }
 
 // Re-export CharacterSheet as a component type

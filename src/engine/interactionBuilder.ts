@@ -7,6 +7,8 @@ import type { ContextMenuOption } from '../ui/contextMenu.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { isUnconscious, isDead } from './entityState.ts';
+import { canSurpriseAttack } from './surpriseAttack.ts';
+import { isRestrainedAndConscious } from './restraintCarry.ts';
 import { SHINOBI_RANK_LABELS } from '../types/character.ts';
 import type { CharacterSkills, SkillId } from '../types/character.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
@@ -62,12 +64,28 @@ export function buildContextOptions(
       options.push({ id: 'talk', label: 'Talk' });
     } else if (interactable.interactionType === 'mission_board') {
       options.push({ id: 'use_mission_board', label: 'Pick Mission', accent: true });
+    } else if (interactable.interactionType === 'village_gate') {
+      // Show "Depart on Mission" if player has an active away mission
+      if (world.missionLog?.active && !world.missionLog.active.objectiveComplete) {
+        const templateKey = world.missionLog.active.mission.templateKey;
+        if (templateKey.startsWith('c_')) {
+          options.push({ id: 'depart_mission', label: 'Depart on Mission', accent: true });
+        }
+      }
+      options.push({ id: 'examine', label: 'Examine' });
     }
   }
 
-  // ── NPC: Conscious ──
-  if (isNpc && !unconscious && !dead) {
-    // Talk is enabled for delivery mission targets, otherwise disabled
+  // ── Check restraint state ──
+  const restrained = world.restrained.has(entityId);
+  const restrainedConscious = isRestrainedAndConscious(world, entityId);
+
+  // ── Check if player is carrying anything (can't start new interactions) ──
+  const playerIsCarrying = world.carrying.has(world.playerEntityId);
+
+  // ── NPC: Conscious (and not restrained) ──
+  if (isNpc && !unconscious && !dead && !restrained) {
+    // Delivery mission target
     const npcName = world.names.get(entityId)?.display;
     const isDeliveryTarget = npcName && world.missionLog.active
       && !world.missionLog.active.objectiveComplete
@@ -76,13 +94,36 @@ export function buildContextOptions(
 
     if (isDeliveryTarget) {
       options.push({ id: 'talk', label: 'Deliver Package', accent: true });
-    } else {
-      options.push({ id: 'talk', label: 'Talk', disabled: true, disabledReason: 'Not available yet' });
     }
-    options.push({
-      id: 'assassinate', label: 'Assassinate', danger: true,
-      disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,
-    });
+
+    // Medical ninja healing — available when player is hurt
+    const isMedic = charSheet.title === 'Medical Ninja';
+    if (isMedic) {
+      const playerHp = world.healths.get(world.playerEntityId);
+      if (playerHp && playerHp.current < playerHp.max) {
+        options.push({ id: 'request_healing', label: 'Request Healing', accent: true });
+      } else {
+        options.push({ id: 'request_healing', label: 'Request Healing', disabled: true, disabledReason: 'You\'re not injured' });
+      }
+    }
+
+    // Surprise attack — only if approaching from behind
+    const canSurprise = canSurpriseAttack(world, entityId);
+    if (canSurprise) {
+      if (world.playerKillIntent) {
+        options.push({ id: 'surprise_assassinate', label: 'Assassinate', danger: true });
+      } else {
+        options.push({ id: 'surprise_subdue', label: 'Subdue', accent: true });
+      }
+    } else {
+      // Normal assassination (blocked in safe zones)
+      if (world.playerKillIntent) {
+        options.push({
+          id: 'assassinate', label: 'Assassinate', danger: true,
+          disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,
+        });
+      }
+    }
   }
 
   // ── Bleeding (any living NPC, conscious or unconscious) ──
@@ -97,21 +138,31 @@ export function buildContextOptions(
     options.push({ id: 'first_aid', label: 'First Aid', accent: true });
   }
 
+  // ── NPC: Restrained & Conscious ─��
+  if (isNpc && restrainedConscious) {
+    options.push({ id: 'release', label: 'Release' });
+    options.push({ id: 'carry', label: 'Carry', accent: true, disabled: playerIsCarrying, disabledReason: playerIsCarrying ? 'Already carrying someone' : undefined });
+    options.push({ id: 'execute', label: 'Execute', danger: true });
+  }
+
   // ── NPC: Unconscious ──
   if (isNpc && unconscious) {
     options.push({ id: 'revive', label: 'Revive', accent: true });
-    options.push({ id: 'restrain', label: 'Restrain', disabled: true, disabledReason: 'No rope' });
+    options.push({ id: 'restrain', label: 'Restrain', accent: true });
+    options.push({ id: 'carry', label: 'Carry', accent: true, disabled: playerIsCarrying, disabledReason: playerIsCarrying ? 'Already carrying someone' : undefined });
     options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
-    options.push({ id: 'abduct', label: 'Abduct', disabled: true, disabledReason: !zone.allowAbduct ? 'Not here' : 'Not available yet' });
-    options.push({
-      id: 'kill', label: 'Kill', danger: true,
-      disabled: !zone.allowKill, disabledReason: !zone.allowKill ? 'Not here' : undefined,
-    });
+    options.push({ id: 'execute', label: 'Execute', danger: true });
   }
 
-  // ── NPC: Dead ──
+  // ─��� NPC: Dead ──
   if (isNpc && dead) {
+    options.push({ id: 'carry', label: 'Carry', accent: true, disabled: playerIsCarrying, disabledReason: playerIsCarrying ? 'Already carrying someone' : undefined });
     options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
+  }
+
+  // ── Player is carrying: show "Drop" option ──
+  if (playerIsCarrying) {
+    options.push({ id: 'drop_carried', label: 'Drop Body' });
   }
 
   return options;
@@ -162,7 +213,13 @@ export function getExamineText(world: World, entityId: EntityId): string[] {
     else if (pct <= 0.7) lines.push('Getting pale. The blood loss is taking its toll.');
   }
 
-  if (isUnconscious(world, entityId)) {
+  if (world.restrained.has(entityId)) {
+    if (isUnconscious(world, entityId)) {
+      lines.push('Unconscious and restrained. Bound hand and foot, gagged.');
+    } else {
+      lines.push('Restrained. Bound and gagged, conscious but helpless.');
+    }
+  } else if (isUnconscious(world, entityId)) {
     lines.push('Unconscious. Breathing shallowly.');
   }
   if (isDead(world, entityId)) {

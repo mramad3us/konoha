@@ -1,7 +1,7 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent } from '../types/ecs.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
-import { MAX_LOG_ENTRIES } from '../core/constants.ts';
+import { MAX_LOG_ENTRIES, SUBTICKS_PER_TICK } from '../core/constants.ts';
 import type { MissionBoard, MissionLog } from './missions.ts';
 import { createMissionBoard, createMissionLog } from './missions.ts';
 
@@ -38,6 +38,9 @@ export class World {
   npcLifecycles = new Map<EntityId, NpcLifecycleComponent>();
   aggros = new Map<EntityId, AggroComponent>();
   invisible = new Map<EntityId, InvisibleComponent>();
+  restrained = new Map<EntityId, RestrainedComponent>();
+  carrying = new Map<EntityId, CarryingComponent>();
+  carried = new Map<EntityId, CarriedComponent>();
 
   // Combat intent
   playerKillIntent = false;
@@ -50,6 +53,9 @@ export class World {
   missionBoard: MissionBoard = createMissionBoard(1);
   missionLog: MissionLog = createMissionLog();
 
+  // Away mission state (null when not on an away mission)
+  awayMissionState: import('../types/awayMission.ts').AwayMissionState | null = null;
+
   // NPC lifecycle tracking
   lastDuskDayProcessed = -1;
   lastDawnDayProcessed = -1;
@@ -58,7 +64,8 @@ export class World {
 
   // World systems data
   tileMap: TileMap;
-  currentTick = 0;
+  currentSubtick = 0;   // fine-grained counter (0.5s per subtick)
+  currentTick = 0;      // coarse counter, derived: floor(currentSubtick / SUBTICKS_PER_TICK)
   gameTimeSeconds = 0;  // elapsed in-game time in seconds
   playerEntityId: EntityId = 0;
 
@@ -115,6 +122,16 @@ export class World {
     this.registerInGrid(id, pos.x, pos.y);
   }
 
+  /**
+   * Advance world time by the given number of subticks and seconds.
+   * Automatically derives currentTick from currentSubtick.
+   */
+  advanceTime(subticks: number, seconds: number): void {
+    this.currentSubtick += subticks;
+    this.gameTimeSeconds += seconds;
+    this.currentTick = Math.floor(this.currentSubtick / SUBTICKS_PER_TICK);
+  }
+
   /** Rebuild spatial grid from all positions (for deserialization) */
   rebuildGrid(): void {
     this.entityGrid.clear();
@@ -165,6 +182,9 @@ export class World {
     this.npcLifecycles.delete(id);
     this.aggros.delete(id);
     this.invisible.delete(id);
+    this.restrained.delete(id);
+    this.carrying.delete(id);
+    this.carried.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -274,6 +294,7 @@ export class World {
     return {
       nextId: this.nextId,
       entities: Array.from(this.entities),
+      currentSubtick: this.currentSubtick,
       currentTick: this.currentTick,
       gameTimeSeconds: this.gameTimeSeconds,
       playerEntityId: this.playerEntityId,
@@ -304,9 +325,13 @@ export class World {
       npcLifecycles: serializeMap(this.npcLifecycles),
       aggros: serializeMap(this.aggros),
       invisible: serializeMap(this.invisible),
+      restrained: serializeMap(this.restrained),
+      carrying: serializeMap(this.carrying),
+      carried: serializeMap(this.carried),
       playerKillIntent: this.playerKillIntent,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
+      awayMissionState: this.awayMissionState,
       meditationLastDay: this.meditationLastDay,
       meditationSessionsToday: this.meditationSessionsToday,
       lastDuskDayProcessed: this.lastDuskDayProcessed,
@@ -321,7 +346,8 @@ export class World {
     const world = new World(TileMap.deserialize(tileMapData));
 
     world.nextId = data['nextId'] as number;
-    world.currentTick = data['currentTick'] as number;
+    world.currentSubtick = (data['currentSubtick'] as number) ?? ((data['currentTick'] as number) * 6); // migrate old saves
+    world.currentTick = (data['currentTick'] as number);
     world.gameTimeSeconds = (data['gameTimeSeconds'] as number) ?? 0;
     world.playerEntityId = data['playerEntityId'] as number;
     world.fovExplored = new Set(data['fovExplored'] as string[]);
@@ -384,6 +410,15 @@ export class World {
     if (data['invisible']) {
       deserializeMap(world.invisible, data['invisible'] as Record<string, InvisibleComponent>);
     }
+    if (data['restrained']) {
+      deserializeMap(world.restrained, data['restrained'] as Record<string, RestrainedComponent>);
+    }
+    if (data['carrying']) {
+      deserializeMap(world.carrying, data['carrying'] as Record<string, CarryingComponent>);
+    }
+    if (data['carried']) {
+      deserializeMap(world.carried, data['carried'] as Record<string, CarriedComponent>);
+    }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
     }
@@ -392,6 +427,9 @@ export class World {
     }
     if (data['missionLog']) {
       world.missionLog = data['missionLog'] as MissionLog;
+    }
+    if (data['awayMissionState']) {
+      world.awayMissionState = data['awayMissionState'] as typeof world.awayMissionState;
     }
     if (data['meditationLastDay'] !== undefined) {
       world.meditationLastDay = data['meditationLastDay'] as number;
