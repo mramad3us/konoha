@@ -76,8 +76,8 @@ export const GAME_START_HOUR = 8;         // game starts at 8:00 AM
 // ── Day/Night ──
 export const DAWN_HOUR = 6;
 export const DUSK_HOUR = 18;
-export const NIGHT_MAX_DIM = 0.55;        // max darkness alpha at midnight
-export const NIGHT_FOV_REDUCTION = 4;     // tiles of FOV lost at deepest night
+export const NIGHT_MAX_DIM = 0.72;        // max darkness alpha at midnight
+export const NIGHT_FOV_REDUCTION = 6;     // tiles of FOV lost at deepest night
 
 // ── Subtick System ──
 // The world ticks at 0.5s granularity. Coarse "ticks" = 6 subticks = 3 seconds.

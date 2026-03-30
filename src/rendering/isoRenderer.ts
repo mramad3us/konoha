@@ -194,10 +194,26 @@ export class IsoRenderer {
     drawFloatingTexts(ctx, offset);
 
     // ── Night overlay ──
+    // Two-pass: desaturating blue tint + darkness overlay for atmospheric night
     const nightDim = getNightDimFactor(world.gameTimeSeconds);
     if (nightDim > 0.01) {
-      ctx.fillStyle = `rgba(5, 5, 20, ${nightDim})`;
-      ctx.fillRect(0, 0, this.camera.viewportWidth, this.camera.viewportHeight);
+      const w = this.camera.viewportWidth;
+      const h = this.camera.viewportHeight;
+
+      // Pass 1: Blue-tinted wash (moonlight feel) — multiply blend
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      const blueLerp = Math.min(1, nightDim * 1.5);
+      const r = Math.round(255 - blueLerp * 120);   // 255 → 135
+      const g = Math.round(255 - blueLerp * 110);   // 255 → 145
+      const b = Math.round(255 - blueLerp * 50);    // 255 → 205
+      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+
+      // Pass 2: Darkness overlay — straight alpha
+      ctx.fillStyle = `rgba(3, 3, 15, ${nightDim * 0.85})`;
+      ctx.fillRect(0, 0, w, h);
     }
 
     // ── Carry indicator above player (drawn after night overlay so it's always visible) ──

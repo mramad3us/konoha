@@ -662,6 +662,13 @@ function spawnTrainingGroundsObjects(world: World, _devMode: boolean): void {
   // Training grounds weapons rack (near entrance)
   weaponsRack(world, ox + 20, oy + 1, 'training rack', 'Kunai and shuriken for target practice. Take what you need.', true);
 
+  // Meditation corner (top-left, near small pond at grid 3-5, 9-11)
+  meditationCarpet(world, ox + 2, oy + 10);
+  torch(world, ox + 1, oy + 8, 'A low lantern by the meditation pond.', 2);
+  spawn(world, { x: ox + 7, y: oy + 9, spriteId: 'obj_rock_mossy', layer: 'object', offsetY: -10,
+    blocksMove: true, blocksSight: false, name: 'mossy stone', article: 'a',
+    description: 'A smooth stone beside the meditation pond. Water sounds fill the air.', category: 'terrain' });
+
   // Training grounds torches
   for (const [dx, dy] of [[5,1],[20,1],[35,1],[1,15],[38,15],[1,30],[38,30],[18,38],[22,38]]) {
     torch(world, ox+dx, oy+dy, 'Training grounds torch pillar.', 5);

@@ -73,7 +73,7 @@ export class World {
   lastDuskDayProcessed = -1;
   lastDawnDayProcessed = -1;
   /** NPC definitions despawned at dusk, to be respawned at dawn */
-  despawnedNpcDefs: Array<{ anchorX: number; anchorY: number; npcIndex: number }> = [];
+  despawnedNpcDefs: Array<import('./npcLifecycleSystem.ts').DespawnedNpcSnapshot> = [];
 
   // World systems data
   tileMap: TileMap;
