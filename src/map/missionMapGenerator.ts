@@ -574,6 +574,14 @@ function spawnPlayer(
 
 // ── BANDIT SPAWNING ──
 
+/**
+ * Bandit rank tiers — not ninja ranks, these are criminal hierarchy.
+ * - Thug: low genin-level hand-to-hand, cannon fodder
+ * - Enforcer: high genin-level technique, very physically strong
+ * - Boss: chuunin-level hand-to-hand, strength varies
+ */
+type BanditRank = 'thug' | 'enforcer' | 'boss';
+
 function spawnBandits(
   world: World,
   rng: SeededRng,
@@ -584,18 +592,20 @@ function spawnBandits(
 ): { targetId: EntityId; banditIds: EntityId[] } {
   const banditIds: EntityId[] = [];
 
-  // Spawn the leader/target first
+  // Spawn the leader/target first — always a Boss
   const leaderPrefix = registerBanditSprites(rng);
   const leaderId = spawnBandit(
     world, rng,
     missionData.banditLeaderName || randomBanditLeaderName(rng),
     campX, campY,
     leaderPrefix,
-    true, // is leader
+    'boss',
+    true, // is mission target
   );
   banditIds.push(leaderId);
 
-  // Spawn underlings around the camp
+  // Spawn underlings — mix of thugs and enforcers
+  // Roughly 1 enforcer per 3 thugs
   for (let i = 0; i < config.banditCount - 1; i++) {
     const angle = rng.next() * Math.PI * 2;
     const dist = rng.nextInt(3, 10);
@@ -611,8 +621,9 @@ function spawnBandits(
       by = Math.max(4, Math.min(config.height - 4, by));
     }
 
+    const rank: BanditRank = (i % 3 === 0) ? 'enforcer' : 'thug';
     const prefix = registerBanditSprites(rng);
-    const bid = spawnBandit(world, rng, randomBanditName(rng), bx, by, prefix, false);
+    const bid = spawnBandit(world, rng, randomBanditName(rng), bx, by, prefix, rank, false);
     banditIds.push(bid);
   }
 
@@ -625,15 +636,57 @@ function spawnBandit(
   name: string,
   x: number, y: number,
   spritePrefix: string,
-  isLeader: boolean,
+  rank: BanditRank,
+  isMissionTarget: boolean,
 ): EntityId {
   const id = world.createEntity();
 
-  // Bandit stats — C-rank level (low combat ability, not ninja)
-  const tai = isLeader ? rng.nextInt(15, 25) : rng.nextInt(5, 15);
-  const phy = isLeader ? rng.nextInt(15, 25) : rng.nextInt(8, 18);
-  const stats = { phy, cha: rng.nextInt(3, 8), men: rng.nextInt(3, 10), soc: rng.nextInt(2, 6) };
-  const skills = { taijutsu: tai, bukijutsu: rng.nextInt(5, 15), ninjutsu: 0, genjutsu: 0, med: 0 };
+  // Stats and skills by bandit rank tier
+  let tai: number;
+  let buki: number;
+  let phy: number;
+  let men: number;
+  let title: string;
+  let description: string;
+  let attackVerb: string;
+
+  switch (rank) {
+    case 'thug':
+      // Low genin-level hand-to-hand. Street brawler, not trained.
+      tai = rng.nextInt(5, 15);
+      buki = rng.nextInt(3, 10);
+      phy = rng.nextInt(8, 16);
+      men = rng.nextInt(3, 8);
+      title = 'Thug';
+      description = `A common thug. Relies on brute force rather than skill.`;
+      attackVerb = 'swing';
+      break;
+
+    case 'enforcer':
+      // High genin-level technique, very physically strong (20-30 PHY)
+      tai = rng.nextInt(15, 25);
+      buki = rng.nextInt(8, 18);
+      phy = rng.nextInt(20, 30);
+      men = rng.nextInt(8, 15);
+      title = 'Enforcer';
+      description = `A seasoned enforcer. Powerfully built, with real fighting experience.`;
+      attackVerb = 'slam';
+      break;
+
+    case 'boss':
+      // Chuunin-level hand-to-hand, strength varies
+      tai = rng.nextInt(25, 40);
+      buki = rng.nextInt(15, 25);
+      phy = rng.nextInt(15, 30);
+      men = rng.nextInt(12, 22);
+      title = 'Boss';
+      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A dangerous gang leader who fights with brutal precision.`;
+      attackVerb = 'slash';
+      break;
+  }
+
+  const stats = { phy, cha: rng.nextInt(2, 6), men, soc: rng.nextInt(2, 6) };
+  const skills = { taijutsu: tai, bukijutsu: buki, ninjutsu: 0, genjutsu: 0, med: 0 };
   const hp = computeMaxHp(stats);
 
   const facings = ['n', 's', 'e', 'w'] as const;
@@ -644,53 +697,52 @@ function spawnBandit(
   world.blockings.set(id, { blocksMovement: true, blocksSight: false });
   world.healths.set(id, { current: hp, max: hp });
   world.combatStats.set(id, {
-    damage: Math.max(3, Math.floor(tai * 0.3)),
-    accuracy: 40 + tai,
-    evasion: Math.max(5, Math.floor(tai * 0.2)),
-    attackVerb: isLeader ? 'slash' : 'swing',
+    damage: Math.max(3, Math.floor(tai * 0.4 + phy * 0.1)),
+    accuracy: 35 + tai,
+    evasion: Math.max(5, Math.floor(tai * 0.15 + phy * 0.05)),
+    attackVerb,
   });
   world.characterSheets.set(id, {
     class: 'civilian',
     rank: 'genin',
-    title: isLeader ? 'Bandit Leader' : 'Bandit',
+    title,
     skills,
     stats,
     learnedJutsus: [],
   });
   world.names.set(id, { display: name, article: '' });
-  world.aiControlled.set(id, { behavior: isLeader ? 'static' : 'wander' });
-  world.objectSheets.set(id, {
-    description: isLeader
-      ? `${name}. The target of your mission. A dangerous bandit leader with a bounty on his head.`
-      : `A rough-looking bandit. Armed and hostile.`,
-    category: 'npc',
-  });
+  world.aiControlled.set(id, { behavior: rank === 'boss' ? 'static' : 'wander' });
+  world.objectSheets.set(id, { description, category: 'npc' });
 
-  // Bandits have no proximity dialogue — they attack on sight
-  // (or we can add threatening dialogue)
+  // Proximity dialogue varies by rank
+  const bossLines = [
+    `"You picked the wrong camp to wander into."`,
+    `"A Konoha ninja? Out here? How bold."`,
+    `"You'll make a fine hostage."`,
+  ];
+  const enforcerLines = [
+    `"You don't want to be here."`,
+    `"Boss doesn't like visitors."`,
+    `"Turn around. Last warning."`,
+  ];
+  const thugLines = [
+    `"Hey! Who are you?!"`,
+    `"Intruder! Get 'em!"`,
+    `"Wrong place, wrong time."`,
+  ];
+
   world.proximityDialogue.set(id, {
     lines: {
-      neutral: isLeader
-        ? [
-            `"You picked the wrong camp to wander into."`,
-            `"A Konoha ninja? Out here? How bold."`,
-            `"You'll make a fine hostage."`,
-          ]
-        : [
-            `"Hey! Who are you?!"`,
-            `"Intruder! Get 'em!"`,
-            `"Wrong place, wrong time."`,
-          ],
+      neutral: rank === 'boss' ? bossLines : rank === 'enforcer' ? enforcerLines : thugLines,
     },
     lastSpokeTick: -100,
     cooldownTicks: 20,
   });
 
-  // Anchor for wandering bandits
   world.anchors.set(id, {
     anchorX: x,
     anchorY: y,
-    wanderRadius: isLeader ? 2 : 5,
+    wanderRadius: rank === 'boss' ? 2 : rank === 'enforcer' ? 4 : 6,
     lastMoveTick: world.currentTick,
     moveIntervalTicks: rng.nextInt(3, 6),
     spritePrefix,
@@ -700,9 +752,6 @@ function spawnBandit(
     isNinja: false,
     despawnAtNight: false,
   });
-
-  // Bandits start with aggro behavior — they'll fight back when attacked
-  // (aggro is set when combat is initiated, not on spawn)
 
   return id;
 }
