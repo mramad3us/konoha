@@ -16,6 +16,8 @@ import type { SquadROE } from '../types/squad.ts';
 import { initiateNpcEngagement, isInCombat } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { SQUAD_COMBAT_LINES } from './squadSystem.ts';
+import { hasTechnique } from '../data/techniques.ts';
+import { WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
 
 /** Tag component — marks an entity as a squad member on the mission map */
 export interface SquadMemberTag {
@@ -74,7 +76,8 @@ function stepToward(
 
   for (const c of candidates) {
     if (c.x < 0 || c.y < 0 || c.x >= world.tileMap.width || c.y >= world.tileMap.height) continue;
-    if (!world.tileMap.isWalkable(c.x, c.y)) continue;
+    // Allow walkable tiles and water (swim or water-walk)
+    if (!world.tileMap.isWalkable(c.x, c.y) && !world.tileMap.isWater(c.x, c.y)) continue;
     if (world.isBlockedByEntity(c.x, c.y)) continue;
 
     const pos = world.positions.get(entityId);
@@ -95,6 +98,17 @@ function stepToward(
 
     world.moveInGrid(entityId, fromX, fromY, c.x, c.y);
     world.positions.set(entityId, { x: c.x, y: c.y, facing: cardinalFacing });
+
+    // Water-walk chakra cost (if they have the technique and chakra)
+    if (world.tileMap.isWater(c.x, c.y)) {
+      const sheet = world.characterSheets.get(entityId);
+      const resources = world.resources.get(entityId);
+      if (sheet && resources && hasTechnique(sheet.skills.ninjutsu, 'water_walk') && resources.chakra >= WATER_WALK_CHAKRA_COST) {
+        resources.chakra = Math.max(0, resources.chakra - WATER_WALK_CHAKRA_COST);
+        resources.lastChakraExertionTick = world.currentTick;
+      }
+      // Otherwise they swim — no chakra cost, just allowed through
+    }
 
     // Update sprite
     const anchor = world.anchors.get(entityId);
@@ -123,6 +137,16 @@ export function tickSquadMember(
 
   // If already in combat, don't move (combat system handles attacks)
   if (isInCombat(entityId)) return;
+
+  // Swimming penalty: 24s/step same as player (NPCs tick every 3s, so move once per 8 ticks)
+  if (world.tileMap.isWater(pos.x, pos.y)) {
+    const sheet = world.characterSheets.get(entityId);
+    const resources = world.resources.get(entityId);
+    const canWalk = sheet && resources
+      && hasTechnique(sheet.skills.ninjutsu, 'water_walk')
+      && resources.chakra >= WATER_WALK_CHAKRA_COST;
+    if (!canWalk && world.currentTick % 8 !== 0) return;
+  }
 
   const playerPos = world.positions.get(world.playerEntityId);
   if (!playerPos) return;

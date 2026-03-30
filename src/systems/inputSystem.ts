@@ -154,7 +154,7 @@ export class InputSystem {
           completed: this.world.missionLog.completed,
           totalCompleted: this.world.missionLog.totalCompleted,
         };
-        this.characterSheet.toggle(name, sheet, missionRecord);
+        this.characterSheet.toggle(name, sheet, missionRecord, this.world.squadRoster);
       }
       return;
     }

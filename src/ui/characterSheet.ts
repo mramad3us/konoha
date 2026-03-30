@@ -10,6 +10,7 @@ import {
 import type { MissionRank } from '../engine/missions.ts';
 import { getAvailableTechniques, getNextTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
 import type { NinjutsuTechnique } from '../data/techniques.ts';
+import type { SquadRoster, SquadMember } from '../types/squad.ts';
 
 export interface MissionRecord {
   completed: Record<MissionRank, number>;
@@ -47,8 +48,8 @@ export class CharacterSheetUI {
 
   get visible(): boolean { return this._visible; }
 
-  show(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
-    this.render(name, sheet, missions);
+  show(name: string, sheet: CharacterSheet, missions?: MissionRecord, squad?: SquadRoster): void {
+    this.render(name, sheet, missions, squad);
     this._visible = true;
     this.element.classList.add('charsheet-overlay--visible');
   }
@@ -58,12 +59,12 @@ export class CharacterSheetUI {
     this.element.classList.remove('charsheet-overlay--visible');
   }
 
-  toggle(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
+  toggle(name: string, sheet: CharacterSheet, missions?: MissionRecord, squad?: SquadRoster): void {
     if (this._visible) this.hide();
-    else this.show(name, sheet, missions);
+    else this.show(name, sheet, missions, squad);
   }
 
-  private render(name: string, sheet: CharacterSheet, missions?: MissionRecord): void {
+  private render(name: string, sheet: CharacterSheet, missions?: MissionRecord, squad?: SquadRoster): void {
     this.content.innerHTML = '';
 
     // ── Header ──
@@ -143,6 +144,18 @@ export class CharacterSheetUI {
     }
 
     this.content.appendChild(techGrid);
+
+    // ── Squad Roster ──
+    if (squad && squad.members.length > 0) {
+      this.content.appendChild(
+        createElement('div', { className: 'charsheet-section-title', text: '// Squad Roster' })
+      );
+      const squadWrap = createElement('div', { className: 'charsheet-squad' });
+      for (const member of squad.members) {
+        squadWrap.appendChild(this.renderSquadMember(member, squad));
+      }
+      this.content.appendChild(squadWrap);
+    }
   }
 
   private renderRow(label: string, value: number, description: string, showTier: boolean): HTMLElement {
@@ -276,5 +289,98 @@ export class CharacterSheetUI {
     wrap.appendChild(totalEntry);
 
     return wrap;
+  }
+
+  private renderSquadMember(member: SquadMember, _roster: SquadRoster): HTMLElement {
+    const card = createElement('div', { className: 'charsheet-squad-member' });
+
+    // ── Header row: name, rank, status ──
+    const header = createElement('div', { className: 'charsheet-squad-member__header' });
+
+    header.appendChild(createElement('span', {
+      className: 'charsheet-squad-member__name',
+      text: member.name,
+    }));
+
+    header.appendChild(createElement('span', {
+      className: 'charsheet-squad-member__rank',
+      text: SHINOBI_RANK_LABELS[member.rank],
+    }));
+
+    // Status badge
+    const statusColors: Record<string, string> = {
+      available: '#6b9e6b',
+      on_mission: '#c49a6c',
+      injured: '#c2a24e',
+      dead: '#c26b6b',
+    };
+    const statusLabels: Record<string, string> = {
+      available: 'Available',
+      on_mission: 'Deployed',
+      injured: 'Injured',
+      dead: 'KIA',
+    };
+    const statusBadge = createElement('span', {
+      className: `charsheet-squad-status charsheet-squad-status--${member.status}`,
+      text: statusLabels[member.status] ?? member.status,
+    });
+    statusBadge.style.color = statusColors[member.status] ?? 'var(--color-ink-muted)';
+    header.appendChild(statusBadge);
+
+    // Personality tag
+    header.appendChild(createElement('span', {
+      className: 'charsheet-squad-member__personality',
+      text: member.personality,
+    }));
+
+    card.appendChild(header);
+
+    // ── Skill bars (compact: taijutsu, ninjutsu, genjutsu) ──
+    const skillsRow = createElement('div', { className: 'charsheet-squad-skills' });
+    const displaySkills: Array<{ id: keyof typeof SKILL_LABELS; label: string }> = [
+      { id: 'taijutsu', label: 'TAI' },
+      { id: 'ninjutsu', label: 'NIN' },
+      { id: 'genjutsu', label: 'GEN' },
+      { id: 'bukijutsu', label: 'BUK' },
+      { id: 'med', label: 'MED' },
+    ];
+
+    for (const { id, label } of displaySkills) {
+      const val = member.skills[id];
+      const tier = getProficiencyTier(val);
+      const skill = createElement('div', { className: 'charsheet-squad-skill' });
+
+      skill.appendChild(createElement('span', {
+        className: 'charsheet-squad-skill__label',
+        text: label,
+      }));
+
+      const bar = createElement('div', { className: 'charsheet-squad-skill__bar' });
+      const fill = createElement('div', { className: 'charsheet-squad-skill__fill' });
+      fill.style.width = `${Math.min(100, val)}%`;
+      fill.style.backgroundColor = tier.color;
+      bar.appendChild(fill);
+      skill.appendChild(bar);
+
+      const num = createElement('span', {
+        className: 'charsheet-squad-skill__num',
+        text: String(Math.floor(val)),
+      });
+      skill.appendChild(num);
+
+      skillsRow.appendChild(skill);
+    }
+
+    card.appendChild(skillsRow);
+
+    // ── Footer: missions completed ──
+    const footer = createElement('div', { className: 'charsheet-squad-member__footer' });
+    footer.appendChild(createElement('span', {
+      className: 'charsheet-squad-member__missions',
+      text: `${member.missionsCompleted} mission${member.missionsCompleted !== 1 ? 's' : ''} completed`,
+    }));
+    card.appendChild(footer);
+
+    return card;
   }
 }

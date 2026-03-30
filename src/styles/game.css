@@ -916,6 +916,113 @@
   background: var(--color-ink-faded);
 }
 
+/* ── Squad Roster (in character sheet) ── */
+.charsheet-squad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.charsheet-squad-member {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-bg-hover);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.charsheet-squad-member__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.charsheet-squad-member__name {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.charsheet-squad-member__rank {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.charsheet-squad-status {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: auto;
+}
+
+.charsheet-squad-member__personality {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  font-style: italic;
+}
+
+.charsheet-squad-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.charsheet-squad-skill {
+  display: grid;
+  grid-template-columns: 24px 1fr 20px;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.charsheet-squad-skill__label {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.charsheet-squad-skill__bar {
+  height: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-bg-hover);
+  position: relative;
+  overflow: hidden;
+}
+
+.charsheet-squad-skill__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
+.charsheet-squad-skill__num {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-muted);
+  text-align: right;
+}
+
+.charsheet-squad-member__footer {
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-bg-hover);
+}
+
+.charsheet-squad-member__missions {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+}
+
 /* ── Context Menu (pixel art styled) ── */
 .ctx-menu-backdrop {
   position: fixed;

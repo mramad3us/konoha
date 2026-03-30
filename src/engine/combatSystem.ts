@@ -28,6 +28,21 @@ import { SQUAD_COMBAT_LINES } from './squadSystem.ts';
 /** Active engagements keyed by "smaller_id:larger_id" */
 const engagements = new Map<string, CombatEngagement>();
 
+/**
+ * Check if an entity fights with lethal intent (weapons, bleeding, kill chance).
+ * - Player: when kill intent toggle is on
+ * - Enemy NPCs on missions: always (they're trying to kill you)
+ * - Squad members: match player's kill intent
+ * - Village NPCs, civilians, sparring partners: never
+ */
+export function hasLethalIntent(world: World, entityId: EntityId): boolean {
+  if (entityId === world.playerEntityId) return world.playerKillIntent;
+  if (world.squadMembers.has(entityId)) return world.playerKillIntent;
+  // Enemy NPCs on mission maps fight to kill
+  if (world.awayMissionState && world.aggros.has(entityId)) return true;
+  return false;
+}
+
 function engagementKey(a: EntityId, b: EntityId): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
@@ -146,7 +161,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   // Resolve combat
   const outcome = isPlayerA
     ? resolveCombat(effectivePlayerMove, npcMove, playerId, targetId, eng.tempoA, eng.tempoB, eng.conditionA, eng.conditionB, playerTaijutsu, targetTaijutsu, playerPhy, targetPhy)
-    : resolveCombat(npcMove, effectivePlayerMove, targetId, playerId, eng.tempoB, eng.tempoA, eng.conditionB, eng.conditionA, targetTaijutsu, playerTaijutsu, targetPhy, playerPhy);
+    : resolveCombat(npcMove, effectivePlayerMove, targetId, playerId, eng.tempoA, eng.tempoB, eng.conditionA, eng.conditionB, targetTaijutsu, playerTaijutsu, targetPhy, playerPhy);
 
   // Apply tempo changes by entity ID
   const tempoForAttacker = outcome.tempoChange.attacker;
@@ -160,15 +175,16 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tempoForDefender));
   }
 
-  // Apply damage (with kill intent modifier)
+  // Apply damage (with lethal intent modifier)
   // Dummies deal 0 damage — they're wooden posts, not fighters
   const attackerIsDummy = world.destructibles.has(outcome.attackerId);
   if (outcome.damage > 0 && !attackerIsDummy) {
     const defenderIsDummy = world.destructibles.has(outcome.defenderId);
     let finalDamage = outcome.damage;
+    const attackerLethal = hasLethalIntent(world, outcome.attackerId);
 
-    // Kill intent: +20% damage when player is attacker with intent
-    if (outcome.attackerId === playerId && world.playerKillIntent) {
+    // Lethal intent: +20% damage with weapons
+    if (attackerLethal) {
       finalDamage = Math.round(finalDamage * 1.2);
     }
 
@@ -178,20 +194,21 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
         targetHealth.current = Math.max(0, targetHealth.current - finalDamage);
       }
 
-      // Bleeding chance with kill intent (kunai)
-      if (outcome.attackerId === playerId && world.playerKillIntent) {
-        const bleedChance = 0.20 + playerTaijutsu / 200;
+      // Bleeding chance with weapons (kunai/blade)
+      if (attackerLethal) {
+        const attackerTai = outcome.attackerId === playerId ? playerTaijutsu : targetTaijutsu;
+        const bleedChance = 0.20 + attackerTai / 200;
         if (Math.random() < bleedChance) {
           const intensity = 3 + Math.floor(Math.random() * 5); // 3-7
           applyBleeding(world, outcome.defenderId, intensity, true); // byWeapon = true
         }
       }
 
-      // Kill chance on KO with kill intent
-      if (targetHealth && targetHealth.current <= 0 && world.playerKillIntent) {
-        const killChance = 0.20 + playerTaijutsu / 200;
+      // Kill chance on KO with lethal intent
+      if (targetHealth && targetHealth.current <= 0 && attackerLethal) {
+        const attackerTai = outcome.attackerId === playerId ? playerTaijutsu : targetTaijutsu;
+        const killChance = 0.20 + attackerTai / 200;
         if (Math.random() < killChance) {
-          // Log kunai kill flavor BEFORE the kill (which logs its own generic text)
           const defName = world.names.get(outcome.defenderId)?.display ?? 'the opponent';
           const kunaiKillMsgs = [
             `The kunai finds ${defName}'s throat. It's over in an instant.`,
@@ -205,8 +222,8 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
             `One precise thrust. ${defName}'s fight — and life — is over.`,
             `The blade does what fists could not. ${defName} falls, still.`,
           ];
-          world.log(kunaiKillMsgs[Math.floor(Math.random() * kunaiKillMsgs.length)], 'hit_outgoing');
-          killEntityDirect(world, outcome.defenderId, playerId, true);
+          world.log(kunaiKillMsgs[Math.floor(Math.random() * kunaiKillMsgs.length)], outcome.attackerId === playerId ? 'hit_outgoing' : 'info');
+          killEntityDirect(world, outcome.defenderId, outcome.attackerId, true);
         }
       }
 
@@ -582,11 +599,36 @@ export function resolveNpcCombatRounds(world: World): void {
       eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tDef));
     }
 
-    // Apply damage
+    // Apply damage (with lethal intent for armed combatants)
     if (outcome.damage > 0) {
+      const attackerLethal = hasLethalIntent(world, outcome.attackerId);
+      let finalDamage = outcome.damage;
+      if (attackerLethal) {
+        finalDamage = Math.round(finalDamage * 1.2);
+      }
+
       const defHealth = world.healths.get(outcome.defenderId);
       if (defHealth) {
-        defHealth.current = Math.max(0, defHealth.current - outcome.damage);
+        defHealth.current = Math.max(0, defHealth.current - finalDamage);
+      }
+
+      // Bleeding chance with weapons
+      if (attackerLethal) {
+        const atkTai = outcome.attackerId === eng.entityA ? taiA : taiB;
+        const bleedChance = 0.20 + atkTai / 200;
+        if (Math.random() < bleedChance) {
+          const intensity = 3 + Math.floor(Math.random() * 5);
+          applyBleeding(world, outcome.defenderId, intensity, true);
+        }
+      }
+
+      // Kill chance on KO with lethal intent
+      if (defHealth && defHealth.current <= 0 && attackerLethal) {
+        const atkTai = outcome.attackerId === eng.entityA ? taiA : taiB;
+        const killChance = 0.20 + atkTai / 200;
+        if (Math.random() < killChance) {
+          killEntityDirect(world, outcome.defenderId, outcome.attackerId, true);
+        }
       }
 
       // Floating text

@@ -540,6 +540,9 @@ export function executeTurn(action: GameAction, world: World): boolean {
             if (eid === playerId) continue;
             // Skip entities invisible to player
             if (world.isInvisibleToPlayer(eid)) continue;
+            // Skip conscious squad members — their info is in the character sheet
+            // Allow interaction with downed/unconscious squad members for revive/heal
+            if (world.squadMembers.has(eid) && !world.unconscious.has(eid)) continue;
             const isDoor = world.doors.has(eid);
             const hasObjectSheet = world.objectSheets.has(eid);
             const hasCharSheet = world.characterSheets.has(eid);

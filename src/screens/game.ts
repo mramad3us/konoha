@@ -380,6 +380,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     const data = getCRankData(active.mission);
     if (!data) return;
 
+    // Guard: immediately leave overmap phase so the render loop can't re-enter
+    gamePhase = 'mission';
     canvasContainer.classList.add('game-canvas-container--blackout');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
 
@@ -412,7 +414,6 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
     // End overmap, enter mission phase
     endOvermapPhase();
-    gamePhase = 'mission';
 
     // Reset camera and rendering for new world
     const pp = world.positions.get(world.playerEntityId);
@@ -506,6 +507,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     const awayState = world.awayMissionState;
     if (!awayState || !villageWorld) return;
 
+    // Guard: immediately leave overmap phase so the render loop can't re-enter
+    gamePhase = 'village';
     canvasContainer.classList.add('game-canvas-container--blackout');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
 
@@ -526,7 +529,6 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
     // Clear away state
     world.awayMissionState = null;
-    gamePhase = 'village';
     roeIndicator.hide();
 
     // Apply mission rewards if objective was completed

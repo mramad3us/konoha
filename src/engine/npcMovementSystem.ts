@@ -14,6 +14,7 @@ import { initiateNpcEngagement } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
 import { getCurrentROE } from './squadSystem.ts';
+import { isInCombat } from './combatSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -161,6 +162,11 @@ export function tickNpcMovement(world: World): void {
       if (aggro) {
         tickAggro(world, id, pos, aggro, ai);
       }
+    }
+
+    // Skip idle movement if NPC is in an active combat engagement
+    if (isInCombat(id) && ai.behavior !== 'chase' && ai.behavior !== 'flee') {
+      continue;
     }
 
     switch (ai.behavior) {
