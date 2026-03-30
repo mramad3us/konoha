@@ -20,6 +20,7 @@ import type { EntityId } from '../types/ecs.ts';
 import {
   MISSION_MAP_EDGE_ZONE,
   BASE_PLAYER_DAMAGE, BASE_PLAYER_ACCURACY, BASE_PLAYER_EVASION,
+  MAX_THROWN_AMMO,
 } from '../core/constants.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxStamina, computeMaxWillpower } from '../engine/derivedStats.ts';
 import type { CharacterAccents } from '../sprites/characters.ts';
@@ -780,6 +781,11 @@ function spawnPlayer(
   });
   world.names.set(playerId, { display: playerName, article: '' });
 
+  // Give player thrown weapon ammo (carry over from village or default)
+  if (!world.thrownAmmo.has(playerId)) {
+    world.thrownAmmo.set(playerId, { kunai: MAX_THROWN_AMMO, shuriken: MAX_THROWN_AMMO });
+  }
+
   return playerId;
 }
 
@@ -1261,6 +1267,13 @@ function spawnSquadMember(
     rosterId: member.id,
     personality: member.personality,
   });
+
+  // Give squad member thrown weapon ammo (ninja with bukijutsu)
+  if (member.skills.bukijutsu >= 1) {
+    const kunai = 3 + Math.floor(Math.random() * 4);
+    const shuriken = Math.min(10 - kunai, 3 + Math.floor(Math.random() * 4));
+    world.thrownAmmo.set(id, { kunai, shuriken });
+  }
 
   // Anchor (for sprite facing updates)
   world.anchors.set(id, {

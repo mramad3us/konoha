@@ -1,5 +1,6 @@
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 import type { World } from '../engine/world.ts';
+import type { EntityId } from '../types/ecs.ts';
 import { getNightDimFactor } from '../engine/gameTime.ts';
 import { getActiveEngagements } from '../engine/combatSystem.ts';
 import { drawParticles } from '../systems/particleSystem.ts';
@@ -45,8 +46,8 @@ export class IsoRenderer {
     this.camera.setViewport(width, height);
   }
 
-  /** Render a full frame */
-  draw(world: World): void {
+  /** Render a full frame. throwTargetId highlights the selected throw target. */
+  draw(world: World, throwTargetId?: EntityId): void {
     const ctx = this.ctx;
     const dpr = this.dpr;
 
@@ -96,6 +97,21 @@ export class IsoRenderer {
           alpha,
           offsetY: 0,
         });
+
+        // Blood decals (floor layer, above tile)
+        const decalKey = `${x}:${y}`;
+        const decal = world.bloodDecals.get(decalKey);
+        if (decal) {
+          drawCommands.push({
+            screenX: sx,
+            screenY: sy,
+            spriteId: `blood_splatter_${decal.variant}`,
+            depth,
+            layer: 'floor',
+            alpha: alpha * 0.8,
+            offsetY: 0,
+          });
+        }
 
         // Entities at this position
         const entities = world.getEntitiesAt(x, y);
@@ -166,6 +182,11 @@ export class IsoRenderer {
     // ── Combat status indicators above characters ──
     this.drawCombatIndicators(ctx, world, offset);
 
+    // ── Throw target highlight ──
+    if (throwTargetId !== undefined) {
+      this.drawThrowTargetHighlight(ctx, world, offset, throwTargetId);
+    }
+
     // ── Particles (smoke, chakra flashes) ──
     drawParticles(ctx, offset);
 
@@ -211,6 +232,50 @@ export class IsoRenderer {
     // Legs
     ctx.fillRect(centerX - 2, aboveY + 5, 2, 2);
     ctx.fillRect(centerX + 1, aboveY + 5, 2, 2);
+
+    ctx.globalAlpha = 1.0;
+  }
+
+  /** Draw pulsing highlight on the throw target tile */
+  private drawThrowTargetHighlight(
+    ctx: CanvasRenderingContext2D,
+    world: World,
+    offset: { ox: number; oy: number },
+    targetId: EntityId,
+  ): void {
+    const pos = world.positions.get(targetId);
+    if (!pos) return;
+    if (!world.fovVisible.has(world.fovKey(pos.x, pos.y))) return;
+
+    const halfTW = TILE_WIDTH / 2;
+    const halfTH = TILE_HEIGHT / 2;
+    const sx = (pos.x - pos.y) * halfTW + offset.ox;
+    const sy = (pos.x + pos.y) * halfTH + offset.oy;
+
+    // Pulsing red diamond outline on the tile
+    const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 200);
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+
+    const cx = sx + halfTW;
+    const cy = sy + halfTH;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - halfTH);
+    ctx.lineTo(cx + halfTW, cy);
+    ctx.lineTo(cx, cy + halfTH);
+    ctx.lineTo(cx - halfTW, cy);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Target name above
+    const name = world.names.get(targetId)?.display ?? 'Target';
+    ctx.globalAlpha = pulse + 0.2;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText(name, cx, sy - 4);
+    ctx.textAlign = 'start';
 
     ctx.globalAlpha = 1.0;
   }

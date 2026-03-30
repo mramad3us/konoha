@@ -17,7 +17,7 @@ interface ObjSpawn {
   blocksMove: boolean; blocksSight: boolean;
   name: string; article: 'a' | 'an' | 'the' | '';
   description: string; category: ObjectCategory;
-  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board' | 'meditate';
+  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board' | 'meditate' | 'weapons_rack';
   interactLabel?: string; lightRadius?: number;
 }
 
@@ -95,10 +95,12 @@ function counter(world: World, x: number, y: number, name: string, desc: string)
     description: desc, category: 'object' });
 }
 
-function weaponsRack(world: World, x: number, y: number, name: string, desc: string): void {
+function weaponsRack(world: World, x: number, y: number, name: string, desc: string, interactable = false): void {
   spawn(world, { x, y, spriteId: 'obj_weapons_rack', layer: 'object', offsetY: -20,
     blocksMove: true, blocksSight: false, name, article: 'a',
-    description: desc, category: 'object' });
+    description: desc, category: 'object',
+    ...(interactable ? { interactType: 'weapons_rack' as const, interactLabel: 'Restock' } : {}),
+  });
 }
 
 function medicineCabinet(world: World, x: number, y: number, name: string, desc: string): void {
@@ -263,10 +265,10 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   // Weapons Shop (98,72 9×7) — wall: h@75(door@102)
   // Showroom: x=99-105, y=73-74
   torch(world, 100, 73, 'Blades gleam in the torchlight.', 3);
-  weaponsRack(world, 103, 73, 'display rack', 'Kunai, shuriken, and tanto arranged by quality.');
+  weaponsRack(world, 103, 73, 'display rack', 'Kunai, shuriken, and tanto arranged by quality. Take what you need.', true);
   counter(world, 105, 74, 'sales counter', 'A counter with price tags and a sharpening stone.');
   // Back Room: x=99-105, y=76-77
-  weaponsRack(world, 100, 77, 'reserve stock', 'Bulk weapons waiting to be displayed. Some are custom orders.');
+  weaponsRack(world, 100, 77, 'reserve stock', 'Bulk weapons waiting to be displayed. Help yourself.', true);
   barrel(world, 104, 77, 'oil barrel', 'Weapon oil for maintenance. Keeps blades from rusting.');
 
   // Supply Shop (109,72 9×7) — wall: h@75(door@113)
@@ -481,7 +483,7 @@ export function spawnVillageObjects(world: World, devMode: boolean): void {
   torch(world, 130, 8, 'Armory torch.', 4);
   torch(world, 138, 8, 'Armory torch.', 4);
   weaponsRack(world, 132, 9, 'katana rack', 'Fine swords maintained to battle readiness.');
-  weaponsRack(world, 136, 9, 'shuriken display', 'Throwing weapons of various sizes and shapes.');
+  weaponsRack(world, 136, 9, 'shuriken display', 'Throwing weapons of various sizes and shapes. Take what you need.', true);
   shelf(world, 134, 13, 'armor stand', 'Sets of Uchiha battle armor. Polished and ready.');
 
   // Uchiha House 1 (108,21 10×7) — wall: h@24(door@112)

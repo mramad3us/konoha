@@ -142,7 +142,7 @@ export interface DeadComponent {
 }
 
 export interface InteractableComponent {
-  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate' | 'village_gate';
+  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate' | 'village_gate' | 'weapons_rack';
   label: string;
 }
 
@@ -204,3 +204,6 @@ export interface SquadMemberComponent {
 
 // Re-export CharacterSheet as a component type
 export type { CharacterSheet } from './character.ts';
+
+// Re-export thrown weapon components
+export type { ThrownAmmoComponent, ProjectileComponent, ThrowCooldownComponent } from './throwing.ts';

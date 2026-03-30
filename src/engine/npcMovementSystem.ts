@@ -15,6 +15,7 @@ import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
 import { getCurrentROE } from './squadSystem.ts';
 import { isInCombat } from './combatSystem.ts';
+import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -65,6 +66,30 @@ function manhattan(ax: number, ay: number, bx: number, by: number): number {
 const AGGRO_DETECTION_RANGE = 8;
 /** Distance at which a fleeing NPC considers itself safe */
 const FLEE_SAFE_DISTANCE = 15;
+
+/**
+ * When an NPC goes aggro, switch to sprint (or chakra-sprint if able).
+ * Also give ninja NPCs thrown weapon ammo if they don't have it yet.
+ */
+function npcSetSprintOnAggro(world: World, id: EntityId): void {
+  const sheet = world.characterSheets.get(id);
+
+  // Sprint on aggro (NPCs don't have PlayerControlledComponent, but they move faster
+  // in chase mode already — the "sprint" manifests as moving every tick instead of every few ticks)
+  // For ninja NPCs with chakra_sprint technique, they could use it — but NPCs don't have stance.
+  // The speed increase is already handled by chase behavior (moves every tick).
+
+  // Give ninja NPCs thrown ammo if they have bukijutsu and don't have ammo yet
+  if (sheet && !world.thrownAmmo.has(id)) {
+    const buki = sheet.skills.bukijutsu ?? 0;
+    if (buki >= 1) {
+      // Randomize ammo: 3-6 of each, total ≤ 10
+      const kunai = 3 + Math.floor(Math.random() * 4);  // 3-6
+      const shuriken = Math.min(10 - kunai, 3 + Math.floor(Math.random() * 4));
+      world.thrownAmmo.set(id, { kunai, shuriken });
+    }
+  }
+}
 
 /**
  * Bresenham line-of-sight check.
@@ -410,6 +435,7 @@ function tickAggro(
         // Target closest party member (player or squad)
         aggro.targetId = findClosestPartyMember(world, pos.x, pos.y);
         ai.behavior = 'chase';
+        npcSetSprintOnAggro(world, id);
         const health = world.healths.get(id);
         if (health) aggro.lastKnownHp = health.current;
         world.log(`${npcName} spots you!`, 'hit_incoming');
@@ -425,6 +451,7 @@ function tickAggro(
             aggro.state = 'aggro';
             aggro.targetId = findClosestPartyMember(world, pos.x, pos.y);
             ai.behavior = 'chase';
+            npcSetSprintOnAggro(world, id);
             const health = world.healths.get(id);
             if (health) aggro.lastKnownHp = health.current;
             world.log(`${npcName} spots your squad!`, 'hit_incoming');
@@ -509,6 +536,19 @@ function tickChase(
       spawnFloatingText(pos.x, pos.y, ENGAGE_SHOUTS[Math.floor(Math.random() * ENGAGE_SHOUTS.length)], '#ff6644', 1.8);
     }
     return;
+  }
+
+  // Throw-move pattern: if at range and has ammo, throw first then step
+  if (dist > 2 && dist <= 10 && canThrow(world, id)) {
+    // Check line of sight to target
+    if (hasLineOfSight(world, pos.x, pos.y, targetPos.x, targetPos.y)) {
+      // Pick weapon: prefer kunai (faster), fallback to shuriken
+      const ammo = world.thrownAmmo.get(id);
+      if (ammo) {
+        const weapon = ammo.kunai > 0 ? 'kunai' as const : 'shuriken' as const;
+        spawnProjectile(world, id, weapon, targetPos.x, targetPos.y);
+      }
+    }
   }
 
   // Step toward target (greedy cardinal)

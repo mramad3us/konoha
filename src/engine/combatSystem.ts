@@ -18,6 +18,7 @@ import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RES
 import { getMissionXpMultiplier } from './missions.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
+import { spawnBloodDecal } from '../systems/projectileSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -196,6 +197,10 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
 
       // Bleeding chance with weapons (kunai/blade)
       if (attackerLethal) {
+        // Blood decal at the defender's position
+        const defPos = world.positions.get(outcome.defenderId);
+        if (defPos) spawnBloodDecal(world, defPos.x, defPos.y);
+
         const attackerTai = outcome.attackerId === playerId ? playerTaijutsu : targetTaijutsu;
         const bleedChance = 0.20 + attackerTai / 200;
         if (Math.random() < bleedChance) {
@@ -614,6 +619,10 @@ export function resolveNpcCombatRounds(world: World): void {
 
       // Bleeding chance with weapons
       if (attackerLethal) {
+        // Blood decal at the defender's position
+        const defPos = world.positions.get(outcome.defenderId);
+        if (defPos) spawnBloodDecal(world, defPos.x, defPos.y);
+
         const atkTai = outcome.attackerId === eng.entityA ? taiA : taiB;
         const bleedChance = 0.20 + atkTai / 200;
         if (Math.random() < bleedChance) {

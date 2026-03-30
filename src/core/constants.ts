@@ -183,6 +183,26 @@ export const CHAKRA_SPRINT_COST = 3;    // chakra per step
 // ── Water Walk ──
 export const WATER_WALK_CHAKRA_COST = 2;  // chakra per step on water
 
+// ── Thrown Weapons ──
+export const KUNAI_BASE_DAMAGE = 8;
+export const KUNAI_SPEED = 1;             // subticks per tile
+export const KUNAI_EVASION_PENALTY = 0;   // % penalty to dodge
+export const KUNAI_MAX_RANGE = 10;
+
+export const SHURIKEN_BASE_DAMAGE = 5;
+export const SHURIKEN_SPEED = 2;          // subticks per tile
+export const SHURIKEN_EVASION_PENALTY = 20;
+export const SHURIKEN_MAX_RANGE = 10;
+
+export const MAX_THROWN_AMMO = 10;        // per weapon type on restock
+export const BLOOD_DECAL_DURATION_HOURS = 1;
+
+// Throw cooldown tiers (subticks) by bukijutsu skill
+export const THROW_COOLDOWN_TIER1 = 6;   // buki 1-15:  3s
+export const THROW_COOLDOWN_TIER2 = 4;   // buki 16-30: 2s
+export const THROW_COOLDOWN_TIER3 = 2;   // buki 31-45: 1s
+export const THROW_COOLDOWN_TIER4 = 1;   // buki 46+:   0.5s
+
 // ── Away Missions ──
 export const MISSION_MAP_WIDTH = 160;
 export const MISSION_MAP_HEIGHT = 160;

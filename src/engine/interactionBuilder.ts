@@ -12,6 +12,7 @@ import { isRestrainedAndConscious } from './restraintCarry.ts';
 import { SHINOBI_RANK_LABELS } from '../types/character.ts';
 import type { CharacterSkills, SkillId } from '../types/character.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
+import { MAX_THROWN_AMMO } from '../core/constants.ts';
 
 export interface ZoneFlags {
   allowKill: boolean;
@@ -64,6 +65,18 @@ export function buildContextOptions(
       options.push({ id: 'talk', label: 'Talk' });
     } else if (interactable.interactionType === 'mission_board') {
       options.push({ id: 'use_mission_board', label: 'Pick Mission', accent: true });
+    } else if (interactable.interactionType === 'weapons_rack') {
+      const ammo = world.thrownAmmo.get(world.playerEntityId);
+      const kunai = ammo?.kunai ?? 0;
+      const shuriken = ammo?.shuriken ?? 0;
+      const isFull = kunai >= MAX_THROWN_AMMO && shuriken >= MAX_THROWN_AMMO;
+      options.push({
+        id: 'restock_weapons',
+        label: `Restock (Kunai: ${kunai}/${MAX_THROWN_AMMO} | Shuriken: ${shuriken}/${MAX_THROWN_AMMO})`,
+        accent: !isFull,
+        disabled: isFull,
+        disabledReason: isFull ? 'Already fully stocked' : undefined,
+      });
     } else if (interactable.interactionType === 'village_gate') {
       // Show "Depart on Mission" if player has an active away mission (C/B/A rank)
       if (world.missionLog?.active && !world.missionLog.active.objectiveComplete) {

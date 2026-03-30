@@ -18,6 +18,7 @@ import { checkSkillUp } from './skillFeedback.ts';
 import { calculateDamage } from '../types/combat.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { updateCarriedPosition } from './restraintCarry.ts';
+import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem.ts';
 
 /**
  * Advance game time by subticks and recompute FOV.
@@ -51,6 +52,11 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
     }
   }
 
+  // ── Projectiles advance every subtick (fast system) ──
+  for (let s = 0; s < subticks; s++) {
+    tickProjectiles(world);
+  }
+
   // Always recompute FOV
   const playerPos = world.positions.get(world.playerEntityId);
   if (playerPos) {
@@ -69,6 +75,7 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
     resolveNpcCombatRounds(world);
     tickDuskTransition(world);
     tickDawnTransition(world);
+    cleanupBloodDecals(world);
   }
 }
 
@@ -92,6 +99,11 @@ export function advanceCombatPass(world: World): void {
     computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
   }
 
+  // Projectiles advance every subtick during combat too
+  for (let s = 0; s < COMBAT_PASS_SUBTICKS; s++) {
+    tickProjectiles(world);
+  }
+
   // Always tick world systems during combat (not gated by coarse tick boundary)
   // This ensures NPCs move and NPC-vs-NPC fights progress while player fights
   tickBleeding(world);
@@ -105,6 +117,7 @@ export function advanceCombatPass(world: World): void {
     tickNpcMovement(world);
     tickDuskTransition(world);
     tickDawnTransition(world);
+    cleanupBloodDecals(world);
   }
 }
 

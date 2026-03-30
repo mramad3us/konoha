@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent, ThrownAmmoComponent, ProjectileComponent, ThrowCooldownComponent } from '../types/ecs.ts';
 import type { SquadRoster } from '../types/squad.ts';
 import { createSquadRoster } from './squadSystem.ts';
 import type { GameLogEntry } from '../types/actions.ts';
@@ -44,6 +44,12 @@ export class World {
   carrying = new Map<EntityId, CarryingComponent>();
   carried = new Map<EntityId, CarriedComponent>();
   squadMembers = new Map<EntityId, SquadMemberComponent>();
+  thrownAmmo = new Map<EntityId, ThrownAmmoComponent>();
+  projectiles = new Map<EntityId, ProjectileComponent>();
+  throwCooldowns = new Map<EntityId, ThrowCooldownComponent>();
+
+  // Blood decals — keyed by "x:y", persistent for 1 in-game hour
+  bloodDecals = new Map<string, { x: number; y: number; spawnTick: number; variant: number }>();
 
   // Combat intent
   playerKillIntent = false;
@@ -193,6 +199,9 @@ export class World {
     this.carrying.delete(id);
     this.carried.delete(id);
     this.squadMembers.delete(id);
+    this.thrownAmmo.delete(id);
+    this.projectiles.delete(id);
+    this.throwCooldowns.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -337,6 +346,10 @@ export class World {
       carrying: serializeMap(this.carrying),
       carried: serializeMap(this.carried),
       squadMembers: serializeMap(this.squadMembers),
+      thrownAmmo: serializeMap(this.thrownAmmo),
+      projectiles: serializeMap(this.projectiles),
+      throwCooldowns: serializeMap(this.throwCooldowns),
+      bloodDecals: Object.fromEntries(this.bloodDecals),
       playerKillIntent: this.playerKillIntent,
       missionSalt: this.missionSalt,
       missionBoard: this.missionBoard,
@@ -432,6 +445,19 @@ export class World {
     }
     if (data['squadMembers']) {
       deserializeMap(world.squadMembers, data['squadMembers'] as Record<string, SquadMemberComponent>);
+    }
+    if (data['thrownAmmo']) {
+      deserializeMap(world.thrownAmmo, data['thrownAmmo'] as Record<string, ThrownAmmoComponent>);
+    }
+    if (data['projectiles']) {
+      deserializeMap(world.projectiles, data['projectiles'] as Record<string, ProjectileComponent>);
+    }
+    if (data['throwCooldowns']) {
+      deserializeMap(world.throwCooldowns, data['throwCooldowns'] as Record<string, ThrowCooldownComponent>);
+    }
+    if (data['bloodDecals']) {
+      const raw = data['bloodDecals'] as Record<string, { x: number; y: number; spawnTick: number; variant: number }>;
+      for (const [k, v] of Object.entries(raw)) world.bloodDecals.set(k, v);
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;

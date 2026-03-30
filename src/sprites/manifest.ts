@@ -23,6 +23,12 @@ import {
   CHAR_ANBU4_S, CHAR_ANBU4_N, CHAR_ANBU4_E, CHAR_ANBU4_W, CHAR_ANBU4_PRONE,
   CHAR_ANBU5_S, CHAR_ANBU5_N, CHAR_ANBU5_E, CHAR_ANBU5_W, CHAR_ANBU5_PRONE,
 } from './characters.ts';
+import {
+  PROJ_KUNAI_E, PROJ_KUNAI_W, PROJ_KUNAI_N, PROJ_KUNAI_S,
+  PROJ_KUNAI_NE, PROJ_KUNAI_NW, PROJ_KUNAI_SE, PROJ_KUNAI_SW,
+  PROJ_SHURIKEN_1, PROJ_SHURIKEN_2,
+  BLOOD_SPLATTER_0, BLOOD_SPLATTER_1, BLOOD_SPLATTER_2,
+} from './projectiles.ts';
 import { TILE_WIDTH, TILE_HEIGHT } from '../core/constants.ts';
 
 export interface SpriteRegistration {
@@ -160,4 +166,27 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   // Prone / unconscious
   { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_prone', pattern: CHAR_KUNOICHI_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // ── Projectiles ──
+  { id: 'kunai_e',  pattern: PROJ_KUNAI_E,  displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_w',  pattern: PROJ_KUNAI_W,  displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_n',  pattern: PROJ_KUNAI_N,  displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_s',  pattern: PROJ_KUNAI_S,  displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_ne', pattern: PROJ_KUNAI_NE, displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_nw', pattern: PROJ_KUNAI_NW, displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_se', pattern: PROJ_KUNAI_SE, displayWidth: 24, displayHeight: 24 },
+  { id: 'kunai_sw', pattern: PROJ_KUNAI_SW, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_e',  pattern: PROJ_SHURIKEN_1, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_w',  pattern: PROJ_SHURIKEN_2, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_n',  pattern: PROJ_SHURIKEN_1, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_s',  pattern: PROJ_SHURIKEN_2, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_ne', pattern: PROJ_SHURIKEN_1, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_nw', pattern: PROJ_SHURIKEN_2, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_se', pattern: PROJ_SHURIKEN_1, displayWidth: 24, displayHeight: 24 },
+  { id: 'shuriken_sw', pattern: PROJ_SHURIKEN_2, displayWidth: 24, displayHeight: 24 },
+
+  // ── Blood decals ──
+  { id: 'blood_splatter_0', pattern: BLOOD_SPLATTER_0, displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'blood_splatter_1', pattern: BLOOD_SPLATTER_1, displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
+  { id: 'blood_splatter_2', pattern: BLOOD_SPLATTER_2, displayWidth: TILE_WIDTH, displayHeight: TILE_HEIGHT },
 ];

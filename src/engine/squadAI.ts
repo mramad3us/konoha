@@ -18,6 +18,8 @@ import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { SQUAD_COMBAT_LINES } from './squadSystem.ts';
 import { hasTechnique } from '../data/techniques.ts';
 import { WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
+import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
+import { hasLineOfSight } from './npcMovementSystem.ts';
 
 /** Tag component — marks an entity as a squad member on the mission map */
 export interface SquadMemberTag {
@@ -177,8 +179,18 @@ export function tickSquadMember(
           return;
         }
 
-        // Close enough — chase (but don't stray too far from player)
+        // Close enough — throw if at range, then chase (but don't stray too far from player)
         if (distToPlayer < 12) {
+          // Throw-move pattern: throw if in range and has ammo
+          if (distToEnemy > 2 && distToEnemy <= 10 && canThrow(world, entityId)) {
+            if (hasLineOfSight(world, pos.x, pos.y, enemyPos.x, enemyPos.y)) {
+              const ammo = world.thrownAmmo.get(entityId);
+              if (ammo) {
+                const weapon = ammo.kunai > 0 ? 'kunai' as const : 'shuriken' as const;
+                spawnProjectile(world, entityId, weapon, enemyPos.x, enemyPos.y);
+              }
+            }
+          }
           stepToward(world, entityId, pos.x, pos.y, enemyPos.x, enemyPos.y);
           return;
         }

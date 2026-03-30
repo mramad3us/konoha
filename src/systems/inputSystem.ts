@@ -16,6 +16,10 @@ import type { MissionLogUI } from '../ui/missionLogUI.ts';
 import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import type { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
+import type { ThrownWeaponType } from '../types/throwing.ts';
+import { spawnProjectile, canThrow, getThrowableTargets } from '../systems/projectileSystem.ts';
+import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
+import type { EntityId } from '../types/ecs.ts';
 
 export class InputSystem {
   private world: World;
@@ -34,6 +38,12 @@ export class InputSystem {
   private onEdgeExtraction: (() => void) | null = null;
   private onROEToggle: ((roe: import('../types/squad.ts').SquadROE) => void) | null = null;
   private _paused = false;
+
+  // ── Throwing mode state ──
+  private _throwingMode = false;
+  private _throwWeapon: ThrownWeaponType = 'kunai';
+  private _throwTargets: EntityId[] = [];
+  private _throwTargetIndex = 0;
 
   constructor(
     world: World,
@@ -67,7 +77,7 @@ export class InputSystem {
     const key = e.key;
 
     // Prevent default for game keys, combat keys, and jutsu keys
-    if (GAME_KEYS.has(key) || isCombatKey(key) || JUTSU_COMBAT_KEYS.has(key)) {
+    if (GAME_KEYS.has(key) || isCombatKey(key) || JUTSU_COMBAT_KEYS.has(key) || key === 't' || key === 'Tab') {
       e.preventDefault();
     }
 
@@ -75,6 +85,18 @@ export class InputSystem {
     const now = Date.now();
     if (now - this.lastInputTime < INPUT_DEBOUNCE_MS) return;
     this.lastInputTime = now;
+
+    // ── Throwing mode input ──
+    if (this._throwingMode) {
+      this.handleThrowingInput(key);
+      return;
+    }
+
+    // ── Enter throwing mode ('t') ──
+    if (key === 't') {
+      this.tryEnterThrowingMode();
+      return;
+    }
 
     // ── Jutsu combat keys (@ etc.) ──
     if (JUTSU_COMBAT_KEYS.has(key)) {
@@ -252,6 +274,154 @@ export class InputSystem {
   setPaused(paused: boolean): void {
     this._paused = paused;
   }
+
+  // ── Throwing Mode ──
+
+  /** Attempt to enter throwing mode */
+  private tryEnterThrowingMode(): void {
+    const playerId = this.world.playerEntityId;
+
+    // Must have ammo
+    const ammo = this.world.thrownAmmo.get(playerId);
+    if (!ammo || (ammo.kunai <= 0 && ammo.shuriken <= 0)) {
+      spawnFloatingText(
+        this.world.positions.get(playerId)?.x ?? 0,
+        this.world.positions.get(playerId)?.y ?? 0,
+        'No ammo', '#ff8844',
+      );
+      return;
+    }
+
+    // Must have valid targets
+    const targets = getThrowableTargets(this.world, playerId);
+    if (targets.length === 0) {
+      spawnFloatingText(
+        this.world.positions.get(playerId)?.x ?? 0,
+        this.world.positions.get(playerId)?.y ?? 0,
+        'No targets', '#ff8844',
+      );
+      return;
+    }
+
+    // Pick a weapon type that has ammo
+    this._throwWeapon = ammo.kunai > 0 ? 'kunai' : 'shuriken';
+    this._throwTargets = targets;
+    this._throwTargetIndex = 0;
+    this._throwingMode = true;
+
+    const targetName = this.world.names.get(targets[0])?.display ?? 'target';
+    this.world.log(`Throwing mode: ${this._throwWeapon} — aiming at ${targetName} [j/k: cycle, TAB: switch, Enter: throw, Esc: cancel]`, 'system');
+    this.hud.update(this.world);
+  }
+
+  /** Handle key input while in throwing mode */
+  private handleThrowingInput(key: string): void {
+    const playerId = this.world.playerEntityId;
+
+    if (key === 'Escape') {
+      this.exitThrowingMode();
+      this.world.log('Throwing mode cancelled.', 'system');
+      return;
+    }
+
+    if (key === 'Tab') {
+      // Switch weapon type
+      const ammo = this.world.thrownAmmo.get(playerId);
+      if (!ammo) { this.exitThrowingMode(); return; }
+
+      if (this._throwWeapon === 'kunai' && ammo.shuriken > 0) {
+        this._throwWeapon = 'shuriken';
+      } else if (this._throwWeapon === 'shuriken' && ammo.kunai > 0) {
+        this._throwWeapon = 'kunai';
+      }
+
+      const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
+      this.world.log(`Throwing: ${this._throwWeapon} — aiming at ${targetName}`, 'system');
+      this.hud.update(this.world);
+      return;
+    }
+
+    if (key === 'j') {
+      // Cycle to next target
+      this._throwTargetIndex = (this._throwTargetIndex + 1) % this._throwTargets.length;
+      const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
+      this.world.log(`Aiming at: ${targetName}`, 'system');
+      this.hud.update(this.world);
+      return;
+    }
+
+    if (key === 'k') {
+      // Cycle to previous target
+      this._throwTargetIndex = (this._throwTargetIndex - 1 + this._throwTargets.length) % this._throwTargets.length;
+      const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
+      this.world.log(`Aiming at: ${targetName}`, 'system');
+      this.hud.update(this.world);
+      return;
+    }
+
+    if (key === 'Enter' || key === 'f') {
+      // Throw!
+      if (!canThrow(this.world, playerId, this._throwWeapon)) {
+        const ammo = this.world.thrownAmmo.get(playerId);
+        if (!ammo || ammo[this._throwWeapon] <= 0) {
+          this.world.log('No ammo left!', 'info');
+        } else {
+          this.world.log('Not ready to throw yet — cooldown.', 'info');
+        }
+        return;
+      }
+
+      const targetId = this._throwTargets[this._throwTargetIndex];
+      const targetPos = this.world.positions.get(targetId);
+      if (!targetPos) {
+        this.world.log('Target lost.', 'info');
+        this.exitThrowingMode();
+        return;
+      }
+
+      spawnProjectile(this.world, playerId, this._throwWeapon, targetPos.x, targetPos.y);
+
+      // Advance time by one combat pass (throwing takes time)
+      advanceCombatPass(this.world);
+
+      this.hud.update(this.world);
+      this.tempoBeads.update(getPlayerTempo(this.world));
+      this.conditionIndicator.update(getPlayerCondition(this.world));
+      clearStaleEngagements(this.world);
+
+      // Refresh targets (some may have died or moved)
+      this._throwTargets = getThrowableTargets(this.world, playerId);
+      if (this._throwTargets.length === 0) {
+        this.exitThrowingMode();
+        return;
+      }
+      this._throwTargetIndex = Math.min(this._throwTargetIndex, this._throwTargets.length - 1);
+
+      // Check if we still have ammo
+      if (!canThrow(this.world, playerId)) {
+        this.world.log('Out of ammo.', 'info');
+        this.exitThrowingMode();
+        return;
+      }
+
+      const nextTargetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
+      this.world.log(`Throwing: ${this._throwWeapon} — aiming at ${nextTargetName}`, 'system');
+      return;
+    }
+  }
+
+  private exitThrowingMode(): void {
+    this._throwingMode = false;
+    this._throwTargets = [];
+    this._throwTargetIndex = 0;
+    this.hud.update(this.world);
+  }
+
+  /** Whether the player is currently in throwing mode (for rendering target highlights) */
+  get throwingMode(): boolean { return this._throwingMode; }
+  get throwTargets(): EntityId[] { return this._throwTargets; }
+  get throwTargetIndex(): number { return this._throwTargetIndex; }
+  get throwWeapon(): ThrownWeaponType { return this._throwWeapon; }
 
   /** Remove event listener */
   dispose(): void {

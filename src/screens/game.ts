@@ -31,7 +31,7 @@ import { computeFOV } from '../engine/fov.ts';
 import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
-import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
+import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS, MAX_THROWN_AMMO } from '../core/constants.ts';
 import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
@@ -834,6 +834,21 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         checkSkillUp(world, 'med', oldMed2, playerSheet.skills.med);
       }
       world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+    } else if (choice === 'restock_weapons') {
+      // Restock thrown weapons from weapons rack
+      const playerId = world.playerEntityId;
+      let ammo = world.thrownAmmo.get(playerId);
+      if (!ammo) {
+        ammo = { kunai: 0, shuriken: 0 };
+        world.thrownAmmo.set(playerId, ammo);
+      }
+      const kunaiAdded = MAX_THROWN_AMMO - ammo.kunai;
+      const shurikenAdded = MAX_THROWN_AMMO - ammo.shuriken;
+      ammo.kunai = MAX_THROWN_AMMO;
+      ammo.shuriken = MAX_THROWN_AMMO;
+      if (kunaiAdded > 0 || shurikenAdded > 0) {
+        world.log(`Restocked: +${kunaiAdded} kunai, +${shurikenAdded} shuriken.`, 'system');
+      }
     } else if (choice === 'use_sleep') {
       doSleep();
     } else if (choice === 'use_meditate') {
@@ -1035,7 +1050,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       camera.update(dt);
       updateParticles(dt);
       updateFloatingTexts(dt);
-      renderer.draw(world);
+      const throwTarget = inputSystem.throwingMode ? inputSystem.throwTargets[inputSystem.throwTargetIndex] : undefined;
+      renderer.draw(world, throwTarget);
     }
 
     rafId = requestAnimationFrame(renderLoop);
