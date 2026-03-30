@@ -1,143 +1,149 @@
 /**
  * Projectile sprites — kunai and shuriken in various directions.
  * Small 8x8 pixel patterns rendered at 24x24 display pixels.
+ *
+ * Kunai matches the HUD/kill-intent SVG style:
+ *   Silver blade tip → metal blade → dark edge → brown handle → red wrap → dark guard → ring
+ * Rotated to 8 compass directions so the blade always points toward the target.
  */
 
 import type { PixelPattern } from './pixelPatterns.ts';
 
+// Kunai palette — matches the HUD SVG icon colors
 const KUNAI_PAL: Record<string, [number, number, number]> = {
-  m: [180, 185, 195],  // metal blade
-  M: [210, 215, 220],  // metal highlight
-  k: [100, 100, 110],  // dark blade
-  h: [120, 80, 45],    // handle (wood)
-  H: [150, 110, 65],   // handle highlight
+  t: [208, 208, 208],  // blade tip (bright silver)
+  b: [176, 176, 176],  // blade body
+  B: [160, 160, 160],  // blade mid
+  d: [128, 128, 128],  // dark edge
+  h: [139, 69, 19],    // handle (wood)
   r: [178, 34, 52],    // red wrapping
+  g: [85, 85, 85],     // dark guard / ring
 };
 
-// Kunai pointing East (→)
+// Kunai pointing North (↑) — blade up, handle down
+export const PROJ_KUNAI_N: PixelPattern = {
+  width: 8, height: 8,
+  palette: KUNAI_PAL,
+  pixels: [
+    '...t....',
+    '...b....',
+    '..dBd...',
+    '...d....',
+    '...h....',
+    '...r....',
+    '...r....',
+    '..g.g...',
+  ],
+};
+
+// Kunai pointing South (↓) — blade down, handle up
+export const PROJ_KUNAI_S: PixelPattern = {
+  width: 8, height: 8,
+  palette: KUNAI_PAL,
+  pixels: [
+    '..g.g...',
+    '...r....',
+    '...r....',
+    '...h....',
+    '...d....',
+    '..dBd...',
+    '...b....',
+    '...t....',
+  ],
+};
+
+// Kunai pointing East (→) — blade right, handle left
 export const PROJ_KUNAI_E: PixelPattern = {
   width: 8, height: 8,
   palette: KUNAI_PAL,
   pixels: [
     '........',
     '........',
-    '....kM..',
-    '..hhkMm.',
-    '..HhrMM.',
-    '....km..',
+    '..g..d..',
+    '.g.rrhdt',
+    '.g.rrBdb',
+    '..g..d..',
     '........',
     '........',
   ],
 };
 
-// Kunai pointing West (←)
+// Kunai pointing West (←) — blade left, handle right
 export const PROJ_KUNAI_W: PixelPattern = {
   width: 8, height: 8,
   palette: KUNAI_PAL,
   pixels: [
     '........',
     '........',
-    '..Mk....',
-    '.mMkhh..',
-    '.MMrHH..',
-    '..mk....',
+    '..d..g..',
+    'tdhrrg..',
+    'bdBrr.g.',
+    '..d..g..',
     '........',
     '........',
   ],
 };
 
-// Kunai pointing South (↓)
-export const PROJ_KUNAI_S: PixelPattern = {
-  width: 8, height: 8,
-  palette: KUNAI_PAL,
-  pixels: [
-    '........',
-    '..hH....',
-    '..hH....',
-    '..kr....',
-    '..Mm....',
-    '..MM....',
-    '..kk....',
-    '........',
-  ],
-};
-
-// Kunai pointing North (↑)
-export const PROJ_KUNAI_N: PixelPattern = {
-  width: 8, height: 8,
-  palette: KUNAI_PAL,
-  pixels: [
-    '........',
-    '..kk....',
-    '..MM....',
-    '..Mm....',
-    '..kr....',
-    '..hH....',
-    '..hH....',
-    '........',
-  ],
-};
-
-// Diagonal kunai SE
-export const PROJ_KUNAI_SE: PixelPattern = {
-  width: 8, height: 8,
-  palette: KUNAI_PAL,
-  pixels: [
-    '........',
-    '.Hh.....',
-    '..hr....',
-    '...kM...',
-    '....Mm..',
-    '.....k..',
-    '........',
-    '........',
-  ],
-};
-
-// Diagonal kunai NE
+// Kunai pointing NE (↗) — blade to upper-right
 export const PROJ_KUNAI_NE: PixelPattern = {
   width: 8, height: 8,
   palette: KUNAI_PAL,
   pixels: [
     '........',
-    '........',
-    '.....k..',
-    '....Mm..',
-    '...kM...',
-    '..hr....',
-    '.Hh.....',
-    '........',
-  ],
-};
-
-// Diagonal kunai SW
-export const PROJ_KUNAI_SW: PixelPattern = {
-  width: 8, height: 8,
-  palette: KUNAI_PAL,
-  pixels: [
-    '........',
-    '.....hH.',
-    '....rh..',
-    '...Mk...',
-    '..mM....',
-    '..k.....',
+    '....dbt.',
+    '...dBd..',
+    '..rrd...',
+    '.rrh....',
+    'g.g.....',
     '........',
     '........',
   ],
 };
 
-// Diagonal kunai NW
+// Kunai pointing NW (↖) — blade to upper-left
 export const PROJ_KUNAI_NW: PixelPattern = {
   width: 8, height: 8,
   palette: KUNAI_PAL,
   pixels: [
     '........',
+    '.tbd....',
+    '..dBd...',
+    '...drr..',
+    '....hrr.',
+    '.....g.g',
     '........',
-    '..k.....',
-    '..mM....',
-    '...Mk...',
-    '....rh..',
-    '.....hH.',
+    '........',
+  ],
+};
+
+// Kunai pointing SE (↘) — blade to lower-right
+export const PROJ_KUNAI_SE: PixelPattern = {
+  width: 8, height: 8,
+  palette: KUNAI_PAL,
+  pixels: [
+    '........',
+    '........',
+    'g.g.....',
+    '.rrh....',
+    '..rrd...',
+    '...dBd..',
+    '....dbt.',
+    '........',
+  ],
+};
+
+// Kunai pointing SW (↙) — blade to lower-left
+export const PROJ_KUNAI_SW: PixelPattern = {
+  width: 8, height: 8,
+  palette: KUNAI_PAL,
+  pixels: [
+    '........',
+    '........',
+    '.....g.g',
+    '....hrr.',
+    '...drr..',
+    '..dBd...',
+    '.tbd....',
     '........',
   ],
 };
