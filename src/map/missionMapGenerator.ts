@@ -1024,7 +1024,7 @@ function spawnEnemy(
     title,
     skills,
     stats,
-    learnedJutsus: isNinja ? ['substitution'] : [],
+    learnedJutsus: isNinja && nin >= 15 ? ['substitution'] : [],
   });
   world.names.set(id, { display: name, article: '' });
 
