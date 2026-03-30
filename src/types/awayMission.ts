@@ -11,10 +11,22 @@ export type SkillRankTier = 'genin' | 'chuunin' | 'jonin' | 'elite';
 /** C-rank mission subtypes */
 export type CRankMissionType = 'bandit_capture' | 'gang_elimination' | 'escort';
 
-/** Data stored in mission.templateData for C-rank missions */
+/** B-rank mission subtypes */
+export type BRankMissionType = 'encampment_assault' | 'asset_recovery' | 'infiltration';
+
+/** A-rank mission subtypes */
+export type ARankMissionType = 'rogue_nin_pursuit' | 'threat_response' | 'assassination_prevention';
+
+/** All away mission subtypes */
+export type AwayMissionType = CRankMissionType | BRankMissionType | ARankMissionType;
+
+/** Enemy type determines spawn behavior and combat stats */
+export type EnemyType = 'bandit' | 'rogue_nin' | 'missing_nin';
+
+/** Data stored in mission.templateData for away missions (C/B/A rank) */
 export interface CRankMissionData {
-  missionType: CRankMissionType;
-  /** Name of the target (bandit leader, gang boss, etc.) */
+  missionType: AwayMissionType;
+  /** Name of the target (bandit leader, rogue nin, etc.) */
   targetName: string;
   /** Overmap node ID where the mission takes place */
   targetLocation: string;
@@ -24,16 +36,18 @@ export interface CRankMissionData {
   clientName: string;
   /** What to search the target for as proof */
   trophyItem: string;
-  /** Number of bandits in the camp/area */
+  /** Number of enemies in the camp/area */
   banditCount: number;
-  /** Name of the bandit leader (for elimination missions) */
+  /** Name of the enemy leader */
   banditLeaderName: string;
   /** Seed for procedural map generation */
   mapSeed: number;
   /** Terrain type for the procedural map */
   terrainType: 'forest' | 'plains' | 'rocky' | 'riverside';
-  /** Whether there's a visible bandit camp */
+  /** Whether there's a visible enemy camp */
   hasCamp: boolean;
+  /** Enemy type — determines spawned NPC combat tier (defaults to 'bandit' for C-rank) */
+  enemyType?: EnemyType;
 }
 
 /** Tracks the full state of an away mission in progress */
@@ -67,12 +81,14 @@ export interface MissionMapConfig {
   width: number;
   height: number;
   seed: number;
-  missionType: CRankMissionType;
+  missionType: AwayMissionType;
   banditCount: number;
   hasCamp: boolean;
   terrainType: 'forest' | 'plains' | 'rocky' | 'riverside';
   /** Player spawn edge: which edge of the map the player enters from */
   playerSpawnEdge: 'n' | 's' | 'e' | 'w';
+  /** Enemy type — determines spawn tier (defaults to 'bandit') */
+  enemyType?: EnemyType;
 }
 
 /** Reward configuration computed per-skill at mission end */

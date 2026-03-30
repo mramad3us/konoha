@@ -8,6 +8,7 @@ import { GameHud } from '../ui/gameHud.ts';
 import { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import { InputSystem } from '../systems/inputSystem.ts';
 import { CharacterSheetUI } from '../ui/characterSheet.ts';
+import { MissionLogUI } from '../ui/missionLogUI.ts';
 import { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { setScreenShakeCallback } from '../engine/combatSystem.ts';
@@ -486,13 +487,16 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const characterSheet = new CharacterSheetUI();
   container.appendChild(characterSheet.element);
 
+  const missionLogUI = new MissionLogUI();
+  container.appendChild(missionLogUI.element);
+
   // Tempo beads + condition indicator (in the HUD, after stance indicator)
   const tempoBeads = new TempoBeadsUI();
   const conditionIndicator = new ConditionIndicator();
   hud.insertAfterStance(tempoBeads.element);
   hud.insertAfterStance(conditionIndicator.element);
 
-  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, tempoBeads, conditionIndicator);
+  const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, missionLogUI, tempoBeads, conditionIndicator);
 
   // Respawn flow (fade to black → restore → fade back)
   const doRespawn = async () => {

@@ -11,6 +11,7 @@ import type { Camera } from '../rendering/camera.ts';
 import type { GameHud } from '../ui/gameHud.ts';
 import type { KeybindingsPanel } from '../ui/keybindingsPanel.ts';
 import type { CharacterSheetUI } from '../ui/characterSheet.ts';
+import type { MissionLogUI } from '../ui/missionLogUI.ts';
 import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import type { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
@@ -21,6 +22,7 @@ export class InputSystem {
   private hud: GameHud;
   private keybindingsPanel: KeybindingsPanel;
   private characterSheet: CharacterSheetUI;
+  private missionLog: MissionLogUI;
   private tempoBeads: TempoBeadsUI;
   private conditionIndicator: ConditionIndicator;
   private handler: (e: KeyboardEvent) => void;
@@ -37,6 +39,7 @@ export class InputSystem {
     hud: GameHud,
     keybindingsPanel: KeybindingsPanel,
     characterSheet: CharacterSheetUI,
+    missionLog: MissionLogUI,
     tempoBeads: TempoBeadsUI,
     conditionIndicator: ConditionIndicator,
   ) {
@@ -45,6 +48,7 @@ export class InputSystem {
     this.hud = hud;
     this.keybindingsPanel = keybindingsPanel;
     this.characterSheet = characterSheet;
+    this.missionLog = missionLog;
     this.tempoBeads = tempoBeads;
     this.conditionIndicator = conditionIndicator;
 
@@ -142,6 +146,12 @@ export class InputSystem {
         };
         this.characterSheet.toggle(name, sheet, missionRecord);
       }
+      return;
+    }
+
+    if (action.type === 'toggleMissionLog') {
+      const gameDay = Math.floor(this.world.gameTimeSeconds / 86400) + 1;
+      this.missionLog.toggle(this.world.missionLog, gameDay);
       return;
     }
 

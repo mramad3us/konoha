@@ -575,12 +575,26 @@ function spawnPlayer(
 // ── BANDIT SPAWNING ──
 
 /**
- * Bandit rank tiers — not ninja ranks, these are criminal hierarchy.
+ * Enemy rank tiers — used for all away mission enemy types.
+ *
+ * Bandit tiers (C-rank):
  * - Thug: low genin-level hand-to-hand, cannon fodder
  * - Enforcer: high genin-level technique, very physically strong
  * - Boss: chuunin-level hand-to-hand, strength varies
+ *
+ * Rogue Nin tiers (B-rank):
+ * - Rogue Genin: trained ninja who went rogue, genin-level ninjutsu
+ * - Rogue Chuunin: experienced rogue, chuunin-level all-around
+ * - Rogue Leader: top-tier rogue, near-jonin combat ability
+ *
+ * Missing-Nin tiers (A-rank):
+ * - Missing-Nin Operative: jonin-level combat, trained assassin
+ * - Missing-Nin Elite: high jonin, dangerous ninjutsu user
+ * - Missing-Nin Commander: elite combatant, near-kage potential
  */
-type BanditRank = 'thug' | 'enforcer' | 'boss';
+type EnemyRank = 'thug' | 'enforcer' | 'boss'
+  | 'rogue_genin' | 'rogue_chuunin' | 'rogue_leader'
+  | 'missing_operative' | 'missing_elite' | 'missing_commander';
 
 function spawnBandits(
   world: World,
@@ -591,21 +605,40 @@ function spawnBandits(
   campY: number,
 ): { targetId: EntityId; banditIds: EntityId[] } {
   const banditIds: EntityId[] = [];
+  const enemyType = missionData.enemyType ?? 'bandit';
 
-  // Spawn the leader/target first — always a Boss
+  // Determine leader and underling ranks based on enemy type
+  let leaderRank: EnemyRank;
+  let getUnderlingRank: (i: number) => EnemyRank;
+
+  switch (enemyType) {
+    case 'rogue_nin':
+      leaderRank = 'rogue_leader';
+      getUnderlingRank = (i) => (i % 3 === 0) ? 'rogue_chuunin' : 'rogue_genin';
+      break;
+    case 'missing_nin':
+      leaderRank = 'missing_commander';
+      getUnderlingRank = (i) => (i % 2 === 0) ? 'missing_elite' : 'missing_operative';
+      break;
+    default: // bandit
+      leaderRank = 'boss';
+      getUnderlingRank = (i) => (i % 3 === 0) ? 'enforcer' : 'thug';
+      break;
+  }
+
+  // Spawn the leader/target first
   const leaderPrefix = registerBanditSprites(rng);
-  const leaderId = spawnBandit(
+  const leaderId = spawnEnemy(
     world, rng,
     missionData.banditLeaderName || randomBanditLeaderName(rng),
     campX, campY,
     leaderPrefix,
-    'boss',
-    true, // is mission target
+    leaderRank,
+    true,
   );
   banditIds.push(leaderId);
 
-  // Spawn underlings — mix of thugs and enforcers
-  // Roughly 1 enforcer per 3 thugs
+  // Spawn underlings
   for (let i = 0; i < config.banditCount - 1; i++) {
     const angle = rng.next() * Math.PI * 2;
     const dist = rng.nextInt(3, 10);
@@ -621,72 +654,158 @@ function spawnBandits(
       by = Math.max(4, Math.min(config.height - 4, by));
     }
 
-    const rank: BanditRank = (i % 3 === 0) ? 'enforcer' : 'thug';
+    const rank = getUnderlingRank(i);
     const prefix = registerBanditSprites(rng);
-    const bid = spawnBandit(world, rng, randomBanditName(rng), bx, by, prefix, rank, false);
+    const bid = spawnEnemy(world, rng, randomBanditName(rng), bx, by, prefix, rank, false);
     banditIds.push(bid);
   }
 
   return { targetId: leaderId, banditIds };
 }
 
-function spawnBandit(
+function spawnEnemy(
   world: World,
   rng: SeededRng,
   name: string,
   x: number, y: number,
   spritePrefix: string,
-  rank: BanditRank,
+  rank: EnemyRank,
   isMissionTarget: boolean,
 ): EntityId {
   const id = world.createEntity();
 
-  // Stats and skills by bandit rank tier
   let tai: number;
   let buki: number;
+  let nin: number;
   let phy: number;
   let men: number;
+  let cha: number;
   let title: string;
   let description: string;
   let attackVerb: string;
+  let isNinja = false;
 
   switch (rank) {
+    // ── Bandit tiers (C-rank) ──
     case 'thug':
-      // Low genin-level hand-to-hand. Street brawler, not trained.
       tai = rng.nextInt(5, 15);
       buki = rng.nextInt(3, 10);
+      nin = 0;
       phy = rng.nextInt(8, 16);
       men = rng.nextInt(3, 8);
+      cha = rng.nextInt(2, 6);
       title = 'Thug';
       description = `A common thug. Relies on brute force rather than skill.`;
       attackVerb = 'swing';
       break;
 
     case 'enforcer':
-      // High genin-level technique, very physically strong (20-30 PHY)
       tai = rng.nextInt(15, 25);
       buki = rng.nextInt(8, 18);
+      nin = 0;
       phy = rng.nextInt(20, 30);
       men = rng.nextInt(8, 15);
+      cha = rng.nextInt(2, 6);
       title = 'Enforcer';
       description = `A seasoned enforcer. Powerfully built, with real fighting experience.`;
       attackVerb = 'slam';
       break;
 
     case 'boss':
-      // Chuunin-level hand-to-hand, strength varies
       tai = rng.nextInt(25, 40);
       buki = rng.nextInt(15, 25);
+      nin = 0;
       phy = rng.nextInt(15, 30);
       men = rng.nextInt(12, 22);
+      cha = rng.nextInt(2, 6);
       title = 'Boss';
       description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A dangerous gang leader who fights with brutal precision.`;
       attackVerb = 'slash';
       break;
+
+    // ── Rogue Nin tiers (B-rank) ──
+    case 'rogue_genin':
+      tai = rng.nextInt(15, 25);
+      buki = rng.nextInt(10, 20);
+      nin = rng.nextInt(8, 18);
+      phy = rng.nextInt(12, 20);
+      men = rng.nextInt(10, 18);
+      cha = rng.nextInt(8, 15);
+      title = 'Rogue Genin';
+      description = `A rogue ninja. Trained but turned to crime.`;
+      attackVerb = 'strike';
+      isNinja = true;
+      break;
+
+    case 'rogue_chuunin':
+      tai = rng.nextInt(25, 40);
+      buki = rng.nextInt(15, 28);
+      nin = rng.nextInt(15, 30);
+      phy = rng.nextInt(18, 28);
+      men = rng.nextInt(15, 25);
+      cha = rng.nextInt(12, 22);
+      title = 'Rogue Chuunin';
+      description = `A dangerous rogue chuunin. Experienced in real combat and ninjutsu.`;
+      attackVerb = 'slash';
+      isNinja = true;
+      break;
+
+    case 'rogue_leader':
+      tai = rng.nextInt(35, 50);
+      buki = rng.nextInt(20, 35);
+      nin = rng.nextInt(25, 40);
+      phy = rng.nextInt(22, 32);
+      men = rng.nextInt(20, 30);
+      cha = rng.nextInt(15, 28);
+      title = 'Rogue Leader';
+      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A near-jonin level rogue who commands through fear and skill.`;
+      attackVerb = 'slash';
+      isNinja = true;
+      break;
+
+    // ── Missing-Nin tiers (A-rank) ──
+    case 'missing_operative':
+      tai = rng.nextInt(35, 50);
+      buki = rng.nextInt(25, 38);
+      nin = rng.nextInt(30, 45);
+      phy = rng.nextInt(25, 35);
+      men = rng.nextInt(22, 32);
+      cha = rng.nextInt(20, 32);
+      title = 'Missing-Nin';
+      description = `A missing-nin operative. Jonin-level combat training, lethal and disciplined.`;
+      attackVerb = 'strike';
+      isNinja = true;
+      break;
+
+    case 'missing_elite':
+      tai = rng.nextInt(45, 60);
+      buki = rng.nextInt(30, 45);
+      nin = rng.nextInt(40, 55);
+      phy = rng.nextInt(28, 38);
+      men = rng.nextInt(28, 38);
+      cha = rng.nextInt(25, 38);
+      title = 'Elite Missing-Nin';
+      description = `An elite missing-nin. Extremely dangerous — fights with precision and deadly ninjutsu.`;
+      attackVerb = 'slash';
+      isNinja = true;
+      break;
+
+    case 'missing_commander':
+      tai = rng.nextInt(55, 70);
+      buki = rng.nextInt(35, 50);
+      nin = rng.nextInt(50, 65);
+      phy = rng.nextInt(30, 42);
+      men = rng.nextInt(32, 42);
+      cha = rng.nextInt(30, 42);
+      title = 'Missing-Nin Commander';
+      description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A feared missing-nin of near-legendary ability. Approach with extreme caution.`;
+      attackVerb = 'slash';
+      isNinja = true;
+      break;
   }
 
-  const stats = { phy, cha: rng.nextInt(2, 6), men, soc: rng.nextInt(2, 6) };
-  const skills = { taijutsu: tai, bukijutsu: buki, ninjutsu: 0, genjutsu: 0, med: 0 };
+  const stats = { phy, cha, men, soc: rng.nextInt(2, 6) };
+  const skills = { taijutsu: tai, bukijutsu: buki, ninjutsu: nin, genjutsu: 0, med: 0 };
   const hp = computeMaxHp(stats);
 
   const facings = ['n', 's', 'e', 'w'] as const;
@@ -697,44 +816,87 @@ function spawnBandit(
   world.blockings.set(id, { blocksMovement: true, blocksSight: false });
   world.healths.set(id, { current: hp, max: hp });
   world.combatStats.set(id, {
-    damage: Math.max(3, Math.floor(tai * 0.4 + phy * 0.1)),
-    accuracy: 35 + tai,
-    evasion: Math.max(5, Math.floor(tai * 0.15 + phy * 0.05)),
+    damage: Math.max(3, Math.floor(tai * 0.4 + phy * 0.1 + nin * 0.15)),
+    accuracy: 35 + tai + Math.floor(nin * 0.2),
+    evasion: Math.max(5, Math.floor(tai * 0.15 + phy * 0.05 + nin * 0.1)),
     attackVerb,
   });
   world.characterSheets.set(id, {
     class: 'civilian',
-    rank: 'genin',
+    rank: isNinja ? 'genin' : 'genin', // visual rank doesn't matter for enemies
     title,
     skills,
     stats,
     learnedJutsus: [],
   });
   world.names.set(id, { display: name, article: '' });
-  world.aiControlled.set(id, { behavior: rank === 'boss' ? 'static' : 'wander' });
+  world.aiControlled.set(id, {
+    behavior: isMissionTarget ? 'static' : 'wander',
+  });
   world.objectSheets.set(id, { description, category: 'npc' });
 
-  // Proximity dialogue varies by rank
-  const bossLines = [
+  // Proximity dialogue varies by enemy type
+  const banditBossLines = [
     `"You picked the wrong camp to wander into."`,
     `"A Konoha ninja? Out here? How bold."`,
     `"You'll make a fine hostage."`,
   ];
-  const enforcerLines = [
+  const banditEnforcerLines = [
     `"You don't want to be here."`,
     `"Boss doesn't like visitors."`,
     `"Turn around. Last warning."`,
   ];
-  const thugLines = [
+  const banditThugLines = [
     `"Hey! Who are you?!"`,
     `"Intruder! Get 'em!"`,
     `"Wrong place, wrong time."`,
   ];
+  const rogueLeaderLines = [
+    `"A Konoha dog, all the way out here? Interesting."`,
+    `"They sent one shinobi? That's insulting."`,
+    `"You won't leave this forest alive."`,
+  ];
+  const rogueChuuninLines = [
+    `"Konoha headband... You're far from home."`,
+    `"Another one who thinks they can stop us."`,
+    `"I left the village for a reason. Don't test me."`,
+  ];
+  const rogueGeninLines = [
+    `"A Leaf ninja?! Stay back!"`,
+    `"I didn't sign up for this..."`,
+    `"You'll pay for coming here!"`,
+  ];
+  const missingCommanderLines = [
+    `"Konoha sends children to fight me now?"`,
+    `"I've killed shinobi far stronger than you."`,
+    `"You have no idea what you've walked into."`,
+  ];
+  const missingEliteLines = [
+    `"Another one from the Leaf? How tedious."`,
+    `"Your jutsu won't save you here."`,
+    `"I'll add your headband to my collection."`,
+  ];
+  const missingOperativeLines = [
+    `"Konoha scum. You're already dead."`,
+    `"Nothing personal. Just business."`,
+    `"The commander will be pleased with your head."`,
+  ];
+
+  let dialogueLines: string[];
+  switch (rank) {
+    case 'boss': dialogueLines = banditBossLines; break;
+    case 'enforcer': dialogueLines = banditEnforcerLines; break;
+    case 'thug': dialogueLines = banditThugLines; break;
+    case 'rogue_leader': dialogueLines = rogueLeaderLines; break;
+    case 'rogue_chuunin': dialogueLines = rogueChuuninLines; break;
+    case 'rogue_genin': dialogueLines = rogueGeninLines; break;
+    case 'missing_commander': dialogueLines = missingCommanderLines; break;
+    case 'missing_elite': dialogueLines = missingEliteLines; break;
+    case 'missing_operative': dialogueLines = missingOperativeLines; break;
+  }
 
   world.proximityDialogue.set(id, {
-    lines: {
-      neutral: rank === 'boss' ? bossLines : rank === 'enforcer' ? enforcerLines : thugLines,
-    },
+    lines: { neutral: dialogueLines },
     lastSpokeTick: -100,
     cooldownTicks: 20,
   });
@@ -742,14 +904,14 @@ function spawnBandit(
   world.anchors.set(id, {
     anchorX: x,
     anchorY: y,
-    wanderRadius: rank === 'boss' ? 2 : rank === 'enforcer' ? 4 : 6,
+    wanderRadius: isMissionTarget ? 2 : isNinja ? 5 : 6,
     lastMoveTick: world.currentTick,
     moveIntervalTicks: rng.nextInt(3, 6),
     spritePrefix,
   });
   world.npcLifecycles.set(id, {
     category: 'fixed',
-    isNinja: false,
+    isNinja,
     despawnAtNight: false,
   });
 

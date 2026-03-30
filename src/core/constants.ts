@@ -225,3 +225,35 @@ export const C_RANK_TYPE_BONUS: Record<string, Record<string, number>> = {
   gang_elimination: { taijutsu: 0.6, phy: 0.4, men: 0.2 },
   escort: { men: 0.3, cha: 0.2 },
 };
+
+// B-rank mission bulk rewards (base values before scaling)
+export const B_RANK_BULK_REWARD: Record<string, number> = {
+  taijutsu: 1.2,
+  ninjutsu: 0.6,
+  bukijutsu: 0.4,
+  phy: 0.8,
+  cha: 0.4,
+  men: 0.3,
+};
+
+export const B_RANK_TYPE_BONUS: Record<string, Record<string, number>> = {
+  encampment_assault: { taijutsu: 0.6, phy: 0.5, men: 0.3 },
+  asset_recovery: { ninjutsu: 0.4, men: 0.4, cha: 0.3 },
+  infiltration: { taijutsu: 0.3, ninjutsu: 0.5, men: 0.5 },
+};
+
+// A-rank mission bulk rewards (base values before scaling)
+export const A_RANK_BULK_REWARD: Record<string, number> = {
+  taijutsu: 1.8,
+  ninjutsu: 1.0,
+  bukijutsu: 0.6,
+  phy: 1.2,
+  cha: 0.6,
+  men: 0.5,
+};
+
+export const A_RANK_TYPE_BONUS: Record<string, Record<string, number>> = {
+  rogue_nin_pursuit: { taijutsu: 0.8, phy: 0.6, men: 0.4 },
+  threat_response: { taijutsu: 1.0, phy: 0.8, ninjutsu: 0.5 },
+  assassination_prevention: { ninjutsu: 0.8, men: 0.6, taijutsu: 0.5 },
+};

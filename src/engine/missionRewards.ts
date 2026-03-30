@@ -19,6 +19,8 @@ import {
   MISSION_XP_BELOW_RANK, MISSION_XP_AT_RANK, MISSION_XP_ABOVE_RANK, MISSION_XP_FAR_ABOVE,
   MISSION_ACTION_XP_BELOW_RANK, MISSION_ACTION_XP_AT_RANK, MISSION_ACTION_XP_ABOVE_RANK,
   C_RANK_BULK_REWARD, C_RANK_TYPE_BONUS,
+  B_RANK_BULK_REWARD, B_RANK_TYPE_BONUS,
+  A_RANK_BULK_REWARD, A_RANK_TYPE_BONUS,
 } from '../core/constants.ts';
 
 /**
@@ -69,7 +71,18 @@ export function getAwayMissionActionMultiplier(
 }
 
 /**
- * Compute the full reward package for a completed C-rank mission.
+ * Get the base reward table and type bonus table for a given mission rank.
+ */
+function getRewardTables(missionRank: string): { base: Record<string, number>; typeBonus: Record<string, Record<string, number>> } {
+  switch (missionRank) {
+    case 'B': return { base: B_RANK_BULK_REWARD, typeBonus: B_RANK_TYPE_BONUS };
+    case 'A': return { base: A_RANK_BULK_REWARD, typeBonus: A_RANK_TYPE_BONUS };
+    default:  return { base: C_RANK_BULK_REWARD, typeBonus: C_RANK_TYPE_BONUS };
+  }
+}
+
+/**
+ * Compute the full reward package for a completed away mission.
  */
 export function computeCRankRewards(
   sheet: CharacterSheet,
@@ -77,8 +90,9 @@ export function computeCRankRewards(
   missionType: string,
 ): MissionRewards {
   // Build base rewards + type bonus
-  const baseRewards = { ...C_RANK_BULK_REWARD };
-  const typeBonus = C_RANK_TYPE_BONUS[missionType];
+  const tables = getRewardTables(missionRank);
+  const baseRewards = { ...tables.base };
+  const typeBonus = tables.typeBonus[missionType];
   if (typeBonus) {
     for (const [key, bonus] of Object.entries(typeBonus)) {
       baseRewards[key] = (baseRewards[key] ?? 0) + bonus;

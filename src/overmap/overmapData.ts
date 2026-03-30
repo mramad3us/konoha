@@ -148,6 +148,24 @@ export function getCRankDestinations(): OvermapNode[] {
   );
 }
 
+/** Get nodes suitable as B-rank mission destinations (further out, includes border posts) */
+export function getBRankDestinations(): OvermapNode[] {
+  return OVERMAP_NODES.filter(n =>
+    n.nation === 'fire' &&
+    n.type !== 'hidden_village' &&
+    n.id !== 'konoha' &&
+    n.distanceFromKonoha >= 40,
+  );
+}
+
+/** Get nodes suitable as A-rank mission destinations (border posts + near-border towns) */
+export function getARankDestinations(): OvermapNode[] {
+  return OVERMAP_NODES.filter(n =>
+    n.id !== 'konoha' &&
+    n.distanceFromKonoha >= 50,
+  );
+}
+
 // ── EDGES (roads connecting nodes) ──
 
 export const OVERMAP_EDGES: OvermapEdge[] = [

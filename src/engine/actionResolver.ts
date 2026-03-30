@@ -24,6 +24,7 @@ const KEY_MAP: Record<string, GameAction> = {
   // UI toggles
   '?': { type: 'toggleKeybindings' },
   'c': { type: 'toggleCharacterSheet' },
+  'm': { type: 'toggleMissionLog' },
   'f': { type: 'interact' },
 };
 

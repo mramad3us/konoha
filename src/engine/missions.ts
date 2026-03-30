@@ -280,8 +280,9 @@ const D_RANK_PATROL: MissionTemplate = {
 //  C-RANK TEMPLATES — Away missions
 // ══════════════════════════════════════
 
-import { getCRankDestinations } from '../overmap/overmapData.ts';
+import { getCRankDestinations, getBRankDestinations, getARankDestinations } from '../overmap/overmapData.ts';
 import type { CRankMissionData } from '../types/awayMission.ts';
+import type { EnemyType } from '../types/awayMission.ts';
 
 /** Bandit leader names for procedural generation */
 const BANDIT_LEADER_NAMES = [
@@ -422,41 +423,287 @@ const C_RANK_ESCORT: MissionTemplate = {
   },
 };
 
-const B_RANK_PLACEHOLDER: MissionTemplate = {
+// ══════════════════════════════════════
+//  B-RANK TEMPLATES — Rogue nin operations
+// ══════════════════════════════════════
+
+const B_RANK_CLIENTS = [
+  'Classified',
+  'Lord Nobunaga, governor of the northern province',
+  'The Fire Daimyo\'s trade minister',
+  'An allied village liaison',
+  'Konoha Intelligence Division',
+  'A provincial governor under threat',
+  'The Fire Country border patrol command',
+];
+
+/** Rogue nin names — higher profile than bandits */
+const ROGUE_NIN_NAMES = [
+  'Kagero the Phantom', 'Suigetsu of the Mist', 'Dosu the Silent',
+  'Zaku Wind Cutter', 'Kin Bell Ringer', 'Aoi Rokusho',
+  'Mizuki the Betrayer', 'Raiga Lightning Fang', 'Amachi the Alchemist',
+  'Kurosuki the Iron', 'Fuguki Suikazan', 'Kisame\'s Apprentice',
+];
+
+const B_RANK_ENCAMPMENT: MissionTemplate = {
   rank: 'B',
-  titles: ['Infiltration Op', 'Asset Recovery', 'High-Value Escort', 'Enemy Encampment', 'Sabotage Mission'],
-  clients: ['Classified', 'Lord Nobunaga, governor of the northern province', 'Classified', 'The Fire Daimyo\'s trade minister', 'An allied village liaison'],
+  titles: ['Enemy Encampment', 'Rogue Nin Hideout', 'Forward Base Assault', 'Camp Elimination', 'Hostile Stronghold'],
+  clients: B_RANK_CLIENTS,
   descriptions: [
-    'A covert operation requiring skill and discretion.',
-    'An enemy encampment has been located.',
+    'Intelligence reports a group of rogue ninja have established a forward base. They must be eliminated before they stage attacks on Fire Country settlements.',
+    'Rogue ninja have been spotted establishing a camp near a key trade route. Chuunin-level response required.',
+    'A group of defectors from a minor village have set up operations within Fire Country borders. Deal with them.',
   ],
-  templateKey: 'not_implemented',
-  generateData: () => ({
-    objective: 'This mission type is not yet available.',
-    templateData: { notImplemented: true },
-  }),
+  templateKey: 'b_encampment_assault',
+  generateData: (seed) => {
+    const destinations = getBRankDestinations();
+    const dest = destinations[seed % destinations.length];
+    const leaderName = ROGUE_NIN_NAMES[seed % ROGUE_NIN_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const enemyCount = 4 + (seed % 4); // 4-7 rogue nin
+
+    const data: CRankMissionData = {
+      missionType: 'encampment_assault',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: B_RANK_CLIENTS[(seed >> 8) % B_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 19),
+      terrainType: 'forest',
+      hasCamp: true,
+      enemyType: 'rogue_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Travel to ${dest.name}, assault ${leaderName}'s hideout, eliminate the rogue nin, and return with proof.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
 };
 
-const A_RANK_PLACEHOLDER: MissionTemplate = {
-  rank: 'A',
-  titles: ['Threat Response', 'Border Crisis', 'Assassination Prevention', 'Village Defense Op', 'Allied Reinforcement'],
-  clients: ['Classified', 'Classified', 'Classified', 'The Fire Daimyo himself', 'Classified'],
+const B_RANK_ASSET_RECOVERY: MissionTemplate = {
+  rank: 'B',
+  titles: ['Asset Recovery', 'Stolen Scroll Retrieval', 'Intel Extraction', 'Supply Interdiction', 'Contraband Seizure'],
+  clients: B_RANK_CLIENTS,
   descriptions: [
-    'A grave threat to the village requires the strongest shinobi.',
-    'The village faces a direct threat requiring organized defense.',
+    'Classified documents were stolen by rogue ninja. Recover the assets and neutralize the thieves.',
+    'A vital supply shipment was intercepted by rogue operatives. Retrieve the cargo and deal with anyone guarding it.',
+    'Stolen jutsu scrolls have been traced to a rogue nin camp. Recovery is the primary objective — elimination is authorized.',
   ],
-  templateKey: 'not_implemented',
-  generateData: () => ({
-    objective: 'This mission type is not yet available.',
-    templateData: { notImplemented: true },
-  }),
+  templateKey: 'b_asset_recovery',
+  generateData: (seed) => {
+    const destinations = getBRankDestinations();
+    const dest = destinations[(seed + 3) % destinations.length];
+    const leaderName = ROGUE_NIN_NAMES[(seed + 5) % ROGUE_NIN_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const enemyCount = 3 + (seed % 4); // 3-6 rogue nin
+
+    const data: CRankMissionData = {
+      missionType: 'asset_recovery',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: B_RANK_CLIENTS[(seed >> 8) % B_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 23),
+      terrainType: 'forest',
+      hasCamp: true,
+      enemyType: 'rogue_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Locate ${leaderName}'s camp near ${dest.name}, recover the stolen assets, and eliminate resistance.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+const B_RANK_INFILTRATION: MissionTemplate = {
+  rank: 'B',
+  titles: ['Infiltration Op', 'Covert Assault', 'Shadow Strike', 'Silent Elimination', 'Night Raid'],
+  clients: B_RANK_CLIENTS,
+  descriptions: [
+    'A rogue nin leader has information vital to village security. Infiltrate their position and extract them — dead or alive.',
+    'Covert operation to neutralize a rogue nin cell before they can carry out planned attacks. Stealth is recommended.',
+    'A high-priority target has been located. Move in quietly — they\'re dangerous and likely to flee if alerted.',
+  ],
+  templateKey: 'b_infiltration',
+  generateData: (seed) => {
+    const destinations = getBRankDestinations();
+    const dest = destinations[(seed + 7) % destinations.length];
+    const leaderName = ROGUE_NIN_NAMES[(seed + 2) % ROGUE_NIN_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const enemyCount = 3 + (seed % 3); // 3-5 (smaller group, stealthier mission)
+
+    const data: CRankMissionData = {
+      missionType: 'infiltration',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: B_RANK_CLIENTS[(seed >> 8) % B_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 29),
+      terrainType: 'forest',
+      hasCamp: true,
+      enemyType: 'rogue_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Infiltrate ${leaderName}'s position near ${dest.name}, neutralize the target, and extract with proof.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+// ══════════════════════════════════════
+//  A-RANK TEMPLATES — Missing-nin operations
+// ══════════════════════════════════════
+
+const A_RANK_CLIENTS = [
+  'Classified',
+  'The Fire Daimyo himself',
+  'Konoha ANBU Command',
+  'The Hokage\'s direct order',
+  'Allied Kage Summit Council',
+  'Fire Country National Defense',
+];
+
+/** Missing-nin names — elite threats */
+const MISSING_NIN_NAMES = [
+  'Orochimaru\'s Shadow', 'The Demon of the Hidden Mist', 'Zabuza\'s Ghost',
+  'Hidan the Immortal', 'Kakuzu Gold Thread', 'Sasori the Puppeteer',
+  'Deidara the Mad Bomber', 'Itachi\'s Phantom', 'Pain\'s Herald',
+  'Konan Paper Angel', 'Kisame the Tailless', 'Zetsu\'s Fragment',
+];
+
+const A_RANK_ROGUE_PURSUIT: MissionTemplate = {
+  rank: 'A',
+  titles: ['Rogue Nin Pursuit', 'Missing-Nin Hunt', 'S-Class Bounty', 'High-Value Target', 'Bingo Book Assignment'],
+  clients: A_RANK_CLIENTS,
+  descriptions: [
+    'A dangerous missing-nin from the bingo book has been sighted. Jonin-level combat is expected. Eliminate or capture at your discretion.',
+    'An S-class threat has been located. Approach with extreme caution — this target has killed before and will kill again.',
+    'A former shinobi gone rogue has amassed followers and is operating dangerously close to Fire Country. End the threat.',
+  ],
+  templateKey: 'a_rogue_pursuit',
+  generateData: (seed) => {
+    const destinations = getARankDestinations();
+    const dest = destinations[seed % destinations.length];
+    const leaderName = MISSING_NIN_NAMES[seed % MISSING_NIN_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const enemyCount = 5 + (seed % 5); // 5-9 enemies (missing-nin + followers)
+
+    const data: CRankMissionData = {
+      missionType: 'rogue_nin_pursuit',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: A_RANK_CLIENTS[(seed >> 8) % A_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 37),
+      terrainType: (seed % 3 === 0) ? 'rocky' : 'forest',
+      hasCamp: true,
+      enemyType: 'missing_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Hunt down ${leaderName} near ${dest.name}. Neutralize the target and all hostile forces. Return with proof.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+const A_RANK_THREAT_RESPONSE: MissionTemplate = {
+  rank: 'A',
+  titles: ['Threat Response', 'Border Crisis', 'Emergency Deployment', 'Imminent Threat', 'Crisis Intervention'],
+  clients: A_RANK_CLIENTS,
+  descriptions: [
+    'An organized force of missing-nin is massing near a Fire Country settlement. Deploy immediately and eliminate the threat before civilians are harmed.',
+    'Intelligence confirms a coordinated attack is being planned by hostile forces. Intercept and destroy their staging area.',
+    'A border village has sent a distress signal. Missing-nin forces are closing in. Respond with maximum force.',
+  ],
+  templateKey: 'a_threat_response',
+  generateData: (seed) => {
+    const destinations = getARankDestinations();
+    const dest = destinations[(seed + 3) % destinations.length];
+    const leaderName = MISSING_NIN_NAMES[(seed + 4) % MISSING_NIN_NAMES.length];
+    const trophy = TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length];
+    const enemyCount = 6 + (seed % 5); // 6-10 enemies (large force)
+
+    const data: CRankMissionData = {
+      missionType: 'threat_response',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: A_RANK_CLIENTS[(seed >> 8) % A_RANK_CLIENTS.length],
+      trophyItem: trophy,
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 41),
+      terrainType: 'forest',
+      hasCamp: true,
+      enemyType: 'missing_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Respond to the threat near ${dest.name}. Eliminate ${leaderName} and their forces. Ensure no survivors escape.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
+};
+
+const A_RANK_ASSASSINATION_PREVENTION: MissionTemplate = {
+  rank: 'A',
+  titles: ['Assassination Prevention', 'VIP Defense', 'Target Protection', 'Counter-Assassination', 'Shadow Guard'],
+  clients: A_RANK_CLIENTS,
+  descriptions: [
+    'Intelligence indicates a missing-nin assassination squad is targeting a key figure. Locate them before they strike and eliminate the threat.',
+    'An assassination plot has been uncovered. The kill squad is already in position. Find them, stop them, leave no loose ends.',
+    'A high-value ally is marked for death by missing-nin operatives. Pre-empt the attack — find and destroy the hit squad.',
+  ],
+  templateKey: 'a_assassination_prevention',
+  generateData: (seed) => {
+    const destinations = getARankDestinations();
+    const dest = destinations[(seed + 7) % destinations.length];
+    const leaderName = MISSING_NIN_NAMES[(seed + 8) % MISSING_NIN_NAMES.length];
+    const enemyCount = 4 + (seed % 4); // 4-7 (elite but smaller squad)
+
+    const data: CRankMissionData = {
+      missionType: 'assassination_prevention',
+      targetName: leaderName,
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: A_RANK_CLIENTS[(seed >> 8) % A_RANK_CLIENTS.length],
+      trophyItem: TROPHY_ITEMS[(seed >> 4) % TROPHY_ITEMS.length],
+      banditCount: enemyCount,
+      banditLeaderName: leaderName,
+      mapSeed: cellHash(seed, seed * 47),
+      terrainType: (seed % 2 === 0) ? 'rocky' : 'forest',
+      hasCamp: false, // ambush squad, no established camp
+      enemyType: 'missing_nin' as EnemyType,
+    };
+
+    return {
+      objective: `Locate ${leaderName}'s kill squad near ${dest.name}. Eliminate all operatives before they reach their target.`,
+      templateData: data as unknown as Record<string, unknown>,
+    };
+  },
 };
 
 const ALL_TEMPLATES: MissionTemplate[] = [
   D_RANK_DELIVERY, D_RANK_SEARCH, D_RANK_PATROL,
   C_RANK_BANDIT_CAPTURE, C_RANK_GANG_ELIMINATION, C_RANK_ESCORT,
-  B_RANK_PLACEHOLDER,
-  A_RANK_PLACEHOLDER,
+  B_RANK_ENCAMPMENT, B_RANK_ASSET_RECOVERY, B_RANK_INFILTRATION,
+  A_RANK_ROGUE_PURSUIT, A_RANK_THREAT_RESPONSE, A_RANK_ASSASSINATION_PREVENTION,
 ];
 
 // ── GENERATION ──
@@ -779,6 +1026,105 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
       }
       break;
     }
+
+    // B-rank: encampment assault — eliminate leader + collect proof
+    case 'b_encampment_assault': {
+      if (event.type === 'target_killed') {
+        active.progress.targetEliminated = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `${targetName} has been eliminated! Search them for proof, then extract.`;
+      }
+      if (event.type === 'trophy_collected') {
+        active.progress.hasTrophy = true;
+        if (active.progress.targetEliminated) {
+          active.objectiveComplete = true;
+          return `Proof collected. Head to the map edge to extract, then return to Konoha.`;
+        }
+        return `You have the proof. Now eliminate the target.`;
+      }
+      break;
+    }
+
+    // B-rank: asset recovery — eliminate all enemies (recover implied)
+    case 'b_asset_recovery': {
+      if (event.type === 'target_killed' || event.type === 'target_captured') {
+        const enemiesDown = ((active.progress.enemiesDown as number) ?? 0) + 1;
+        active.progress.enemiesDown = enemiesDown;
+        const total = (mission.templateData as unknown as CRankMissionData).banditCount;
+        if (enemiesDown >= total) {
+          active.objectiveComplete = true;
+          return `All hostiles neutralized! Assets secured. Extract and return to Konoha.`;
+        }
+        return `Hostile eliminated (${enemiesDown}/${total}). Secure the area.`;
+      }
+      break;
+    }
+
+    // B-rank: infiltration — eliminate leader + collect proof
+    case 'b_infiltration': {
+      if (event.type === 'target_killed') {
+        active.progress.targetEliminated = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `${targetName} neutralized! Search them for proof, then extract.`;
+      }
+      if (event.type === 'trophy_collected') {
+        active.progress.hasTrophy = true;
+        if (active.progress.targetEliminated) {
+          active.objectiveComplete = true;
+          return `Intelligence recovered. Extract and return to Konoha.`;
+        }
+        return `You have the evidence. Now eliminate the target.`;
+      }
+      break;
+    }
+
+    // A-rank: rogue nin pursuit — eliminate leader + collect proof
+    case 'a_rogue_pursuit': {
+      if (event.type === 'target_killed') {
+        active.progress.targetEliminated = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `${targetName} has been eliminated! Search them for proof, then extract.`;
+      }
+      if (event.type === 'trophy_collected') {
+        active.progress.hasTrophy = true;
+        if (active.progress.targetEliminated) {
+          active.objectiveComplete = true;
+          return `Proof collected. Extract and return to Konoha.`;
+        }
+        return `You have the proof. Now eliminate the target.`;
+      }
+      break;
+    }
+
+    // A-rank: threat response — eliminate all enemies
+    case 'a_threat_response': {
+      if (event.type === 'target_killed' || event.type === 'target_captured') {
+        const enemiesDown = ((active.progress.enemiesDown as number) ?? 0) + 1;
+        active.progress.enemiesDown = enemiesDown;
+        const total = (mission.templateData as unknown as CRankMissionData).banditCount;
+        if (enemiesDown >= total) {
+          active.objectiveComplete = true;
+          return `All hostile forces eliminated! Threat neutralized. Extract and return to Konoha.`;
+        }
+        return `Hostile eliminated (${enemiesDown}/${total}). Continue the assault.`;
+      }
+      break;
+    }
+
+    // A-rank: assassination prevention — eliminate all assassins
+    case 'a_assassination_prevention': {
+      if (event.type === 'target_killed' || event.type === 'target_captured') {
+        const enemiesDown = ((active.progress.enemiesDown as number) ?? 0) + 1;
+        active.progress.enemiesDown = enemiesDown;
+        const total = (mission.templateData as unknown as CRankMissionData).banditCount;
+        if (enemiesDown >= total) {
+          active.objectiveComplete = true;
+          return `Kill squad eliminated! The target is safe. Extract and return to Konoha.`;
+        }
+        return `Assassin neutralized (${enemiesDown}/${total}). Find the rest.`;
+      }
+      break;
+    }
   }
 
   return null;
@@ -827,12 +1173,12 @@ export function getActiveMissionStatus(log: MissionLog): string | null {
 
 /** Check if a mission template requires away travel */
 export function isAwayMission(templateKey: string): boolean {
-  return templateKey === 'c_bandit_capture' ||
-         templateKey === 'c_gang_elimination' ||
-         templateKey === 'c_escort';
+  return templateKey.startsWith('c_') ||
+         templateKey.startsWith('b_') ||
+         templateKey.startsWith('a_');
 }
 
-/** Get the CRankMissionData from a mission's templateData */
+/** Get the away mission data from a mission's templateData */
 export function getCRankData(mission: Mission): CRankMissionData | null {
   if (!isAwayMission(mission.templateKey)) return null;
   return mission.templateData as unknown as CRankMissionData;

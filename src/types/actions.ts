@@ -5,6 +5,7 @@ export type GameAction =
   | { type: 'stanceSlower' }
   | { type: 'toggleKeybindings' }
   | { type: 'toggleCharacterSheet' }
+  | { type: 'toggleMissionLog' }
   | { type: 'interact' };
 
 /** Log entry categories for color-coding */
