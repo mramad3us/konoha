@@ -97,6 +97,7 @@ const BANDIT_EPITHETS = [
 
 let banditSpriteCounter = 0;
 
+/** Register civilian-body sprites for bandits (no headband, ragged clothes) */
 function registerBanditSprites(rng: SeededRng): string {
   const prefix = `bandit_${banditSpriteCounter++}`;
   const accents: CharacterAccents = {
@@ -109,6 +110,33 @@ function registerBanditSprites(rng: SeededRng): string {
     outfitMid: [80 + Math.floor(rng.next() * 30), 65 + Math.floor(rng.next() * 20), 50 + Math.floor(rng.next() * 20)],
   };
   const sprites = generateCharacterSprites(accents, CIVILIAN_BODIES);
+  for (const [dir, pattern] of Object.entries(sprites)) {
+    spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
+  }
+  return prefix;
+}
+
+/** Register ninja-body sprites for rogue/missing nin (headband + metal plate, dark combat gear) */
+function registerNinjaEnemySprites(rng: SeededRng, type: 'rogue_nin' | 'missing_nin'): string {
+  const prefix = `bandit_${banditSpriteCounter++}`;
+
+  // Rogue nin: scratched headband in muted village colours; missing-nin: dark slashed headband
+  const headband: [number, number, number] = type === 'missing_nin'
+    ? [50 + Math.floor(rng.next() * 20), 15 + Math.floor(rng.next() * 15), 15 + Math.floor(rng.next() * 15)]  // dark red/black — defector
+    : [40 + Math.floor(rng.next() * 30), 45 + Math.floor(rng.next() * 30), 55 + Math.floor(rng.next() * 30)]; // faded blue-grey — rogue
+
+  const accents: CharacterAccents = {
+    hair: [30 + Math.floor(rng.next() * 50), 25 + Math.floor(rng.next() * 30), 20 + Math.floor(rng.next() * 25)],
+    headband,
+    pupil: [25 + Math.floor(rng.next() * 35), 25 + Math.floor(rng.next() * 30), 25 + Math.floor(rng.next() * 30)],
+    belt: [50 + Math.floor(rng.next() * 30), 45 + Math.floor(rng.next() * 25), 40 + Math.floor(rng.next() * 20)],
+    beltHighlight: [75 + Math.floor(rng.next() * 30), 65 + Math.floor(rng.next() * 25), 55 + Math.floor(rng.next() * 20)],
+    // Dark ninja outfit — black/charcoal tones
+    outfitDark: [22 + Math.floor(rng.next() * 15), 22 + Math.floor(rng.next() * 12), 28 + Math.floor(rng.next() * 15)],
+    outfitMid: [30 + Math.floor(rng.next() * 18), 30 + Math.floor(rng.next() * 15), 36 + Math.floor(rng.next() * 18)],
+  };
+  // No body overrides → uses default ninja body with headband + metal plate
+  const sprites = generateCharacterSprites(accents);
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
   }
@@ -626,8 +654,13 @@ function spawnBandits(
       break;
   }
 
+  // Pick sprite generator based on enemy type
+  const makeSprite = (enemyType === 'rogue_nin' || enemyType === 'missing_nin')
+    ? () => registerNinjaEnemySprites(rng, enemyType)
+    : () => registerBanditSprites(rng);
+
   // Spawn the leader/target first
-  const leaderPrefix = registerBanditSprites(rng);
+  const leaderPrefix = makeSprite();
   const leaderId = spawnEnemy(
     world, rng,
     missionData.banditLeaderName || randomBanditLeaderName(rng),
@@ -655,7 +688,7 @@ function spawnBandits(
     }
 
     const rank = getUnderlingRank(i);
-    const prefix = registerBanditSprites(rng);
+    const prefix = makeSprite();
     const bid = spawnEnemy(world, rng, randomBanditName(rng), bx, by, prefix, rank, false);
     banditIds.push(bid);
   }
@@ -828,9 +861,24 @@ function spawnEnemy(
     evasion: Math.max(5, Math.floor(tai * 0.15 + phy * 0.05 + nin * 0.1)),
     attackVerb,
   });
+  // Determine class and shinobi rank from enemy tier
+  let charClass: 'shinobi' | 'civilian' = isNinja ? 'shinobi' : 'civilian';
+  let shinobiRank: import('../types/character.ts').ShinobiRank = 'civilian';
+  if (isNinja) {
+    switch (rank) {
+      case 'rogue_genin':       shinobiRank = 'genin';   break;
+      case 'rogue_chuunin':     shinobiRank = 'chuunin'; break;
+      case 'rogue_leader':      shinobiRank = 'chuunin'; break;
+      case 'missing_operative': shinobiRank = 'jounin';  break;
+      case 'missing_elite':     shinobiRank = 'jounin';  break;
+      case 'missing_commander': shinobiRank = 'jounin';  break;
+      default:                  shinobiRank = 'genin';   break;
+    }
+  }
+
   world.characterSheets.set(id, {
-    class: 'civilian',
-    rank: isNinja ? 'genin' : 'genin', // visual rank doesn't matter for enemies
+    class: charClass,
+    rank: shinobiRank,
     title,
     skills,
     stats,
