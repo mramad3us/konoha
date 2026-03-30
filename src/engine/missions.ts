@@ -212,11 +212,11 @@ const D_RANK_DELIVERY: MissionTemplate = {
 
 const D_RANK_SEARCH: MissionTemplate = {
   rank: 'D',
-  titles: ['Lost & Found', 'Missing Pet', 'Item Recovery', 'The Runaway', 'Search & Retrieve'],
+  titles: ['Lost & Found', 'Item Recovery', 'Search Detail', 'Village Errand', 'Search & Retrieve'],
   clients: ['A worried mother', 'Grandpa from the riverside', 'An academy student\'s parent', 'A shop owner on Market Road', 'A farmer near the west gate'],
   descriptions: [
     'Something precious has gone missing in the village.',
-    'A beloved pet has escaped and needs to be found.',
+    'An important item was lost and needs tracking down.',
     'An important item was lost somewhere in the village.',
     'Someone\'s property needs to be tracked down and returned.',
     'A thorough search of the village grounds is needed.',
@@ -225,10 +225,10 @@ const D_RANK_SEARCH: MissionTemplate = {
   generateData: (seed) => {
     const area = SEARCH_AREAS[seed % SEARCH_AREAS.length];
     const targets = [
-      { name: 'a missing cat named Tora', sprite: 'obj_bush_small' },
       { name: 'a lost medicine pouch', sprite: 'obj_barrel' },
       { name: 'a child\'s wooden kunai', sprite: 'obj_scroll_case' },
-      { name: 'a runaway chicken', sprite: 'obj_bush_flower' },
+      { name: 'a misplaced scroll of techniques', sprite: 'obj_scroll_case' },
+      { name: 'a stolen supply crate', sprite: 'obj_barrel' },
       { name: 'a dropped scroll case', sprite: 'obj_scroll_case' },
     ];
     const target = targets[seed % targets.length];
