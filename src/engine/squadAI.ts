@@ -32,7 +32,7 @@ function chebyshev(x1: number, y1: number, x2: number, y2: number): number {
   return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
 }
 
-/** Find the nearest enemy entity (has aggro component, not dead/unconscious/squad) */
+/** Find the nearest enemy entity (has aggro component, not dead/unconscious/restrained/squad) */
 function findNearestEnemy(world: World, fromX: number, fromY: number, maxRange: number): EntityId | null {
   let bestId: EntityId | null = null;
   let bestDist = maxRange + 1;
@@ -40,7 +40,7 @@ function findNearestEnemy(world: World, fromX: number, fromY: number, maxRange: 
   for (const [id] of world.aggros) {
     if (world.squadMembers.has(id)) continue; // Skip allies
     if (id === world.playerEntityId) continue;
-    if (world.unconscious.has(id) || world.dead.has(id)) continue;
+    if (world.unconscious.has(id) || world.dead.has(id) || world.restrained.has(id)) continue;
 
     const pos = world.positions.get(id);
     if (!pos) continue;
@@ -196,7 +196,7 @@ export function tickSquadMember(
         for (const eid of entities) {
           if (world.squadMembers.has(eid)) continue;
           if (eid === world.playerEntityId) continue;
-          if (world.unconscious.has(eid) || world.dead.has(eid)) continue;
+          if (world.unconscious.has(eid) || world.dead.has(eid) || world.restrained.has(eid)) continue;
           if (!world.aggros.has(eid)) continue;
 
           // Enemy is adjacent — defend!
