@@ -280,7 +280,7 @@ const D_RANK_PATROL: MissionTemplate = {
 //  C-RANK TEMPLATES — Away missions
 // ══════════════════════════════════════
 
-import { getCRankDestinations, getBRankDestinations, getARankDestinations } from '../overmap/overmapData.ts';
+import { getCRankDestinations, getBRankDestinations, getARankDestinations, getNodeBiome } from '../overmap/overmapData.ts';
 import type { CRankMissionData } from '../types/awayMission.ts';
 import type { EnemyType } from '../types/awayMission.ts';
 
@@ -292,11 +292,11 @@ const BANDIT_LEADER_NAMES = [
 ];
 
 const TROPHY_ITEMS = [
-  'a signet ring bearing the gang\'s mark',
-  'a blood-stained ledger of stolen goods',
-  'an engraved dagger used as proof of authority',
-  'a distinctive tattoo sketch matching the bounty poster',
-  'a sealed letter with orders from a crime lord',
+  'a severed ear wrapped in cloth',
+  'the target\'s headband, slashed through',
+  'a marked finger bearing the leader\'s ring',
+  'a bloodied insignia torn from the body',
+  'the target\'s weapon as proof of elimination',
 ];
 
 const C_RANK_CLIENTS = [
@@ -337,7 +337,7 @@ const C_RANK_BANDIT_CAPTURE: MissionTemplate = {
       banditCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 7),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
     };
 
@@ -375,7 +375,7 @@ const C_RANK_GANG_ELIMINATION: MissionTemplate = {
       banditCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 13),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
     };
 
@@ -412,7 +412,7 @@ const C_RANK_ESCORT: MissionTemplate = {
       banditCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 17),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: false, // ambush, no camp
     };
 
@@ -472,7 +472,7 @@ const B_RANK_ENCAMPMENT: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 19),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
       enemyType: 'rogue_nin' as EnemyType,
     };
@@ -511,7 +511,7 @@ const B_RANK_ASSET_RECOVERY: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 23),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
       enemyType: 'rogue_nin' as EnemyType,
     };
@@ -550,7 +550,7 @@ const B_RANK_INFILTRATION: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 29),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
       enemyType: 'rogue_nin' as EnemyType,
     };
@@ -610,7 +610,7 @@ const A_RANK_ROGUE_PURSUIT: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 37),
-      terrainType: (seed % 3 === 0) ? 'rocky' : 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
       enemyType: 'missing_nin' as EnemyType,
     };
@@ -649,7 +649,7 @@ const A_RANK_THREAT_RESPONSE: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 41),
-      terrainType: 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: true,
       enemyType: 'missing_nin' as EnemyType,
     };
@@ -687,7 +687,7 @@ const A_RANK_ASSASSINATION_PREVENTION: MissionTemplate = {
       banditCount: enemyCount,
       banditLeaderName: leaderName,
       mapSeed: cellHash(seed, seed * 47),
-      terrainType: (seed % 2 === 0) ? 'rocky' : 'forest',
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
       hasCamp: false, // ambush squad, no established camp
       enemyType: 'missing_nin' as EnemyType,
     };

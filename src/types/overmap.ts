@@ -12,6 +12,8 @@ export interface OvermapNode {
   nation: string;             // 'fire' | 'wind' | 'earth' | 'lightning' | 'water' | etc.
   /** Approximate km from Konoha (for travel time) */
   distanceFromKonoha: number;
+  /** Biome/terrain type for mission map generation at this location */
+  biome?: string;
 }
 
 export interface OvermapEdge {

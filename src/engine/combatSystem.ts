@@ -21,6 +21,7 @@ import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain,
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
+import { tryCastJutsu } from './jutsuResolver.ts';
 
 /** Active engagements keyed by "smaller_id:larger_id" */
 const engagements = new Map<string, CombatEngagement>();
@@ -202,6 +203,24 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
           ];
           world.log(kunaiKillMsgs[Math.floor(Math.random() * kunaiKillMsgs.length)], 'hit_outgoing');
           killEntityDirect(world, outcome.defenderId, playerId, true);
+        }
+      }
+
+      // ── NPC substitution jutsu reaction ──
+      // When a ninja NPC takes a hit and HP is low, they may use substitution to escape
+      if (outcome.defenderId !== playerId && targetHealth && targetHealth.current > 0) {
+        const defSheet = world.characterSheets.get(outcome.defenderId);
+        const defRes = world.resources.get(outcome.defenderId);
+        if (defSheet && defRes && defSheet.learnedJutsus.includes('substitution') && defRes.chakra >= 15) {
+          const hpPct = targetHealth.current / targetHealth.max;
+          if (hpPct < 0.6 && Math.random() < 0.25) {
+            const subResult = tryCastJutsu(world, outcome.defenderId, 'substitution', outcome.attackerId);
+            if (subResult.success) {
+              const npcName = world.names.get(outcome.defenderId)?.display ?? 'The enemy';
+              world.log(`${npcName} forms a hand sign — substitution jutsu!`, 'info');
+              engagements.delete(engagementKey(playerId, targetId));
+            }
+          }
         }
       }
     }

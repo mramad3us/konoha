@@ -8,7 +8,7 @@
  */
 
 import type { World } from './world.ts';
-import type { Direction, EntityId } from '../types/ecs.ts';
+import type { Direction, EntityId, AggroComponent } from '../types/ecs.ts';
 import { npcFaceTowardPlayer } from './surpriseAttack.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
@@ -51,6 +51,83 @@ function chebyshev(ax: number, ay: number, bx: number, by: number): number {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
+/** Manhattan distance */
+function manhattan(ax: number, ay: number, bx: number, by: number): number {
+  return Math.abs(ax - bx) + Math.abs(ay - by);
+}
+
+/** Detection range for aggro (tiles) */
+const AGGRO_DETECTION_RANGE = 8;
+/** Distance at which a fleeing NPC considers itself safe */
+const FLEE_SAFE_DISTANCE = 15;
+
+/**
+ * Bresenham line-of-sight check.
+ * Returns true if no intermediate tile blocks sight between (x1,y1) and (x2,y2).
+ * Start and end tiles are NOT checked for opacity — only intermediate tiles.
+ */
+export function hasLineOfSight(world: World, x1: number, y1: number, x2: number, y2: number): boolean {
+  let dx = Math.abs(x2 - x1);
+  let dy = Math.abs(y2 - y1);
+  const sx = x1 < x2 ? 1 : -1;
+  const sy = y1 < y2 ? 1 : -1;
+  let err = dx - dy;
+
+  let cx = x1;
+  let cy = y1;
+
+  while (cx !== x2 || cy !== y2) {
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      cx += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      cy += sy;
+    }
+    // Skip the endpoint itself
+    if (cx === x2 && cy === y2) break;
+    // Check if this intermediate tile blocks sight
+    if (!world.tileMap.isTransparent(cx, cy)) return false;
+  }
+  return true;
+}
+
+/**
+ * Check flee conditions for an aggro'd NPC.
+ * Returns true if the NPC should start fleeing.
+ */
+function shouldFlee(world: World, id: EntityId, aggro: AggroComponent): boolean {
+  const health = world.healths.get(id);
+  if (!health) return false;
+
+  const hpFraction = health.current / health.max;
+
+  // Big hit detection: HP dropped by 50%+ of max in a single tick
+  if (aggro.lastKnownHp !== undefined) {
+    const hpDrop = aggro.lastKnownHp - health.current;
+    if (hpDrop >= health.max * 0.5) {
+      if (Math.random() < 0.6) return true;
+    }
+  }
+
+  // Low HP flee
+  if (hpFraction < aggro.fleeHpThreshold) {
+    if (Math.random() < 0.3) return true;
+  }
+
+  // Willpower exhaustion
+  const resources = world.resources.get(id);
+  if (resources && resources.maxWillpower > 0) {
+    if (resources.willpower / resources.maxWillpower < 0.15) {
+      if (Math.random() < 0.4) return true;
+    }
+  }
+
+  return false;
+}
+
 /** Tick idle wandering for all wandering NPCs */
 export function tickNpcMovement(world: World): void {
   for (const [id, ai] of world.aiControlled) {
@@ -68,6 +145,14 @@ export function tickNpcMovement(world: World): void {
     // This happens before movement so the NPC reacts to player proximity
     npcFaceTowardPlayer(world, id);
 
+    // ── Aggro tick (mission maps only) ──
+    if (world.awayMissionState) {
+      const aggro = world.aggros.get(id);
+      if (aggro) {
+        tickAggro(world, id, pos, aggro, ai);
+      }
+    }
+
     switch (ai.behavior) {
       case 'wander':
         tickWander(world, id, pos, anchor);
@@ -77,6 +162,12 @@ export function tickNpcMovement(world: World): void {
         break;
       case 'return_to_anchor':
         tickReturnToAnchor(world, id, pos, anchor, ai);
+        break;
+      case 'chase':
+        tickChase(world, id, pos);
+        break;
+      case 'flee':
+        tickFlee(world, id, pos);
         break;
     }
   }
@@ -200,4 +291,189 @@ function tickReturnToAnchor(
     moveNpc(world, id, a.dx, a.dy, dir);
     return;
   }
+}
+
+// ── Aggro / Chase / Flee systems (mission maps only) ──
+
+/** Pick the best cardinal direction (dx,dy) to step toward a target */
+function pickDirectionToward(
+  pos: { x: number; y: number },
+  targetX: number,
+  targetY: number,
+): { dx: number; dy: number } {
+  let bestDx = 0;
+  let bestDy = 0;
+  let bestDist = Infinity;
+  for (const { dx, dy } of CARDINAL_DIRS) {
+    const d = manhattan(pos.x + dx, pos.y + dy, targetX, targetY);
+    if (d < bestDist) {
+      bestDist = d;
+      bestDx = dx;
+      bestDy = dy;
+    }
+  }
+  return { dx: bestDx, dy: bestDy };
+}
+
+/** Pick the best cardinal direction (dx,dy) to step away from a target */
+function pickDirectionAway(
+  pos: { x: number; y: number },
+  targetX: number,
+  targetY: number,
+): { dx: number; dy: number } {
+  let bestDx = 0;
+  let bestDy = 0;
+  let bestDist = -Infinity;
+  for (const { dx, dy } of CARDINAL_DIRS) {
+    const d = manhattan(pos.x + dx, pos.y + dy, targetX, targetY);
+    if (d > bestDist) {
+      bestDist = d;
+      bestDx = dx;
+      bestDy = dy;
+    }
+  }
+  return { dx: bestDx, dy: bestDy };
+}
+
+/** Convert dx/dy to a Direction */
+function deltaToDir(dx: number, dy: number): Direction {
+  if (dx > 0) return dy < 0 ? 'ne' : dy > 0 ? 'se' : 'e';
+  if (dx < 0) return dy < 0 ? 'nw' : dy > 0 ? 'sw' : 'w';
+  return dy < 0 ? 'n' : 's';
+}
+
+/** Try to move NPC one step in a given direction, with cardinal fallbacks */
+function tryStepToward(
+  world: World,
+  id: EntityId,
+  pos: { x: number; y: number },
+  dx: number,
+  dy: number,
+): boolean {
+  const attempts = [
+    { dx, dy: 0 },
+    { dx: 0, dy },
+    { dx: 0, dy: dy || 1 },
+    { dx: dx || 1, dy: 0 },
+  ];
+
+  for (const a of attempts) {
+    if (a.dx === 0 && a.dy === 0) continue;
+    const newX = pos.x + a.dx;
+    const newY = pos.y + a.dy;
+    if (!world.tileMap.isWalkable(newX, newY)) continue;
+    if (world.isBlockedByEntity(newX, newY)) continue;
+    moveNpc(world, id, a.dx, a.dy, deltaToDir(a.dx, a.dy));
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Aggro state machine tick. Runs BEFORE the behavior switch.
+ * Transitions aggro state and updates ai.behavior accordingly.
+ */
+function tickAggro(
+  world: World,
+  id: EntityId,
+  pos: { x: number; y: number },
+  aggro: AggroComponent,
+  ai: { behavior: string },
+): void {
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (!playerPos) return;
+
+  const dist = chebyshev(pos.x, pos.y, playerPos.x, playerPos.y);
+  const npcName = world.names.get(id)?.display ?? 'An enemy';
+
+  switch (aggro.state) {
+    case 'idle': {
+      // Check if NPC can see the player within detection range
+      if (dist <= AGGRO_DETECTION_RANGE && hasLineOfSight(world, pos.x, pos.y, playerPos.x, playerPos.y)) {
+        aggro.state = 'aggro';
+        aggro.targetId = world.playerEntityId;
+        ai.behavior = 'chase';
+        const health = world.healths.get(id);
+        if (health) aggro.lastKnownHp = health.current;
+        world.log(`${npcName} spots you!`, 'hit_incoming');
+      }
+      break;
+    }
+
+    case 'aggro': {
+      // Check flee conditions
+      if (shouldFlee(world, id, aggro)) {
+        aggro.state = 'fleeing';
+        ai.behavior = 'flee';
+        world.log(`${npcName} tries to flee!`, 'info');
+      }
+      // Update HP tracking
+      const health = world.healths.get(id);
+      if (health) aggro.lastKnownHp = health.current;
+      break;
+    }
+
+    case 'fleeing': {
+      // Check if far enough away or out of sight to disengage
+      if (dist > FLEE_SAFE_DISTANCE || !hasLineOfSight(world, pos.x, pos.y, playerPos.x, playerPos.y)) {
+        aggro.state = 'returning';
+        aggro.targetId = null;
+        ai.behavior = 'return_to_anchor';
+      }
+      const health = world.healths.get(id);
+      if (health) aggro.lastKnownHp = health.current;
+      break;
+    }
+
+    case 'returning': {
+      // tickReturnToAnchor sets behavior to 'wander' when the NPC arrives.
+      // Detect that transition and reset aggro state.
+      if (ai.behavior === 'wander') {
+        aggro.state = 'idle';
+        aggro.targetId = null;
+        aggro.lastKnownHp = undefined;
+      }
+      break;
+    }
+  }
+}
+
+/** Chase behavior: step toward the player each tick, engage when adjacent */
+function tickChase(
+  world: World,
+  id: EntityId,
+  pos: { x: number; y: number },
+): void {
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (!playerPos) return;
+
+  const dist = chebyshev(pos.x, pos.y, playerPos.x, playerPos.y);
+
+  // Adjacent to player — stay put and force melee engagement
+  if (dist <= 1) {
+    const npcName = world.names.get(id)?.display ?? 'An enemy';
+    const aggro = world.aggros.get(id);
+    // Log engagement message once (check if target was just set this tick)
+    if (aggro && aggro.state === 'aggro') {
+      world.log(`${npcName} engages you in combat!`, 'hit_incoming');
+    }
+    return;
+  }
+
+  // Step toward player (greedy cardinal)
+  const { dx, dy } = pickDirectionToward(pos, playerPos.x, playerPos.y);
+  tryStepToward(world, id, pos, dx, dy);
+}
+
+/** Flee behavior: step away from the player each tick */
+function tickFlee(
+  world: World,
+  id: EntityId,
+  pos: { x: number; y: number },
+): void {
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (!playerPos) return;
+
+  const { dx, dy } = pickDirectionAway(pos, playerPos.x, playerPos.y);
+  tryStepToward(world, id, pos, dx, dy);
 }

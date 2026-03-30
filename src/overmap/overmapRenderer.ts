@@ -706,15 +706,68 @@ export class OvermapRenderer {
     }
   }
 
+  /** Compute the pixel position of the pawn along its current travel edge */
+  private computePawnPosition(state: OvermapTravelState): { x: number; y: number } | null {
+    if (state.currentEdgeIndex < 0 || state.currentEdgeIndex >= state.path.length - 1) return null;
+
+    const fromId = state.path[state.currentEdgeIndex];
+    const toId = state.path[state.currentEdgeIndex + 1];
+    const fromNode = getOvermapNode(fromId);
+    const toNode = getOvermapNode(toId);
+    if (!fromNode || !toNode) return null;
+
+    const edge = getEdge(fromId, toId);
+    // Build the full list of points along this edge segment
+    const points: Array<{ x: number; y: number }> = [{ x: fromNode.x, y: fromNode.y }];
+    if (edge && edge.waypoints.length > 0) {
+      // If edge is stored in reverse direction, flip waypoints
+      const isReversed = edge.from === toId;
+      const wps = isReversed ? [...edge.waypoints].reverse() : edge.waypoints;
+      for (const wp of wps) {
+        points.push({ x: wp.x, y: wp.y });
+      }
+    }
+    points.push({ x: toNode.x, y: toNode.y });
+
+    // Calculate cumulative segment lengths
+    const segLengths: number[] = [];
+    let totalLen = 0;
+    for (let i = 1; i < points.length; i++) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      segLengths.push(len);
+      totalLen += len;
+    }
+    if (totalLen === 0) return points[0];
+
+    // Find which segment progressOnEdge falls into
+    const targetDist = state.progressOnEdge * totalLen;
+    let accumulated = 0;
+    for (let i = 0; i < segLengths.length; i++) {
+      if (accumulated + segLengths[i] >= targetDist || i === segLengths.length - 1) {
+        const segProgress = segLengths[i] > 0 ? (targetDist - accumulated) / segLengths[i] : 0;
+        const t = Math.max(0, Math.min(1, segProgress));
+        return {
+          x: points[i].x + (points[i + 1].x - points[i].x) * t,
+          y: points[i].y + (points[i + 1].y - points[i].y) * t,
+        };
+      }
+      accumulated += segLengths[i];
+    }
+    return points[points.length - 1];
+  }
+
   /** Draw the traveler pawn */
   private drawPawn(state: OvermapTravelState): void {
     const ctx = this.ctx;
-    const { currentX, currentY } = state;
+    const pos = this.computePawnPosition(state);
+    if (!pos) return;
 
     // Walking bob
     const bobY = Math.sin(this.animTime * 4) * 1.5;
-    const px = Math.floor(currentX);
-    const py = Math.floor(currentY + bobY);
+    const px = Math.floor(pos.x);
+    const py = Math.floor(pos.y + bobY);
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -739,7 +792,7 @@ export class OvermapRenderer {
     ctx.fillRect(px - 3, py - 10, 6, 1);
 
     // Campfire at night (if stopped)
-    if (state.isCamping) {
+    if (state.isCamped) {
       const fireColor = CAMPFIRE_COLORS[Math.floor(this.animTime * 5) % CAMPFIRE_COLORS.length];
       ctx.fillStyle = fireColor;
       ctx.fillRect(px + 6, py, 3, 3);
@@ -756,7 +809,7 @@ export class OvermapRenderer {
     const dest = getOvermapNode(state.destination);
     if (!dest) return;
 
-    const kmLeft = Math.max(0, state.totalDistanceKm - state.traveledKm);
+    const kmLeft = Math.max(0, state.totalDistanceKm - state.distanceCoveredKm);
     const hours = kmLeft / 5; // ~5 km/h walk speed
     const hoursDisp = hours < 1 ? 'Less than 1 hour' : `~${Math.ceil(hours)} hours`;
 
@@ -770,7 +823,7 @@ export class OvermapRenderer {
     ctx.fillText(`Destination: ${dest.name}`, 8, 10);
     ctx.fillText(`Distance: ${kmLeft.toFixed(0)} km  |  ETA: ${hoursDisp}`, 8, 20);
 
-    if (state.isCamping) {
+    if (state.isCamped) {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#FFA040';
       ctx.fillText('Camping for the night...', W - 8, 15);

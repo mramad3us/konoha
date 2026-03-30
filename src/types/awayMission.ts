@@ -43,7 +43,7 @@ export interface CRankMissionData {
   /** Seed for procedural map generation */
   mapSeed: number;
   /** Terrain type for the procedural map */
-  terrainType: 'forest' | 'plains' | 'rocky' | 'riverside';
+  terrainType: 'forest' | 'plains' | 'rocky' | 'riverside' | 'desert';
   /** Whether there's a visible enemy camp */
   hasCamp: boolean;
   /** Enemy type — determines spawned NPC combat tier (defaults to 'bandit' for C-rank) */
@@ -84,7 +84,7 @@ export interface MissionMapConfig {
   missionType: AwayMissionType;
   banditCount: number;
   hasCamp: boolean;
-  terrainType: 'forest' | 'plains' | 'rocky' | 'riverside';
+  terrainType: 'forest' | 'plains' | 'rocky' | 'riverside' | 'desert';
   /** Player spawn edge: which edge of the map the player enters from */
   playerSpawnEdge: 'n' | 's' | 'e' | 'w';
   /** Enemy type — determines spawn tier (defaults to 'bandit') */

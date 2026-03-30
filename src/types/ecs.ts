@@ -109,6 +109,7 @@ export interface AggroComponent {
   targetId: EntityId | null;
   state: 'idle' | 'aggro' | 'fleeing' | 'returning';
   fleeHpThreshold: number;    // fraction of max HP to trigger flee (0.25)
+  lastKnownHp?: number;       // tracks HP for big-hit flee detection
 }
 
 export interface NameComponent {

@@ -180,14 +180,33 @@ export function generateMissionMap(
   const rng = new SeededRng(config.seed);
   const tileMap = new TileMap(W, H);
 
-  // ── Layer 1: Base terrain ──
-  fillBaseTerrainForest(tileMap, W, H, rng);
+  // ── Layer 1: Base terrain (biome-aware) ──
+  switch (config.terrainType) {
+    case 'desert':
+      fillBaseTerrainDesert(tileMap, W, H, rng);
+      break;
+    case 'rocky':
+      fillBaseTerrainRocky(tileMap, W, H, rng);
+      break;
+    case 'plains':
+      fillBaseTerrainPlains(tileMap, W, H, rng);
+      break;
+    case 'riverside':
+      fillBaseTerrainForest(tileMap, W, H, rng);
+      addRiver(tileMap, W, H, rng);
+      break;
+    default: // forest
+      fillBaseTerrainForest(tileMap, W, H, rng);
+      break;
+  }
 
   // ── Layer 2: Water features ──
-  if (config.terrainType === 'riverside' || rng.nextBool(0.4)) {
-    addRiver(tileMap, W, H, rng);
+  if (config.terrainType !== 'desert' && config.terrainType !== 'riverside') {
+    if (rng.nextBool(0.35)) addRiver(tileMap, W, H, rng);
   }
-  addPonds(tileMap, W, H, rng, rng.nextInt(1, 4));
+  if (config.terrainType !== 'desert') {
+    addPonds(tileMap, W, H, rng, rng.nextInt(0, config.terrainType === 'rocky' ? 2 : 4));
+  }
 
   // ── Layer 3: Clearings ──
   const clearings: Array<{ cx: number; cy: number; radius: number }> = [];
@@ -220,8 +239,8 @@ export function generateMissionMap(
   const world = new World(tileMap);
   world.gameTimeSeconds = gameTimeSeconds;
 
-  // ── Layer 4: Scatter terrain objects (trees, rocks, bushes) ──
-  scatterForestObjects(world, W, H, rng, clearings);
+  // ── Layer 4: Scatter terrain objects (biome-aware) ──
+  scatterTerrainObjects(world, W, H, rng, clearings, config.terrainType);
 
   // ── Layer 5: Bandit camp objects ──
   if (config.hasCamp) {
@@ -304,6 +323,96 @@ function fillBaseTerrainForest(tileMap: TileMap, w: number, h: number, rng: Seed
   }
 }
 
+function fillBaseTerrainDesert(tileMap: TileMap, w: number, h: number, rng: SeededRng): void {
+  // Fill with sand, occasional dirt patches
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const noise = cellHash(x * 3, y * 3) % 100;
+      tileMap.setTile(x, y, noise < 85 ? 'sand' : 'dirt');
+    }
+  }
+  // Rocky outcrops (stone clusters)
+  const outcrops = rng.nextInt(3, 6);
+  for (let i = 0; i < outcrops; i++) {
+    const cx = rng.nextInt(10, w - 10);
+    const cy = rng.nextInt(10, h - 10);
+    const r = rng.nextInt(2, 5);
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (dx * dx + dy * dy <= r * r && tileMap.isInBounds(cx + dx, cy + dy)) {
+          tileMap.setTile(cx + dx, cy + dy, 'stone');
+        }
+      }
+    }
+  }
+}
+
+function fillBaseTerrainRocky(tileMap: TileMap, w: number, h: number, rng: SeededRng): void {
+  // Mix of stone, dirt, grass
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const noise = cellHash(x * 2, y * 2) % 100;
+      if (noise < 40) tileMap.setTile(x, y, 'stone');
+      else if (noise < 70) tileMap.setTile(x, y, 'dirt');
+      else tileMap.setTile(x, y, cellHash(x, y) % 2 === 0 ? 'grass1' : 'grass2');
+    }
+  }
+  // Cliff ridges
+  const ridges = rng.nextInt(1, 3);
+  for (let r = 0; r < ridges; r++) {
+    let rx = rng.nextInt(5, w - 5);
+    let ry = rng.nextInt(5, h - 5);
+    for (let step = 0; step < rng.nextInt(10, 25); step++) {
+      if (tileMap.isInBounds(rx, ry)) tileMap.setTile(rx, ry, 'cliff');
+      if (tileMap.isInBounds(rx + 1, ry)) tileMap.setTile(rx + 1, ry, 'cliff');
+      rx += rng.nextInt(-1, 1);
+      ry += rng.nextBool(0.7) ? 1 : -1;
+      rx = Math.max(1, Math.min(w - 2, rx));
+      ry = Math.max(1, Math.min(h - 2, ry));
+    }
+  }
+}
+
+function fillBaseTerrainPlains(tileMap: TileMap, w: number, h: number, rng: SeededRng): void {
+  // Mostly grass with dirt paths — open terrain, fewer trees placed later
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const variant = cellHash(x, y) % 3;
+      const grassTypes: TileType[] = ['grass1', 'grass2', 'grass3'];
+      tileMap.setTile(x, y, grassTypes[variant]);
+    }
+  }
+  // Wide dirt roads
+  const roads = rng.nextInt(1, 3);
+  for (let r = 0; r < roads; r++) {
+    let px = rng.nextInt(0, w - 1);
+    let py = rng.nextBool() ? 0 : h - 1;
+    const targetX = rng.nextInt(0, w - 1);
+    const targetY = py === 0 ? h - 1 : 0;
+    for (let step = 0; step < w + h; step++) {
+      // Wide road: 3 tiles
+      for (let d = -1; d <= 1; d++) {
+        if (tileMap.isInBounds(px + d, py)) tileMap.setTile(px + d, py, 'dirt');
+      }
+      const dx = targetX - px;
+      const dy = targetY - py;
+      if (rng.nextBool(0.65)) {
+        if (Math.abs(dy) > Math.abs(dx)) py += dy > 0 ? 1 : -1;
+        else px += dx > 0 ? 1 : -1;
+      } else {
+        const dir = rng.nextInt(0, 3);
+        if (dir === 0 && px > 1) px--;
+        else if (dir === 1 && px < w - 2) px++;
+        else if (dir === 2 && py > 0) py--;
+        else if (dir === 3 && py < h - 1) py++;
+      }
+      px = Math.max(1, Math.min(w - 2, px));
+      py = Math.max(0, Math.min(h - 1, py));
+      if (px === targetX && py === targetY) break;
+    }
+  }
+}
+
 function addRiver(tileMap: TileMap, w: number, h: number, rng: SeededRng): void {
   const riverY = rng.nextInt(h * 0.3, h * 0.7);
   const depth = rng.nextInt(3, 5);
@@ -334,9 +443,40 @@ function addPonds(tileMap: TileMap, w: number, h: number, rng: SeededRng, count:
 
 // ── OBJECT SCATTERING ──
 
+/** Biome-aware terrain object scattering */
+function scatterTerrainObjects(
+  world: World, w: number, h: number, rng: SeededRng,
+  clearings: Array<{ cx: number; cy: number; radius: number }>,
+  terrainType: string,
+): void {
+  // Ratios: [tree, bush, rock, ground_cover, skip]
+  // These define the probability bands for what gets placed at each grid point
+  let treeChance: number, bushChance: number, rockChance: number, skipChance: number;
+  switch (terrainType) {
+    case 'desert':
+      treeChance = 0.05; bushChance = 0.10; rockChance = 0.45; skipChance = 0.55; break;
+    case 'rocky':
+      treeChance = 0.15; bushChance = 0.10; rockChance = 0.50; skipChance = 0.35; break;
+    case 'plains':
+      treeChance = 0.15; bushChance = 0.15; rockChance = 0.10; skipChance = 0.45; break;
+    default: // forest, riverside
+      treeChance = 0.65; bushChance = 0.13; rockChance = 0.10; skipChance = 0.25; break;
+  }
+  scatterObjectsWithRatios(world, w, h, rng, clearings, treeChance, bushChance, rockChance, skipChance);
+}
+
+function scatterObjectsWithRatios(
+  world: World, w: number, h: number, rng: SeededRng,
+  clearings: Array<{ cx: number; cy: number; radius: number }>,
+  treeChance: number, bushChance: number, rockChance: number, skipChance: number,
+): void {
+  scatterForestObjects(world, w, h, rng, clearings, treeChance, bushChance, rockChance, skipChance);
+}
+
 function scatterForestObjects(
   world: World, w: number, h: number, rng: SeededRng,
   clearings: Array<{ cx: number; cy: number; radius: number }>,
+  treePct = 0.65, bushPct = 0.13, rockPct = 0.10, skipPct = 0.25,
 ): void {
   const tileMap = world.tileMap;
 
@@ -371,25 +511,27 @@ function scatterForestObjects(
       if (inClearing(jx, jy)) continue;
       if (world.isBlockedByEntity(jx, jy)) continue;
 
-      // Random pruning — skip ~25% of positions for organic feel
-      if (rng.nextBool(0.25)) continue;
+      // Random pruning for organic feel
+      if (rng.nextBool(skipPct)) continue;
 
       // Skip if on a dirt path
       if (tileMap.getTileType(jx, jy) === 'dirt') {
         if (rng.nextBool(0.85)) continue; // 85% chance to skip dirt tiles
       }
 
-      // Decide what to place: mostly trees, some rocks, some bushes
+      // Decide what to place based on biome ratios
       const roll = rng.next();
-      if (roll < 0.65) {
+      const bushThresh = treePct + bushPct;
+      const rockThresh = bushThresh + rockPct;
+      if (roll < treePct) {
         // Tree
         const variant = TREE_VARIANTS[rng.nextInt(0, TREE_VARIANTS.length - 1)];
         spawnTerrainObject(world, jx, jy, variant);
-      } else if (roll < 0.78) {
+      } else if (roll < bushThresh) {
         // Bush
         const variant = BUSH_VARIANTS[rng.nextInt(0, BUSH_VARIANTS.length - 1)];
         spawnTerrainObject(world, jx, jy, variant);
-      } else if (roll < 0.88) {
+      } else if (roll < rockThresh) {
         // Rock
         const variant = ROCK_VARIANTS[rng.nextInt(0, ROCK_VARIANTS.length - 1)];
         spawnTerrainObject(world, jx, jy, variant);
@@ -882,9 +1024,31 @@ function spawnEnemy(
     title,
     skills,
     stats,
-    learnedJutsus: [],
+    learnedJutsus: isNinja ? ['substitution'] : [],
   });
   world.names.set(id, { display: name, article: '' });
+
+  // Give ninja enemies chakra resources so they can use jutsu
+  if (isNinja) {
+    const maxChakra = 20 + Math.floor(nin * 0.8);
+    const maxStam = 30 + Math.floor(phy * 0.5);
+    const maxWill = 20 + Math.floor(men * 0.6);
+    world.resources.set(id, {
+      chakra: maxChakra,
+      maxChakra,
+      chakraCeiling: maxChakra,
+      lastChakraExertionTick: 0,
+      willpower: maxWill,
+      maxWillpower: maxWill,
+      stamina: maxStam,
+      maxStamina: maxStam,
+      staminaCeiling: maxStam,
+      lastExertionTick: 0,
+      blood: 100,
+      maxBlood: 100,
+    });
+  }
+
   world.aiControlled.set(id, {
     behavior: isMissionTarget ? 'static' : 'wander',
   });
@@ -968,6 +1132,13 @@ function spawnEnemy(
     category: 'fixed',
     isNinja,
     despawnAtNight: false,
+  });
+
+  // Aggro component for chase/flee behavior on mission maps
+  world.aggros.set(id, {
+    targetId: null,
+    state: 'idle',
+    fleeHpThreshold: isNinja ? 0.20 : 0.40,
   });
 
   return id;

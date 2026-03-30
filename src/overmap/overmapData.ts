@@ -101,36 +101,58 @@ export const OVERMAP_REGIONS: OvermapRegion[] = [
 
 export const OVERMAP_NODES: OvermapNode[] = [
   // Hidden Villages
-  { id: 'konoha', name: 'Konohagakure', x: 490, y: 240, type: 'hidden_village', nation: 'fire', distanceFromKonoha: 0 },
-  { id: 'suna', name: 'Sunagakure', x: 260, y: 290, type: 'hidden_village', nation: 'wind', distanceFromKonoha: 500 },
-  { id: 'iwa', name: 'Iwagakure', x: 330, y: 95, type: 'hidden_village', nation: 'earth', distanceFromKonoha: 400 },
-  { id: 'kumo', name: 'Kumogakure', x: 650, y: 70, type: 'hidden_village', nation: 'lightning', distanceFromKonoha: 600 },
-  { id: 'kiri', name: 'Kirigakure', x: 730, y: 230, type: 'hidden_village', nation: 'water', distanceFromKonoha: 450 },
+  { id: 'konoha', name: 'Konohagakure', x: 490, y: 240, type: 'hidden_village', nation: 'fire', distanceFromKonoha: 0, biome: 'forest' },
+  { id: 'suna', name: 'Sunagakure', x: 260, y: 290, type: 'hidden_village', nation: 'wind', distanceFromKonoha: 500, biome: 'desert' },
+  { id: 'iwa', name: 'Iwagakure', x: 330, y: 95, type: 'hidden_village', nation: 'earth', distanceFromKonoha: 400, biome: 'rocky' },
+  { id: 'kumo', name: 'Kumogakure', x: 650, y: 70, type: 'hidden_village', nation: 'lightning', distanceFromKonoha: 600, biome: 'plains' },
+  { id: 'kiri', name: 'Kirigakure', x: 730, y: 230, type: 'hidden_village', nation: 'water', distanceFromKonoha: 450, biome: 'riverside' },
 
   // Land of Fire towns (mission destinations)
-  { id: 'tanzaku', name: 'Tanzaku Town', x: 460, y: 200, type: 'town', nation: 'fire', distanceFromKonoha: 40 },
-  { id: 'otafuku', name: 'Otafuku Town', x: 520, y: 220, type: 'town', nation: 'fire', distanceFromKonoha: 35 },
-  { id: 'shukuba', name: 'Shukuba Town', x: 470, y: 280, type: 'town', nation: 'fire', distanceFromKonoha: 50 },
-  { id: 'kaede', name: 'Kaede Village', x: 440, y: 230, type: 'town', nation: 'fire', distanceFromKonoha: 25 },
-  { id: 'nami', name: 'Nami Village', x: 560, y: 200, type: 'town', nation: 'fire', distanceFromKonoha: 60 },
-  { id: 'katabami', name: 'Katabami Mine', x: 530, y: 300, type: 'outpost', nation: 'fire', distanceFromKonoha: 70 },
-  { id: 'hoshi', name: 'Hoshi Outpost', x: 500, y: 320, type: 'outpost', nation: 'fire', distanceFromKonoha: 80 },
-  { id: 'takumi', name: 'Takumi Village', x: 430, y: 300, type: 'town', nation: 'fire', distanceFromKonoha: 55 },
-  { id: 'sora', name: 'Sora-ku District', x: 510, y: 180, type: 'town', nation: 'fire', distanceFromKonoha: 45 },
+  { id: 'tanzaku', name: 'Tanzaku Town', x: 460, y: 200, type: 'town', nation: 'fire', distanceFromKonoha: 40, biome: 'forest' },
+  { id: 'otafuku', name: 'Otafuku Town', x: 520, y: 220, type: 'town', nation: 'fire', distanceFromKonoha: 35, biome: 'forest' },
+  { id: 'shukuba', name: 'Shukuba Town', x: 470, y: 280, type: 'town', nation: 'fire', distanceFromKonoha: 50, biome: 'forest' },
+  { id: 'kaede', name: 'Kaede Village', x: 440, y: 230, type: 'town', nation: 'fire', distanceFromKonoha: 25, biome: 'forest' },
+  { id: 'nami', name: 'Nami Village', x: 560, y: 200, type: 'town', nation: 'fire', distanceFromKonoha: 60, biome: 'forest' },
+  { id: 'katabami', name: 'Katabami Mine', x: 530, y: 300, type: 'outpost', nation: 'fire', distanceFromKonoha: 70, biome: 'forest' },
+  { id: 'hoshi', name: 'Hoshi Outpost', x: 500, y: 320, type: 'outpost', nation: 'fire', distanceFromKonoha: 80, biome: 'forest' },
+  { id: 'takumi', name: 'Takumi Village', x: 430, y: 300, type: 'town', nation: 'fire', distanceFromKonoha: 55, biome: 'forest' },
+  { id: 'sora', name: 'Sora-ku District', x: 510, y: 180, type: 'town', nation: 'fire', distanceFromKonoha: 45, biome: 'forest' },
 
   // Border posts (Land of Fire edges)
-  { id: 'fire_west_border', name: 'West Border Post', x: 400, y: 260, type: 'border_post', nation: 'fire', distanceFromKonoha: 65 },
-  { id: 'fire_north_border', name: 'North Border Post', x: 470, y: 170, type: 'border_post', nation: 'fire', distanceFromKonoha: 50 },
-  { id: 'fire_south_border', name: 'South Border Post', x: 500, y: 350, type: 'border_post', nation: 'fire', distanceFromKonoha: 90 },
+  { id: 'fire_west_border', name: 'West Border Post', x: 400, y: 260, type: 'border_post', nation: 'fire', distanceFromKonoha: 65, biome: 'forest' },
+  { id: 'fire_north_border', name: 'North Border Post', x: 470, y: 170, type: 'border_post', nation: 'fire', distanceFromKonoha: 50, biome: 'forest' },
+  { id: 'fire_south_border', name: 'South Border Post', x: 500, y: 350, type: 'border_post', nation: 'fire', distanceFromKonoha: 90, biome: 'forest' },
 
   // Near-border towns (Land of Rivers, Grass, etc.)
-  { id: 'tani', name: 'Tani Village', x: 420, y: 350, type: 'town', nation: 'rivers', distanceFromKonoha: 100 },
-  { id: 'kusa_town', name: 'Kusa Town', x: 385, y: 140, type: 'town', nation: 'grass', distanceFromKonoha: 120 },
+  { id: 'tani', name: 'Tani Village', x: 420, y: 350, type: 'town', nation: 'rivers', distanceFromKonoha: 100, biome: 'riverside' },
+  { id: 'kusa_town', name: 'Kusa Town', x: 385, y: 140, type: 'town', nation: 'grass', distanceFromKonoha: 120, biome: 'plains' },
 ];
 
 /** Get node by ID */
 export function getOvermapNode(id: string): OvermapNode | undefined {
   return OVERMAP_NODES.find(n => n.id === id);
+}
+
+/** Nation-to-biome fallback mapping (used when node has no explicit biome) */
+const NATION_BIOME_FALLBACK: Record<string, string> = {
+  fire: 'forest',
+  wind: 'desert',
+  earth: 'rocky',
+  water: 'riverside',
+  lightning: 'plains',
+  grass: 'plains',
+  rivers: 'riverside',
+  rain: 'forest',
+  sound: 'forest',
+  tea: 'forest',
+};
+
+/** Get the terrain/biome type for a given node ID. Falls back to nation-based default, then 'forest'. */
+export function getNodeBiome(nodeId: string): string {
+  const node = getOvermapNode(nodeId);
+  if (!node) return 'forest';
+  if (node.biome) return node.biome;
+  return NATION_BIOME_FALLBACK[node.nation] ?? 'forest';
 }
 
 /** Get all nodes within a nation */

@@ -143,7 +143,9 @@ function executeEffect(
   }
 }
 
-/** Substitution (Kawarimi): teleport to opposite side of opponent, disengage */
+/** Substitution (Kawarimi): teleport based on ninjutsu skill level.
+ *  Basic (ninjutsu <= 40): body flicker — one tile away from opponent.
+ *  Advanced (ninjutsu > 40): teleport to opposite side of opponent (behind them). */
 function executeSubstitution(
   world: World,
   casterId: EntityId,
@@ -155,30 +157,62 @@ function executeSubstitution(
   const targetPos = world.positions.get(targetId);
   if (!casterPos || !targetPos) return { success: false, reason: 'no_target' };
 
-  // Calculate teleport destination: opposite side of opponent
+  const ninjutsuSkill = world.characterSheets.get(casterId)?.skills.ninjutsu ?? 0;
   const dx = casterPos.x - targetPos.x;
   const dy = casterPos.y - targetPos.y;
-  let newX = targetPos.x - dx; // opposite side
-  let newY = targetPos.y - dy;
 
-  // If blocked, try adjacent tiles
-  if (!world.tileMap.isWalkable(newX, newY) || world.isBlockedByEntity(newX, newY)) {
-    // Try perpendicular directions
-    const alternatives = [
-      { x: targetPos.x + dy, y: targetPos.y - dx },
-      { x: targetPos.x - dy, y: targetPos.y + dx },
-      { x: casterPos.x + dx, y: casterPos.y + dy }, // further away same direction
-    ];
-    let found = false;
-    for (const alt of alternatives) {
-      if (world.tileMap.isWalkable(alt.x, alt.y) && !world.isBlockedByEntity(alt.x, alt.y)) {
-        newX = alt.x;
-        newY = alt.y;
-        found = true;
-        break;
+  let newX: number;
+  let newY: number;
+
+  if (ninjutsuSkill <= 40) {
+    // Basic body flicker: one tile AWAY from opponent (escape, not flanking)
+    const awayDx = Math.sign(dx) || (Math.random() < 0.5 ? 1 : -1);
+    const awayDy = Math.sign(dy) || (Math.random() < 0.5 ? 1 : -1);
+    newX = casterPos.x + awayDx;
+    newY = casterPos.y + awayDy;
+
+    // If blocked, try cardinal directions away, then perpendicular
+    if (!world.tileMap.isWalkable(newX, newY) || world.isBlockedByEntity(newX, newY)) {
+      const alternatives = [
+        { x: casterPos.x + awayDx, y: casterPos.y },           // horizontal away
+        { x: casterPos.x, y: casterPos.y + awayDy },           // vertical away
+        { x: casterPos.x + awayDy, y: casterPos.y - awayDx },  // perpendicular
+        { x: casterPos.x - awayDy, y: casterPos.y + awayDx },  // perpendicular other side
+      ];
+      let found = false;
+      for (const alt of alternatives) {
+        if (world.tileMap.isWalkable(alt.x, alt.y) && !world.isBlockedByEntity(alt.x, alt.y)) {
+          newX = alt.x;
+          newY = alt.y;
+          found = true;
+          break;
+        }
       }
+      if (!found) return { success: false, reason: 'blocked' };
     }
-    if (!found) return { success: false, reason: 'blocked' };
+  } else {
+    // Advanced: teleport to opposite side of opponent (behind them)
+    newX = targetPos.x - dx;
+    newY = targetPos.y - dy;
+
+    // If blocked, try adjacent tiles
+    if (!world.tileMap.isWalkable(newX, newY) || world.isBlockedByEntity(newX, newY)) {
+      const alternatives = [
+        { x: targetPos.x + dy, y: targetPos.y - dx },
+        { x: targetPos.x - dy, y: targetPos.y + dx },
+        { x: casterPos.x + dx, y: casterPos.y + dy }, // further away same direction
+      ];
+      let found = false;
+      for (const alt of alternatives) {
+        if (world.tileMap.isWalkable(alt.x, alt.y) && !world.isBlockedByEntity(alt.x, alt.y)) {
+          newX = alt.x;
+          newY = alt.y;
+          found = true;
+          break;
+        }
+      }
+      if (!found) return { success: false, reason: 'blocked' };
+    }
   }
 
   // Smoke at origin
