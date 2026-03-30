@@ -15,17 +15,6 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
     settings = { ...DEFAULT_SETTINGS };
   }
 
-  // ── Back button ──
-  const backBtn = createElement('button', { className: 'back-btn' });
-  backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
-  backBtn.addEventListener('click', async () => {
-    sfxMenuClick();
-    await saveSystem.saveSettings(settings);
-    updateVolumeSettings(settings);
-    screenManager.goBack();
-  });
-  container.appendChild(backBtn);
-
   // ── Title ──
   container.appendChild(createElement('h2', { className: 'section-title', text: 'Settings' }));
 
@@ -138,6 +127,17 @@ export async function renderSettings(container: HTMLElement): Promise<void> {
   addToggle('Show FPS', 'showFps');
 
   container.appendChild(settingsWrap);
+
+  // ── Back button (appended last so it renders on top of all content) ──
+  const backBtn = createElement('button', { className: 'back-btn' });
+  backBtn.innerHTML = '<span class="back-btn__arrow">&larr;</span> Back';
+  backBtn.addEventListener('click', async () => {
+    sfxMenuClick();
+    await saveSystem.saveSettings(settings);
+    updateVolumeSettings(settings);
+    screenManager.goBack();
+  });
+  container.appendChild(backBtn);
 
   // Stagger reveal
   setTimeout(() => staggerReveal(rows, MENU_STAGGER_MS), 100);
