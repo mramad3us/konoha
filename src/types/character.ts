@@ -184,6 +184,7 @@ export const SKILL_IMPROVEMENT_RATES = {
   taijutsu_dummy: 0.000116,     // hitting a training dummy
   taijutsu_spar: 0.000232,      // sparring with skill >= yours (2×)
   bukijutsu: 0.000100,          // per tool use
+  bukijutsu_throw: 0.001160,    // per thrown projectile (10× taijutsu punch rate)
   ninjutsu: 0.000090,           // per jutsu cast
   genjutsu: 0.000070,           // per genjutsu attempt
   med: 0.000050,                // per medical action (patch up, first aid)

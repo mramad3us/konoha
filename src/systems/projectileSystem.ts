@@ -12,6 +12,9 @@ import { THROWN_WEAPON_DATA, getThrowCooldown } from '../types/throwing.ts';
 import { hasLethalIntent } from '../engine/combatSystem.ts';
 import { checkEntityState, applyBleeding, killEntity } from '../engine/entityState.ts';
 import { spawnFloatingText } from './floatingTextSystem.ts';
+import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { getMissionXpMultiplier } from '../engine/missions.ts';
+import { checkSkillUp } from '../engine/skillFeedback.ts';
 
 // ── Flavor text pools ──
 
@@ -119,6 +122,16 @@ export function spawnProjectile(
   world.throwCooldowns.set(sourceId, {
     readyAtSubtick: world.currentSubtick + cooldownSubticks,
   });
+
+  // ── Bukijutsu skill improvement (10× taijutsu punch rate) ──
+  if (sheet) {
+    const mxp = getMissionXpMultiplier(world.missionLog);
+    const oldBuki = sheet.skills.bukijutsu;
+    sheet.skills.bukijutsu = computeImprovement(
+      oldBuki, SKILL_IMPROVEMENT_RATES.bukijutsu_throw, 2.0, mxp,
+    );
+    checkSkillUp(world, 'bukijutsu', oldBuki, sheet.skills.bukijutsu);
+  }
 
   // Floating text at source
   spawnFloatingText(sourcePos.x, sourcePos.y, pickRandom(THROW_SOUNDS), '#aaddff');
