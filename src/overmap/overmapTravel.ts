@@ -66,7 +66,7 @@ export function beginTravel(
 export function tickTravel(
   state: OvermapTravelState,
   gameTimeSeconds: number,
-  animSpeedMultiplier: number = 60,
+  animSpeedMultiplier: number = 3600,
 ): { result: TravelTickResult; gameSecondsElapsed: number } {
   if (state.distanceCoveredKm >= state.totalDistanceKm) {
     return { result: { type: 'arrived' }, gameSecondsElapsed: 0 };

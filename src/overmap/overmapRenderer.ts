@@ -1,60 +1,413 @@
 /**
- * Overmap pixel art renderer — draws the world map on a canvas.
- * Low-detail tile-based rendering with animations for travel.
+ * Overmap pixel art renderer — tile-based world map on canvas.
  *
- * Features:
- * - Colored terrain regions (Land of Fire, Wind, etc.)
- * - Road lines connecting towns
- * - Town/village dots with labels
- * - Animated chibi pawn moving along roads
- * - Campfire animation at night
- * - Clouds drifting across the map
- * - Water shimmer on ocean areas
+ * Approach (inspired by One-Party):
+ * - Each tile = 1 fillRect, 4×4 pixel scale
+ * - Terrain generated from elevation/moisture noise seeded to match Naruto geography
+ * - Countries defined by center-point Voronoi assignment, NOT polygon borders
+ * - Biome classification from nation + elevation + moisture → terrain color
+ * - Rivers as blue tile overrides
+ * - Roads as lighter tile paths between nodes
+ * - Settlements as colored dots
+ * - No polygon outlines, no hard borders — terrain blends naturally
  */
 
 import { OVERMAP_CANVAS_WIDTH, OVERMAP_CANVAS_HEIGHT } from '../core/constants.ts';
-import { OVERMAP_REGIONS, OVERMAP_NODES, OVERMAP_EDGES, getOvermapNode, getEdge } from './overmapData.ts';
+import { OVERMAP_NODES, OVERMAP_EDGES, getOvermapNode, getEdge } from './overmapData.ts';
 import type { OvermapTravelState } from '../types/overmap.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 
 const W = OVERMAP_CANVAS_WIDTH;
 const H = OVERMAP_CANVAS_HEIGHT;
 
-// ── COLORS ──
-const OCEAN_COLOR = '#2A3A5C';
-const OCEAN_HIGHLIGHT = '#3A4A6C';
-const ROAD_COLOR = '#7A6A5A';
-const ROAD_HIGHLIGHT = '#9A8A7A';
-const LABEL_COLOR = '#E8E0D0';
-const LABEL_SHADOW = '#1A1A2A';
+// Tile grid dimensions (4px per tile → 200×150 tiles)
+const TILE_SIZE = 4;
+const COLS = Math.floor(W / TILE_SIZE);
+const ROWS = Math.floor(H / TILE_SIZE);
+
+// ── TERRAIN COLORS ──
+const TERRAIN_COLORS: Record<string, string> = {
+  deep_water:    '#0f2942',
+  shallow_water: '#1a4a70',
+  beach:         '#c8b060',
+  plains:        '#4a7a2a',
+  forest:        '#2a5a1a',
+  dense_forest:  '#1a3a10',
+  hills:         '#8a7a4a',
+  mountain:      '#6a6a6a',
+  peak:          '#d0d0d0',
+  desert:        '#c8a848',
+  arid_plains:   '#9a8a40',
+  swamp:         '#3a4a20',
+  tundra:        '#8a9aa0',
+  snow:          '#c8d8e0',
+  rocky:         '#7a6a5a',
+  volcanic:      '#6a2218',
+  river:         '#2a6aaa',
+  road:          '#7a6a5a',
+};
+
+// Settlement rendering
 const HIDDEN_VILLAGE_COLOR = '#FFD700';
 const TOWN_COLOR = '#C0C0C0';
 const OUTPOST_COLOR = '#8A7A6A';
 const BORDER_COLOR = '#6A8A6A';
+const LABEL_COLOR = '#E8E0D0';
+const LABEL_SHADOW = '#1A1A2A';
 const CAMPFIRE_COLORS = ['#FF6600', '#FF9933', '#FFCC00', '#FF4400'];
-const CLOUD_COLOR = 'rgba(200, 200, 220, 0.15)';
 const PAWN_BODY = '#E8C080';
 const PAWN_HAIR = '#2A2A3A';
 const PAWN_OUTLINE = '#1A1A2A';
+const CLOUD_COLOR = 'rgba(200, 200, 220, 0.12)';
 
-/** Cloud state for animation */
+// ── NATION CENTERS (pixel coords on 800×600 map) ──
+// Each defines the "heart" of a nation. Tiles are assigned to the nearest center.
+interface NationCenter {
+  id: string;
+  name: string;
+  cx: number; cy: number;
+  /** Primary biome tendency */
+  biome: 'temperate' | 'desert' | 'rocky' | 'tropical' | 'misty' | 'cold' | 'swamp' | 'volcanic';
+  /** Elevation offset (higher = more mountainous) */
+  elevBias: number;
+  /** Moisture offset */
+  moistBias: number;
+  /** Label position (pixel coords) */
+  labelX: number; labelY: number;
+  /** Whether this is ocean or land */
+  isOcean?: boolean;
+}
+
+const NATION_CENTERS: NationCenter[] = [
+  // Major nations — positioned to match canonical Naruto geography
+  { id: 'fire',      name: 'Land of Fire',      cx: 490, cy: 260, biome: 'temperate', elevBias: 0,   moistBias: 30,  labelX: 490, labelY: 265 },
+  { id: 'wind',      name: 'Land of Wind',       cx: 270, cy: 310, biome: 'desert',    elevBias: -20, moistBias: -60, labelX: 270, labelY: 310 },
+  { id: 'earth',     name: 'Land of Earth',      cx: 340, cy: 110, biome: 'rocky',     elevBias: 40,  moistBias: -10, labelX: 340, labelY: 120 },
+  { id: 'lightning', name: 'Land of Lightning',   cx: 650, cy: 90,  biome: 'cold',      elevBias: 30,  moistBias: 10,  labelX: 650, labelY: 95 },
+  { id: 'water',     name: 'Land of Water',       cx: 730, cy: 240, biome: 'misty',     elevBias: -10, moistBias: 50,  labelX: 720, labelY: 235 },
+  // Minor nations
+  { id: 'rain',      name: 'Land of Rain',        cx: 400, cy: 180, biome: 'swamp',     elevBias: -5,  moistBias: 40,  labelX: 400, labelY: 180 },
+  { id: 'grass',     name: 'Land of Grass',       cx: 380, cy: 140, biome: 'temperate', elevBias: -10, moistBias: 20,  labelX: 380, labelY: 140 },
+  { id: 'sound',     name: 'Land of Sound',       cx: 510, cy: 180, biome: 'temperate', elevBias: 10,  moistBias: 0,   labelX: 505, labelY: 180 },
+  { id: 'tea',       name: 'Land of Tea',          cx: 610, cy: 380, biome: 'tropical',  elevBias: -15, moistBias: 20,  labelX: 610, labelY: 380 },
+  { id: 'rivers',    name: 'Land of Rivers',       cx: 425, cy: 355, biome: 'swamp',     elevBias: -10, moistBias: 50,  labelX: 425, labelY: 355 },
+  // Ocean zones (to fill edges)
+  { id: 'ocean_nw',  name: '', cx: 80,  cy: 80,  biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'ocean_sw',  name: '', cx: 80,  cy: 520, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'ocean_se',  name: '', cx: 700, cy: 520, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'ocean_ne',  name: '', cx: 780, cy: 100, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'ocean_s',   name: '', cx: 400, cy: 580, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+  { id: 'ocean_e',   name: '', cx: 790, cy: 350, biome: 'temperate', elevBias: 0, moistBias: 0, labelX: 0, labelY: 0, isOcean: true },
+];
+
+// ── NOISE GENERATION ──
+
+/** Simple 2D value noise using cellHash for deterministic results */
+function noise2d(x: number, y: number, scale: number, seed: number): number {
+  const sx = x / scale;
+  const sy = y / scale;
+  const ix = Math.floor(sx);
+  const iy = Math.floor(sy);
+  const fx = sx - ix;
+  const fy = sy - iy;
+
+  // Smooth interpolation
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+
+  const n00 = (cellHash(ix + seed, iy) % 1000) / 1000;
+  const n10 = (cellHash(ix + 1 + seed, iy) % 1000) / 1000;
+  const n01 = (cellHash(ix + seed, iy + 1) % 1000) / 1000;
+  const n11 = (cellHash(ix + 1 + seed, iy + 1) % 1000) / 1000;
+
+  const nx0 = n00 + (n10 - n00) * ux;
+  const nx1 = n01 + (n11 - n01) * ux;
+  return nx0 + (nx1 - nx0) * uy;
+}
+
+/** Multi-octave noise for natural-looking terrain */
+function fbmNoise(x: number, y: number, octaves: number, scale: number, seed: number): number {
+  let value = 0;
+  let amplitude = 1;
+  let totalAmp = 0;
+  let freq = 1;
+  for (let i = 0; i < octaves; i++) {
+    value += noise2d(x * freq, y * freq, scale, seed + i * 1000) * amplitude;
+    totalAmp += amplitude;
+    amplitude *= 0.5;
+    freq *= 2;
+  }
+  return value / totalAmp;
+}
+
+// ── TILE MAP GENERATION ──
+
+interface MapTile {
+  terrain: string;
+  nationId: string;
+  elevation: number;
+  moisture: number;
+  isRoad: boolean;
+  isRiver: boolean;
+}
+
+function generateTileMap(): MapTile[] {
+  const tiles: MapTile[] = new Array(COLS * ROWS);
+
+  // Step 1: Assign each tile to nearest nation center
+  const nationMap: string[] = new Array(COLS * ROWS);
+  const nationBiome: Map<string, NationCenter> = new Map();
+  for (const nc of NATION_CENTERS) {
+    nationBiome.set(nc.id, nc);
+  }
+
+  for (let ty = 0; ty < ROWS; ty++) {
+    for (let tx = 0; tx < COLS; tx++) {
+      const px = tx * TILE_SIZE + TILE_SIZE / 2;
+      const py = ty * TILE_SIZE + TILE_SIZE / 2;
+
+      let bestDist = Infinity;
+      let bestNation = 'fire';
+      for (const nc of NATION_CENTERS) {
+        const dx = px - nc.cx;
+        const dy = py - nc.cy;
+        // Add noise to distance for organic borders
+        const jitter = (cellHash(tx * 7 + 13, ty * 11 + 37) % 60) - 30;
+        const dist = dx * dx + dy * dy + jitter * 40;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestNation = nc.id;
+        }
+      }
+      nationMap[ty * COLS + tx] = bestNation;
+    }
+  }
+
+  // Step 2: Generate elevation and moisture via noise
+  for (let ty = 0; ty < ROWS; ty++) {
+    for (let tx = 0; tx < COLS; tx++) {
+      const idx = ty * COLS + tx;
+      const px = tx * TILE_SIZE;
+      const py = ty * TILE_SIZE;
+      const nationId = nationMap[idx];
+      const nation = nationBiome.get(nationId)!;
+
+      if (nation.isOcean) {
+        tiles[idx] = {
+          terrain: 'deep_water',
+          nationId,
+          elevation: 10,
+          moisture: 100,
+          isRoad: false,
+          isRiver: false,
+        };
+        continue;
+      }
+
+      // Base elevation from noise
+      let elevation = fbmNoise(px, py, 4, 40, 42) * 255;
+      elevation += nation.elevBias;
+
+      // Edge falloff — gradually lower terrain toward map edges for ocean
+      const edgeDist = Math.min(px, py, W - px, H - py);
+      if (edgeDist < 80) {
+        elevation -= (80 - edgeDist) * 1.5;
+      }
+
+      // Moisture from different noise seed
+      let moisture = fbmNoise(px, py, 3, 50, 137) * 255;
+      moisture += nation.moistBias;
+
+      elevation = Math.max(0, Math.min(255, elevation));
+      moisture = Math.max(0, Math.min(255, moisture));
+
+      // Classify terrain
+      const terrain = classifyBiome(elevation, moisture, nation.biome);
+
+      tiles[idx] = {
+        terrain,
+        nationId,
+        elevation,
+        moisture,
+        isRoad: false,
+        isRiver: false,
+      };
+    }
+  }
+
+  // Step 3: Stamp rivers — winding blue paths through terrain
+  stampRivers(tiles);
+
+  // Step 4: Stamp roads connecting nodes
+  stampRoads(tiles);
+
+  return tiles;
+}
+
+function classifyBiome(elev: number, moist: number, nationBiome: string): string {
+  // Water at very low elevations
+  if (elev < 35) return 'deep_water';
+  if (elev < 50) return 'shallow_water';
+  if (elev < 58) return 'beach';
+
+  // Mountain at very high elevations
+  if (elev > 220) return 'peak';
+  if (elev > 190) return 'mountain';
+  if (elev > 165) return 'hills';
+
+  // Nation-specific biomes for mid elevations
+  switch (nationBiome) {
+    case 'desert':
+      if (moist < 60) return 'desert';
+      if (moist < 100) return 'arid_plains';
+      return 'plains';
+
+    case 'rocky':
+      if (elev > 140) return 'rocky';
+      if (moist > 150) return 'forest';
+      return 'hills';
+
+    case 'cold':
+      if (elev > 140) return 'snow';
+      if (moist > 120) return 'tundra';
+      return 'hills';
+
+    case 'misty':
+      if (moist > 160) return 'dense_forest';
+      if (moist > 100) return 'forest';
+      return 'plains';
+
+    case 'swamp':
+      if (moist > 160) return 'swamp';
+      if (moist > 100) return 'dense_forest';
+      return 'forest';
+
+    case 'tropical':
+      if (moist > 140) return 'dense_forest';
+      if (moist > 80) return 'forest';
+      return 'plains';
+
+    case 'volcanic':
+      if (elev > 150) return 'volcanic';
+      return 'rocky';
+
+    default: // temperate
+      if (moist > 170) return 'dense_forest';
+      if (moist > 120) return 'forest';
+      if (moist > 60) return 'plains';
+      return 'arid_plains';
+  }
+}
+
+/** Stamp winding river paths through the terrain */
+function stampRivers(tiles: MapTile[]): void {
+  // River seeds — start from mountain areas, flow toward low elevation
+  const riverStarts = [
+    { tx: 85, ty: 25 },  // From Earth mountains
+    { tx: 105, ty: 50 }, // Through Fire
+    { tx: 160, ty: 20 }, // From Lightning mountains
+    { tx: 70, ty: 70 },  // Through Grass/Rain
+  ];
+
+  for (const start of riverStarts) {
+    let tx = start.tx;
+    let ty = start.ty;
+
+    for (let step = 0; step < 80; step++) {
+      if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) break;
+      const idx = ty * COLS + tx;
+      if (!tiles[idx]) break;
+
+      const terrain = tiles[idx].terrain;
+      if (terrain === 'deep_water' || terrain === 'shallow_water') break;
+
+      tiles[idx].isRiver = true;
+      tiles[idx].terrain = 'river';
+
+      // Flow toward lowest neighbor with some randomness
+      let bestTx = tx;
+      let bestTy = ty + 1; // default: flow south
+      let bestElev = Infinity;
+
+      for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1]]) {
+        const nx = tx + dx;
+        const ny = ty + dy;
+        if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+        const ni = ny * COLS + nx;
+        if (!tiles[ni]) continue;
+        const jitter = (cellHash(nx + step * 7, ny + step * 3) % 20) - 5;
+        const neighborElev = tiles[ni].elevation + jitter;
+        if (neighborElev < bestElev) {
+          bestElev = neighborElev;
+          bestTx = nx;
+          bestTy = ny;
+        }
+      }
+
+      tx = bestTx;
+      ty = bestTy;
+    }
+  }
+}
+
+/** Stamp roads as tile-width paths between overmap nodes */
+function stampRoads(tiles: MapTile[]): void {
+  for (const edge of OVERMAP_EDGES) {
+    const from = getOvermapNode(edge.from);
+    const to = getOvermapNode(edge.to);
+    if (!from || !to) continue;
+
+    // Build pixel point path
+    const points = [
+      { x: from.x, y: from.y },
+      ...edge.waypoints,
+      { x: to.x, y: to.y },
+    ];
+
+    // Rasterize road along point segments
+    for (let i = 0; i < points.length - 1; i++) {
+      const ax = points[i].x;
+      const ay = points[i].y;
+      const bx = points[i + 1].x;
+      const by = points[i + 1].y;
+      const dist = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
+      const steps = Math.ceil(dist / 2); // step every 2px
+
+      for (let s = 0; s <= steps; s++) {
+        const t = s / Math.max(1, steps);
+        const px = ax + (bx - ax) * t;
+        const py = ay + (by - ay) * t;
+        const tx = Math.floor(px / TILE_SIZE);
+        const ty = Math.floor(py / TILE_SIZE);
+        if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) continue;
+        const idx = ty * COLS + tx;
+        if (!tiles[idx]) continue;
+        // Don't overwrite water
+        if (tiles[idx].terrain === 'deep_water' || tiles[idx].terrain === 'shallow_water') continue;
+        tiles[idx].isRoad = true;
+      }
+    }
+  }
+}
+
+// ── ANIMATION STATE ──
+
 interface Cloud {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number; y: number;
+  width: number; height: number;
   speed: number;
 }
+
+// ── RENDERER ──
 
 export class OvermapRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  /** Pre-rendered static background (terrain + roads + labels) */
   private bgCanvas: OffscreenCanvas;
   private bgCtx: OffscreenCanvasRenderingContext2D;
   private bgRendered = false;
 
-  // Animation state
+  private tileMap: MapTile[] | null = null;
   private clouds: Cloud[] = [];
   private animTime = 0;
   private waterPhase = 0;
@@ -73,7 +426,7 @@ export class OvermapRenderer {
     // Generate clouds
     for (let i = 0; i < 8; i++) {
       this.clouds.push({
-        x: (cellHash(i, 0) % W),
+        x: cellHash(i, 0) % W,
         y: 30 + (cellHash(i, 1) % (H - 100)),
         width: 40 + (cellHash(i, 2) % 60),
         height: 12 + (cellHash(i, 3) % 16),
@@ -82,30 +435,30 @@ export class OvermapRenderer {
     }
   }
 
-  /** Render one frame of the overmap */
+  /** Render one frame */
   draw(travelState: OvermapTravelState | null, dt: number, isNight: boolean): void {
     this.animTime += dt;
     this.waterPhase += dt * 0.5;
 
-    // Render static background once
     if (!this.bgRendered) {
+      this.tileMap = generateTileMap();
       this.renderBackground();
       this.bgRendered = true;
     }
 
-    // Blit background
+    // Blit static background
     this.ctx.drawImage(this.bgCanvas, 0, 0);
 
     // Animated water shimmer
     this.drawWaterShimmer();
 
-    // Draw clouds
+    // Clouds
     this.drawClouds(dt);
 
-    // Draw travel route highlight if traveling
+    // Travel route + pawn
     if (travelState) {
       this.drawTravelRoute(travelState);
-      this.drawPawn(travelState, isNight);
+      this.drawPawn(travelState);
     }
 
     // Night overlay
@@ -114,150 +467,80 @@ export class OvermapRenderer {
       this.ctx.fillRect(0, 0, W, H);
     }
 
-    // Draw HUD overlay (distance, time)
+    // HUD overlays
     if (travelState) {
-      this.drawTravelInfo(travelState, isNight);
+      this.drawTravelInfo(travelState);
     }
   }
 
-  /** Render static elements to background canvas */
+  /** Render the static tile-based background to an offscreen canvas */
   private renderBackground(): void {
     const ctx = this.bgCtx;
+    const tiles = this.tileMap!;
 
-    // Ocean fill
-    ctx.fillStyle = OCEAN_COLOR;
-    ctx.fillRect(0, 0, W, H);
+    // Draw each tile as a colored rect
+    for (let ty = 0; ty < ROWS; ty++) {
+      for (let tx = 0; tx < COLS; tx++) {
+        const tile = tiles[ty * COLS + tx];
+        if (!tile) continue;
 
-    // Pixel-art ocean texture (scattered highlights)
-    for (let x = 0; x < W; x += 4) {
-      for (let y = 0; y < H; y += 4) {
-        if (cellHash(x, y) % 12 === 0) {
-          ctx.fillStyle = OCEAN_HIGHLIGHT;
-          ctx.fillRect(x, y, 2, 1);
+        let color: string;
+        if (tile.isRoad && !tile.isRiver) {
+          // Road tiles: lighter brown path
+          color = '#8a7a60';
+        } else {
+          color = TERRAIN_COLORS[tile.terrain] ?? '#333';
+        }
+
+        ctx.fillStyle = color;
+        ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+        // Pixel variation — subtle lighter/darker speckling within each tile
+        const h = cellHash(tx, ty);
+        if (tile.terrain !== 'deep_water' && tile.terrain !== 'shallow_water' && tile.terrain !== 'river') {
+          if (h % 7 === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, 2, 2);
+          } else if (h % 11 === 0) {
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.fillRect(tx * TILE_SIZE + 2, ty * TILE_SIZE + 2, 2, 2);
+          }
         }
       }
     }
 
-    // Draw terrain regions
-    for (const region of OVERMAP_REGIONS) {
-      this.drawRegion(ctx, region);
+    // Draw nation labels (text over terrain, no borders)
+    for (const nation of NATION_CENTERS) {
+      if (!nation.name || nation.isOcean) continue;
+
+      ctx.font = '7px monospace';
+      ctx.textAlign = 'center';
+
+      // Shadow
+      ctx.fillStyle = LABEL_SHADOW;
+      ctx.fillText(nation.name, nation.labelX + 1, nation.labelY + 1);
+      // Text
+      ctx.fillStyle = 'rgba(232, 224, 208, 0.5)';
+      ctx.fillText(nation.name, nation.labelX, nation.labelY);
     }
 
-    // Draw roads
-    for (const edge of OVERMAP_EDGES) {
-      this.drawRoad(ctx, edge);
-    }
-
-    // Draw nodes (towns, villages)
+    // Draw settlement nodes
     for (const node of OVERMAP_NODES) {
       this.drawNode(ctx, node);
     }
   }
 
-  /** Draw a terrain region as a filled polygon with pixel-art texture */
-  private drawRegion(ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D, region: typeof OVERMAP_REGIONS[0]): void {
-    if (region.points.length < 3) return;
-
-    // Fill polygon
-    ctx.beginPath();
-    ctx.moveTo(region.points[0].x, region.points[0].y);
-    for (let i = 1; i < region.points.length; i++) {
-      ctx.lineTo(region.points[i].x, region.points[i].y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = region.color;
-    ctx.fill();
-
-    // Pixel texture overlay (noise within region)
-    ctx.save();
-    ctx.clip();
-    const minX = Math.min(...region.points.map(p => p.x));
-    const maxX = Math.max(...region.points.map(p => p.x));
-    const minY = Math.min(...region.points.map(p => p.y));
-    const maxY = Math.max(...region.points.map(p => p.y));
-
-    for (let x = minX; x < maxX; x += 3) {
-      for (let y = minY; y < maxY; y += 3) {
-        const h = cellHash(x, y);
-        if (h % 5 === 0) {
-          // Lighter speckle
-          ctx.fillStyle = 'rgba(255,255,255,0.06)';
-          ctx.fillRect(x, y, 2, 2);
-        } else if (h % 7 === 0) {
-          // Darker speckle
-          ctx.fillStyle = 'rgba(0,0,0,0.08)';
-          ctx.fillRect(x, y, 2, 2);
-        }
-      }
-    }
-
-    // Region border (1px darker line)
-    ctx.restore();
-    ctx.beginPath();
-    ctx.moveTo(region.points[0].x, region.points[0].y);
-    for (let i = 1; i < region.points.length; i++) {
-      ctx.lineTo(region.points[i].x, region.points[i].y);
-    }
-    ctx.closePath();
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Label
-    ctx.fillStyle = LABEL_SHADOW;
-    ctx.font = '7px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(region.name, region.labelX + 1, region.labelY + 1);
-    ctx.fillStyle = LABEL_COLOR;
-    ctx.fillText(region.name, region.labelX, region.labelY);
-  }
-
-  /** Draw a road as a dashed pixel line between two nodes */
-  private drawRoad(ctx: OffscreenCanvasRenderingContext2D, edge: typeof OVERMAP_EDGES[0]): void {
-    const from = getOvermapNode(edge.from);
-    const to = getOvermapNode(edge.to);
-    if (!from || !to) return;
-
-    // Build point list: from → waypoints → to
-    const points = [{ x: from.x, y: from.y }, ...edge.waypoints, { x: to.x, y: to.y }];
-
-    ctx.strokeStyle = ROAD_COLOR;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 2]);
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  /** Draw a node (town dot + label) */
-  private drawNode(ctx: OffscreenCanvasRenderingContext2D, node: typeof OVERMAP_NODES[0]): void {
+  /** Draw a settlement node as a colored dot with label */
+  private drawNode(ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D, node: typeof OVERMAP_NODES[0]): void {
     let color: string;
     let size: number;
 
     switch (node.type) {
-      case 'hidden_village':
-        color = HIDDEN_VILLAGE_COLOR;
-        size = 4;
-        break;
-      case 'town':
-        color = TOWN_COLOR;
-        size = 2;
-        break;
-      case 'outpost':
-        color = OUTPOST_COLOR;
-        size = 2;
-        break;
-      case 'border_post':
-        color = BORDER_COLOR;
-        size = 2;
-        break;
-      default:
-        color = TOWN_COLOR;
-        size = 2;
+      case 'hidden_village': color = HIDDEN_VILLAGE_COLOR; size = 4; break;
+      case 'town': color = TOWN_COLOR; size = 2; break;
+      case 'outpost': color = OUTPOST_COLOR; size = 2; break;
+      case 'border_post': color = BORDER_COLOR; size = 2; break;
+      default: color = TOWN_COLOR; size = 2;
     }
 
     // Dot outline
@@ -277,17 +560,25 @@ export class OvermapRenderer {
     ctx.fillText(node.name, node.x, node.y + size + fontSize + 1);
   }
 
-  /** Draw animated water shimmer on ocean */
+  /** Animated water shimmer on ocean and river tiles */
   private drawWaterShimmer(): void {
     const ctx = this.ctx;
     const phase = this.waterPhase;
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       const bx = cellHash(i, 100) % W;
       const by = cellHash(i, 200) % H;
-      const offset = Math.sin(phase + i * 0.7) * 2;
-      ctx.fillStyle = 'rgba(120, 160, 200, 0.12)';
-      ctx.fillRect(bx + offset, by, 6, 1);
+      // Only shimmer on water tiles
+      const tx = Math.floor(bx / TILE_SIZE);
+      const ty = Math.floor(by / TILE_SIZE);
+      if (tx >= 0 && tx < COLS && ty >= 0 && ty < ROWS) {
+        const tile = this.tileMap?.[ty * COLS + tx];
+        if (tile && (tile.terrain === 'deep_water' || tile.terrain === 'shallow_water' || tile.terrain === 'river')) {
+          const offset = Math.sin(phase + i * 0.7) * 2;
+          ctx.fillStyle = 'rgba(120, 160, 200, 0.15)';
+          ctx.fillRect(bx + offset, by, 6, 1);
+        }
+      }
     }
   }
 
@@ -298,28 +589,24 @@ export class OvermapRenderer {
       cloud.x += cloud.speed * dt;
       if (cloud.x > W + cloud.width) cloud.x = -cloud.width;
 
-      // Draw cloud as a collection of pixel rectangles
       ctx.fillStyle = CLOUD_COLOR;
       const cx = Math.floor(cloud.x);
       const cy = Math.floor(cloud.y);
-      // Main body
       ctx.fillRect(cx, cy, cloud.width, cloud.height);
-      // Top bumps
       ctx.fillRect(cx + cloud.width * 0.2, cy - 4, cloud.width * 0.3, 6);
       ctx.fillRect(cx + cloud.width * 0.5, cy - 3, cloud.width * 0.25, 5);
     }
   }
 
-  /** Draw the travel route highlighted */
+  /** Draw the highlighted travel route */
   private drawTravelRoute(state: OvermapTravelState): void {
     const ctx = this.ctx;
     const path = state.path;
     if (path.length < 2) return;
 
-    // Draw highlighted route
-    ctx.strokeStyle = ROAD_HIGHLIGHT;
+    ctx.strokeStyle = 'rgba(200, 168, 78, 0.6)';
     ctx.lineWidth = 2;
-    ctx.setLineDash([]);
+    ctx.setLineDash([4, 3]);
     ctx.beginPath();
 
     const first = getOvermapNode(path[0]);
@@ -332,7 +619,6 @@ export class OvermapRenderer {
       if (!node) continue;
 
       if (edge && edge.waypoints.length > 0) {
-        // Draw through waypoints
         const prev = getOvermapNode(path[i - 1])!;
         const allPts = [{ x: prev.x, y: prev.y }, ...edge.waypoints, { x: node.x, y: node.y }];
         for (let j = 1; j < allPts.length; j++) {
@@ -343,8 +629,9 @@ export class OvermapRenderer {
       }
     }
     ctx.stroke();
+    ctx.setLineDash([]);
 
-    // Destination marker (pulsing ring)
+    // Destination pulsing ring
     const dest = getOvermapNode(state.destination);
     if (dest) {
       const pulse = 3 + Math.sin(this.animTime * 3) * 2;
@@ -357,7 +644,7 @@ export class OvermapRenderer {
   }
 
   /** Draw the chibi pawn at current travel position */
-  private drawPawn(state: OvermapTravelState, _isNight: boolean): void {
+  private drawPawn(state: OvermapTravelState): void {
     const ctx = this.ctx;
     const pos = this.getPawnPosition(state);
     if (!pos) return;
@@ -366,9 +653,9 @@ export class OvermapRenderer {
     const py = Math.floor(pos.y);
 
     if (state.isCamped) {
-      // Draw campfire
+      // Campfire
       this.drawCampfire(px, py + 4);
-      // Draw sleeping pawn (horizontal)
+      // Sleeping pawn
       ctx.fillStyle = PAWN_OUTLINE;
       ctx.fillRect(px - 5, py - 1, 10, 4);
       ctx.fillStyle = PAWN_BODY;
@@ -376,13 +663,12 @@ export class OvermapRenderer {
       ctx.fillStyle = PAWN_HAIR;
       ctx.fillRect(px - 4, py, 2, 2);
     } else {
-      // Walking pawn (vertical chibi)
+      // Walking pawn
       const bobY = Math.floor(Math.sin(this.animTime * 6) * 1);
 
       // Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(px - 2, py + 5, 5, 2);
-
       // Body outline
       ctx.fillStyle = PAWN_OUTLINE;
       ctx.fillRect(px - 3, py - 7 + bobY, 7, 12);
@@ -400,7 +686,7 @@ export class OvermapRenderer {
       ctx.fillStyle = '#3366AA';
       ctx.fillRect(px - 2, py - 4 + bobY, 5, 1);
 
-      // Walking legs animation
+      // Walking legs
       const legPhase = Math.floor(this.animTime * 4) % 2;
       ctx.fillStyle = PAWN_OUTLINE;
       if (legPhase === 0) {
@@ -443,7 +729,7 @@ export class OvermapRenderer {
     }
   }
 
-  /** Calculate the pixel position of the pawn along the travel route */
+  /** Calculate pawn pixel position along travel route */
   private getPawnPosition(state: OvermapTravelState): { x: number; y: number } | null {
     const path = state.path;
     if (path.length < 2) {
@@ -459,7 +745,6 @@ export class OvermapRenderer {
     const edge = getEdge(path[edgeIdx], path[edgeIdx + 1]);
     const t = state.progressOnEdge;
 
-    // Build segment points including waypoints
     const allPts = [
       { x: fromNode.x, y: fromNode.y },
       ...(edge?.waypoints ?? []),
@@ -494,8 +779,8 @@ export class OvermapRenderer {
     return { x: toNode.x, y: toNode.y };
   }
 
-  /** Draw travel info overlay (distance, ETA) */
-  private drawTravelInfo(state: OvermapTravelState, _isNight: boolean): void {
+  /** Draw travel HUD overlay */
+  private drawTravelInfo(state: OvermapTravelState): void {
     const ctx = this.ctx;
 
     // Bottom bar
@@ -524,7 +809,7 @@ export class OvermapRenderer {
       ctx.fillText(`~${hoursLeft.toFixed(1)} hours remaining`, W - 8, H - 20);
     }
 
-    // Top bar - origin
+    // Top bar
     ctx.fillStyle = 'rgba(10, 10, 20, 0.5)';
     ctx.fillRect(0, 0, W, 20);
     ctx.fillStyle = '#C0B090';
@@ -534,9 +819,10 @@ export class OvermapRenderer {
     ctx.fillText(`${orig?.name ?? 'Unknown'} → ${destName}`, W / 2, 13);
   }
 
-  /** Force re-render of static background */
+  /** Force re-render of background */
   invalidateBackground(): void {
     this.bgRendered = false;
+    this.tileMap = null;
   }
 
   dispose(): void {

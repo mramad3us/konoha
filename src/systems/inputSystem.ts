@@ -29,6 +29,7 @@ export class InputSystem {
   private onContextMenu: ((entityId: number) => void) | null = null;
   private onTargetSelect: ((candidates: number[]) => void) | null = null;
   private onEdgeExtraction: (() => void) | null = null;
+  private _paused = false;
 
   constructor(
     world: World,
@@ -54,6 +55,8 @@ export class InputSystem {
   private handleKey(e: KeyboardEvent): void {
     // Ignore if typing in an input
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    // Ignore all game input when paused (overmap travel, cutscenes, etc.)
+    if (this._paused) return;
 
     const key = e.key;
 
@@ -206,6 +209,11 @@ export class InputSystem {
   /** Swap the world reference (for away mission transitions) */
   swapWorld(newWorld: World): void {
     this.world = newWorld;
+  }
+
+  /** Pause/unpause all game input (for overmap travel, cutscenes, etc.) */
+  setPaused(paused: boolean): void {
+    this._paused = paused;
   }
 
   /** Remove event listener */

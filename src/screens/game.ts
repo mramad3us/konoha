@@ -282,6 +282,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     overmapCanvas!.style.display = 'block';
     keybindingsPanel.element.style.display = 'none';
     killToggle.element.style.display = 'none';
+    inputSystem.setPaused(true);
     if (!overmapRenderer) {
       overmapRenderer = new OvermapRenderer(overmapCanvas!);
     }
@@ -292,6 +293,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     overmapCanvas!.style.display = 'none';
     keybindingsPanel.element.style.display = '';
     killToggle.element.style.display = '';
+    inputSystem.setPaused(false);
   };
 
   /** Depart on an away mission — serialize village, start overmap travel */
