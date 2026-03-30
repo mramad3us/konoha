@@ -25,11 +25,31 @@ import { updateCarriedPosition } from './restraintCarry.ts';
  * coarse tick boundary (6 subticks = 3s) is crossed.
  * Fast actions (combat, chakra sprint) don't cross boundaries → world stays frozen.
  */
-function advanceTurn(world: World, subticks: number, gameSeconds: number): void {
+function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCombatStrikes = false): void {
   const oldTick = world.currentTick;
   world.currentSubtick += subticks;
   world.gameTimeSeconds += gameSeconds;
   world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
+
+  // ── Engaged NPC free strikes — if player spends time in combat without fighting ──
+  // Number of combat passes elapsed = subticks / COMBAT_PASS_SUBTICKS
+  // skipCombatStrikes is true for move (handles disengagement separately) and combat actions
+  if (!skipCombatStrikes) {
+    const playerId = world.playerEntityId;
+    const engagedTarget = findEngagedTarget(world, playerId);
+    if (engagedTarget !== null) {
+      const passes = Math.floor(subticks / COMBAT_PASS_SUBTICKS);
+      if (passes > 0) {
+        const targetName = world.names.get(engagedTarget)?.display ?? 'your opponent';
+        for (let i = 0; i < passes; i++) {
+          const hp = world.healths.get(playerId);
+          if (!hp || hp.current <= 0) break;
+          applyFreeHit(world, engagedTarget, playerId, targetName);
+          checkEntityState(world, playerId);
+        }
+      }
+    }
+  }
 
   // Always recompute FOV
   const playerPos = world.positions.get(world.playerEntityId);
@@ -130,7 +150,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
           sfxStep();
           clearStaleEngagements(world);
           world.log('You step away from the training dummy.', 'info');
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
           return true;
         }
 
@@ -138,7 +158,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
         const res = world.resources.get(playerId);
         if (!res || res.stamina < DISENGAGE_STAMINA_COST) {
           world.log('Too exhausted to disengage — you can\'t pull away.', 'info');
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
           return true;
         }
 
@@ -156,19 +176,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
           res.chakraCeiling = Math.max(res.maxChakra * CHAKRA_FATIGUE_FLOOR, res.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
           res.lastChakraExertionTick = world.currentTick;
 
-          const engagements = getActiveEngagements();
-          const key = playerId < engagedTarget ? `${playerId}:${engagedTarget}` : `${engagedTarget}:${playerId}`;
-          const eng = engagements.get(key);
-          const playerTempo = eng ? (eng.entityA === playerId ? eng.tempoA : eng.tempoB) : null;
-
-          if (playerTempo && playerTempo.current > 0) {
-            // Spend tempo to dodge cleanly
-            playerTempo.current--;
-            world.log(`You channel chakra to your feet and slip past ${targetName}'s guard!`, 'combat_tempo');
-          } else {
-            // Take 1 free hit
-            applyFreeHit(world, engagedTarget, playerId, targetName);
-          }
+          // Take 1 free hit (tempo is checked inside applyFreeHit — dodges if available)
+          applyFreeHit(world, engagedTarget, playerId, targetName);
 
           // Check if player was KO'd by the opportunity attack
           checkEntityState(world, playerId);
@@ -183,7 +192,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
             world.log('You collapse before you can get away.', 'hit_incoming');
           }
 
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
         } else {
           // ── Slow disengage (low ninjutsu or no chakra) — stamina-only, 3 passes (6s), 3 free hits ──
           if (playerNin < 10) {
@@ -213,7 +222,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
           }
 
           // 3 passes = 3 × 4 subticks = 12 subticks (6s)
-          advanceTurn(world, COMBAT_PASS_SUBTICKS * 3, PASS_DURATION_SECONDS * 3);
+          advanceTurn(world, COMBAT_PASS_SUBTICKS * 3, PASS_DURATION_SECONDS * 3, true);
         }
 
         return true;
@@ -400,6 +409,11 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'wait': {
+      // Can't wait during combat — must fight or disengage
+      if (findEngagedTarget(world, playerId) !== null) {
+        world.log('You\'re in combat! Fight or move away!', 'combat_tempo');
+        return false;
+      }
       world.log('You wait and observe your surroundings.', 'info');
 
       // Stamina regen on wait (not exerting)
@@ -586,6 +600,24 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
 
 /** Apply a single free hit from attacker to target during disengagement */
 function applyFreeHit(world: World, attackerId: EntityId, targetId: EntityId, attackerName: string): void {
+  // Check if target has tempo to dodge
+  const engagements = getActiveEngagements();
+  const key = attackerId < targetId ? `${attackerId}:${targetId}` : `${targetId}:${attackerId}`;
+  const eng = engagements.get(key);
+  if (eng) {
+    const targetTempo = eng.entityA === targetId ? eng.tempoA : eng.tempoB;
+    if (targetTempo && targetTempo.current > 0) {
+      targetTempo.current--;
+      const DODGE_FLAVORS = [
+        `You read ${attackerName}'s strike and dodge just in time!`,
+        `Your reflexes save you — ${attackerName}'s blow misses by inches.`,
+        `You twist aside, spending tempo to avoid ${attackerName}'s attack.`,
+      ];
+      world.log(DODGE_FLAVORS[Math.floor(Math.random() * DODGE_FLAVORS.length)], 'combat_tempo');
+      return;
+    }
+  }
+
   const attackerSheet = world.characterSheets.get(attackerId);
   const attackerTaijutsu = attackerSheet?.skills.taijutsu ?? 10;
   const attackerPhy = attackerSheet?.stats.phy ?? 10;

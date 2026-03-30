@@ -464,6 +464,23 @@ export function clearStaleEngagements(world: World): void {
   }
 }
 
+/** Create a combat engagement initiated by an NPC (e.g. chasing enemy reaches player).
+ *  Returns true if the engagement was newly created (first contact). */
+export function initiateNpcEngagement(world: World, npcId: EntityId, playerId: EntityId): boolean {
+  const key = engagementKey(npcId, playerId);
+  if (engagements.has(key)) return false; // already engaged
+  getOrCreateEngagement(world, npcId, playerId);
+  return true;
+}
+
+/** Check if a specific entity is in any active combat engagement */
+export function isInCombat(entityId: EntityId): boolean {
+  for (const [, eng] of engagements) {
+    if (eng.entityA === entityId || eng.entityB === entityId) return true;
+  }
+  return false;
+}
+
 /** Clear ALL engagements involving a specific entity (used on respawn/teleport) */
 export function clearEntityEngagements(entityId: EntityId): void {
   for (const [key, eng] of engagements) {

@@ -262,6 +262,16 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   type GamePhase = 'village' | 'overmap_out' | 'mission' | 'overmap_back';
   let gamePhase: GamePhase = 'village';
   let villageWorld: World | null = null;      // cached village world during away missions
+
+  // Restore gamePhase if loading a save taken during an away mission
+  if (world.awayMissionState) {
+    const phase = world.awayMissionState.phase;
+    if (phase === 'on_mission') {
+      gamePhase = 'mission';
+    }
+    // If saved during travel phases, restore to village and let them re-depart
+    // (overmap travel state is ephemeral — can't resume mid-animation)
+  }
   let overmapRenderer: OvermapRenderer | null = null;
   let overmapCanvas: HTMLCanvasElement | null = null;
 

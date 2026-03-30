@@ -10,6 +10,7 @@
 import type { World } from './world.ts';
 import type { Direction, EntityId, AggroComponent } from '../types/ecs.ts';
 import { npcFaceTowardPlayer } from './surpriseAttack.ts';
+import { initiateNpcEngagement } from './combatSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -449,12 +450,11 @@ function tickChase(
 
   const dist = chebyshev(pos.x, pos.y, playerPos.x, playerPos.y);
 
-  // Adjacent to player — stay put and force melee engagement
+  // Adjacent to player — initiate real combat engagement
   if (dist <= 1) {
     const npcName = world.names.get(id)?.display ?? 'An enemy';
-    const aggro = world.aggros.get(id);
-    // Log engagement message once (check if target was just set this tick)
-    if (aggro && aggro.state === 'aggro') {
+    const isNew = initiateNpcEngagement(world, id, world.playerEntityId);
+    if (isNew) {
       world.log(`${npcName} engages you in combat!`, 'hit_incoming');
     }
     return;
