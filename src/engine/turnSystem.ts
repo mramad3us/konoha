@@ -28,9 +28,8 @@ import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem
  */
 function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCombatStrikes = false): void {
   const oldTick = world.currentTick;
-  world.currentSubtick += subticks;
+  const startSubtick = world.currentSubtick;
   world.gameTimeSeconds += gameSeconds;
-  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
 
   // ── Engaged NPC free strikes — if player spends time in combat without fighting ──
   // Number of combat passes elapsed = subticks / COMBAT_PASS_SUBTICKS
@@ -53,9 +52,13 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
   }
 
   // ── Projectiles advance every subtick (fast system) ──
+  // Increment currentSubtick one at a time so speed-gating works correctly
   for (let s = 0; s < subticks; s++) {
+    world.currentSubtick = startSubtick + s + 1;
     tickProjectiles(world);
   }
+  world.currentSubtick = startSubtick + subticks;
+  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
 
   // Always recompute FOV
   const playerPos = world.positions.get(world.playerEntityId);
@@ -87,9 +90,8 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
  */
 export function advanceCombatPass(world: World): void {
   const oldTick = world.currentTick;
-  world.currentSubtick += COMBAT_PASS_SUBTICKS;
+  const startSubtick = world.currentSubtick;
   world.gameTimeSeconds += PASS_DURATION_SECONDS;
-  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
 
   // Always recompute FOV
   const playerPos = world.positions.get(world.playerEntityId);
@@ -100,9 +102,13 @@ export function advanceCombatPass(world: World): void {
   }
 
   // Projectiles advance every subtick during combat too
+  // Increment currentSubtick one at a time so speed-gating works correctly
   for (let s = 0; s < COMBAT_PASS_SUBTICKS; s++) {
+    world.currentSubtick = startSubtick + s + 1;
     tickProjectiles(world);
   }
+  world.currentSubtick = startSubtick + COMBAT_PASS_SUBTICKS;
+  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
 
   // Always tick world systems during combat (not gated by coarse tick boundary)
   // This ensures NPCs move and NPC-vs-NPC fights progress while player fights
