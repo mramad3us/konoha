@@ -286,9 +286,9 @@ import type { EnemyType } from '../types/awayMission.ts';
 
 /** Bandit leader names for procedural generation */
 const BANDIT_LEADER_NAMES = [
-  'Goro the Scarred', 'Tetsu Iron Fist', 'Kenta the Viper', 'Ryu Shadow Blade',
-  'Masa the Butcher', 'Shin Red Hand', 'Nobu the Jackal', 'Genji Thunderstrike',
-  'Juzo One-Eye', 'Sabu the Serpent', 'Hachi Stone Wall', 'Bunta the Fox',
+  'Goro the Scarred', 'Tetsu Iron Fist', 'Kenta the Viper', 'Ryuma Shadow Blade',
+  'Masa the Butcher', 'Shin Red Hand', 'Nobu the Jackal', 'Takeo Thunderstrike',
+  'Ganryu One-Eye', 'Sabu the Serpent', 'Hachi Stone Wall', 'Kumaji the Fox',
 ];
 
 const TROPHY_ITEMS = [
@@ -439,10 +439,10 @@ const B_RANK_CLIENTS = [
 
 /** Rogue nin names — higher profile than bandits */
 const ROGUE_NIN_NAMES = [
-  'Kagero the Phantom', 'Suigetsu of the Mist', 'Dosu the Silent',
-  'Zaku Wind Cutter', 'Kin Bell Ringer', 'Aoi Rokusho',
-  'Mizuki the Betrayer', 'Raiga Lightning Fang', 'Amachi the Alchemist',
-  'Kurosuki the Iron', 'Fuguki Suikazan', 'Kisame\'s Apprentice',
+  'Kagero the Phantom', 'Ushio of the Mist', 'Genma the Silent',
+  'Hayato Wind Cutter', 'Suzume Bell Ringer', 'Aoba Murasaki',
+  'Tsubaki the Betrayer', 'Enrai Lightning Fang', 'Yakumo the Alchemist',
+  'Kurogane the Iron', 'Jinpachi Shark Tooth', 'Mukuro the Faceless',
 ];
 
 const B_RANK_ENCAMPMENT: MissionTemplate = {
@@ -577,10 +577,10 @@ const A_RANK_CLIENTS = [
 
 /** Missing-nin names — elite threats */
 const MISSING_NIN_NAMES = [
-  'Orochimaru\'s Shadow', 'The Demon of the Hidden Mist', 'Zabuza\'s Ghost',
-  'Hidan the Immortal', 'Kakuzu Gold Thread', 'Sasori the Puppeteer',
-  'Deidara the Mad Bomber', 'Itachi\'s Phantom', 'Pain\'s Herald',
-  'Konan Paper Angel', 'Kisame the Tailless', 'Zetsu\'s Fragment',
+  'Dokuen the Serpent King', 'The Butcher of the Hidden Mist', 'Kirimaru the Headsman',
+  'Fudo the Undying', 'Kanegawa Gold Thread', 'Kuguri the Puppeteer',
+  'Bakudan the Mad Bomber', 'Karasu the Crow', 'Shura the Herald',
+  'Origami the Paper Wraith', 'Samehada the Tailless', 'Kairai the Hollow',
 ];
 
 const A_RANK_ROGUE_PURSUIT: MissionTemplate = {

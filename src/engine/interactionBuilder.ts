@@ -72,7 +72,6 @@ export function buildContextOptions(
           options.push({ id: 'depart_mission', label: 'Depart on Mission', accent: true });
         }
       }
-      options.push({ id: 'examine', label: 'Examine' });
     }
   }
 

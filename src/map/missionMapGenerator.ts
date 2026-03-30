@@ -69,10 +69,10 @@ const ROCK_VARIANTS: TerrainSpawn[] = [
 ];
 
 const BUSH_VARIANTS: TerrainSpawn[] = [
-  { spriteId: 'obj_bush_small', offsetY: -8, blocksMove: false, blocksSight: false, displayName: 'bush', article: 'a', description: 'A low shrub.' },
-  { spriteId: 'obj_bush_berry', offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'berry bush', article: 'a', description: 'Dark berries grow among the leaves.' },
-  { spriteId: 'obj_bush_flower', offsetY: -10, blocksMove: false, blocksSight: false, displayName: 'flowering bush', article: 'a', description: 'Bright flowers dot this bush.' },
-  { spriteId: 'obj_bush_tall', offsetY: -14, blocksMove: true, blocksSight: false, displayName: 'tall bush', article: 'a', description: 'A dense thicket, tall enough to block your path.' },
+  { spriteId: 'obj_bush_small', offsetY: -16, blocksMove: false, blocksSight: false, displayName: 'bush', article: 'a', description: 'A low shrub.' },
+  { spriteId: 'obj_bush_berry', offsetY: -16, blocksMove: false, blocksSight: false, displayName: 'berry bush', article: 'a', description: 'Dark berries grow among the leaves.' },
+  { spriteId: 'obj_bush_flower', offsetY: -16, blocksMove: false, blocksSight: false, displayName: 'flowering bush', article: 'a', description: 'Bright flowers dot this bush.' },
+  { spriteId: 'obj_bush_tall', offsetY: -20, blocksMove: true, blocksSight: false, displayName: 'tall bush', article: 'a', description: 'A dense thicket, tall enough to block your path.' },
 ];
 
 const GROUND_COVER: TerrainSpawn[] = [
