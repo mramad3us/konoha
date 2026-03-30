@@ -44,7 +44,8 @@ import { tickTravel } from '../overmap/overmapTravel.ts';
 import { beginAwayMission, createMissionWorld, beginReturnTrip } from '../engine/awayMissionFlow.ts';
 import { computeCRankRewards, applyMissionRewards } from '../engine/missionRewards.ts';
 import { OVERMAP_WALK_SPEED_KMH } from '../core/constants.ts';
-import { autoAssignSquad, deploySquad, returnSquadFromMission, getSquadMember } from '../engine/squadSystem.ts';
+import { autoAssignSquad, deploySquad, returnSquadFromMission, getSquadMember, toggleROE, getCurrentROE } from '../engine/squadSystem.ts';
+import { ROEIndicator } from '../ui/roeIndicator.ts';
 import type { SquadMember } from '../types/squad.ts';
 
 const MEDIC_HEAL_MESSAGES = [
@@ -203,6 +204,15 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   });
   canvasContainer.appendChild(killToggle.element);
 
+  // ROE indicator (shown when squad is active on mission)
+  const roeIndicator = new ROEIndicator();
+  roeIndicator.setChangeCallback((roe) => {
+    toggleROE(world.squadRoster);
+    const label = roe === 'aggressive' ? 'AGGRESSIVE — squad engages on sight' : 'DEFENSIVE — squad holds formation';
+    world.log(`Squad ROE: ${label}`, 'system');
+  });
+  canvasContainer.appendChild(roeIndicator.element);
+
   // Screen shake callback for critical hits
   setScreenShakeCallback(() => {
     canvasContainer.classList.add('game-canvas-container--shake');
@@ -296,6 +306,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     overmapCanvas!.style.display = 'block';
     keybindingsPanel.element.style.display = 'none';
     killToggle.element.style.display = 'none';
+    roeIndicator.hide();
     inputSystem.setPaused(true);
     if (!overmapRenderer) {
       overmapRenderer = new OvermapRenderer(overmapCanvas!);
@@ -418,6 +429,16 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
     world.log(`You arrive near ${data.targetLocationName}. The forest stretches before you.`, 'system');
 
+    // Show ROE indicator if squad is deployed
+    if (world.squadRoster.activeSquad && world.squadMembers.size > 0) {
+      roeIndicator.setState(getCurrentROE(world.squadRoster));
+      roeIndicator.show();
+      const squadNames = world.squadRoster.activeSquad.memberIds
+        .map(id => getSquadMember(world.squadRoster, id)?.name ?? '?')
+        .join(', ');
+      world.log(`Your squad is with you: ${squadNames}. Press [R] to toggle ROE.`, 'system');
+    }
+
     canvasContainer.classList.remove('game-canvas-container--blackout');
     canvasContainer.classList.add('game-canvas-container--fadein');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
@@ -506,6 +527,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     // Clear away state
     world.awayMissionState = null;
     gamePhase = 'village';
+    roeIndicator.hide();
 
     // Apply mission rewards if objective was completed
     const active = world.missionLog.active;
@@ -943,6 +965,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   // Edge extraction — player reached map boundary on mission map
   const extractionMenu = new ContextMenu();
+  inputSystem.setROEToggleCallback((roe) => {
+    roeIndicator.setState(roe);
+  });
+
   inputSystem.setEdgeExtractionCallback(async () => {
     if (gamePhase !== 'mission') return;
 

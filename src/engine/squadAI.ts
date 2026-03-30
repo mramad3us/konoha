@@ -196,11 +196,54 @@ export function tickSquadMember(
     }
   }
 
-  // ── Follow player (formation) — stay within 2 tiles ──
-  if (distToPlayer > 2) {
+  // ── Follow player (formation) — maintain spread formation ──
+  // Each squad member targets a formation offset from the player, not the player directly.
+  // This prevents single-file following.
+  if (distToPlayer > 3) {
+    // Too far — just step toward the player (catch up mode)
     stepToward(world, entityId, pos.x, pos.y, playerPos.x, playerPos.y);
+  } else if (distToPlayer > 1) {
+    // In range — move toward formation position
+    const formationPos = getFormationTarget(world, entityId, playerPos);
+    if (formationPos) {
+      const formDist = chebyshev(pos.x, pos.y, formationPos.x, formationPos.y);
+      if (formDist > 0) {
+        stepToward(world, entityId, pos.x, pos.y, formationPos.x, formationPos.y);
+      }
+    }
   }
-  // If close enough, idle (face player direction)
+  // If within 1 tile, hold position
+}
+
+/** Get a formation target offset from the player for this squad member */
+function getFormationTarget(
+  world: World,
+  entityId: EntityId,
+  playerPos: { x: number; y: number },
+): { x: number; y: number } | null {
+  // Assign each squad member a unique formation slot
+  const squadIds = [...world.squadMembers.keys()];
+  const myIndex = squadIds.indexOf(entityId);
+  if (myIndex < 0) return null;
+
+  // Formation: fan out behind and to the sides of the player
+  // Offsets relative to player: spread laterally with slight rear offset
+  const FORMATION_OFFSETS = [
+    { dx: -2, dy: 1 },   // left-back
+    { dx: 2, dy: 1 },    // right-back
+    { dx: -1, dy: 2 },   // far left-back
+    { dx: 1, dy: 2 },    // far right-back
+  ];
+
+  const offset = FORMATION_OFFSETS[myIndex % FORMATION_OFFSETS.length];
+  const tx = playerPos.x + offset.dx;
+  const ty = playerPos.y + offset.dy;
+
+  // If target is valid, use it; otherwise just stay near player
+  if (tx >= 0 && ty >= 0 && tx < world.tileMap.width && ty < world.tileMap.height) {
+    return { x: tx, y: ty };
+  }
+  return { x: playerPos.x, y: playerPos.y };
 }
 
 /**

@@ -278,9 +278,9 @@ export function generateMissionMap(
   const squadEntityIds: EntityId[] = [];
   for (let i = 0; i < squadMembers.length; i++) {
     const member = squadMembers[i];
-    // Place near player spawn in a formation
+    // Place near player spawn in a spread formation
     const offsets = [
-      { dx: -1, dy: 1 }, { dx: 1, dy: 1 }, { dx: -2, dy: 2 }, { dx: 2, dy: 2 },
+      { dx: -2, dy: 1 }, { dx: 2, dy: 1 }, { dx: -1, dy: 2 }, { dx: 1, dy: 2 },
     ];
     const off = offsets[i % offsets.length];
     let sx = spawnX + off.dx;

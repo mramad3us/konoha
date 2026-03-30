@@ -152,6 +152,62 @@
   color: var(--color-blood);
 }
 
+/* ── ROE Indicator ── */
+.roe-indicator {
+  position: absolute;
+  bottom: var(--space-5);
+  left: 110px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-bg-hover);
+  cursor: pointer;
+  z-index: 8;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.roe-indicator:hover {
+  border-color: var(--color-ink-faint);
+  background: var(--color-bg-elevated);
+}
+
+.roe-indicator--aggressive {
+  border-color: #8b4513;
+}
+
+.roe-indicator--aggressive:hover {
+  border-color: #a0522d;
+}
+
+.roe-indicator__icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.roe-indicator__label {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.roe-indicator--aggressive .roe-indicator__label {
+  color: #a0522d;
+}
+
+.roe-indicator__key {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--color-ink-faint);
+  border: 1px solid var(--color-bg-hover);
+  padding: 0 2px;
+  opacity: 0.5;
+}
+
 /* ── Screen Shake ── */
 @keyframes screenShake {
   0%   { transform: translate(0, 0); }

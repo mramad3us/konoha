@@ -32,6 +32,7 @@ export class InputSystem {
   private onContextMenu: ((entityId: number) => void) | null = null;
   private onTargetSelect: ((candidates: number[]) => void) | null = null;
   private onEdgeExtraction: (() => void) | null = null;
+  private onROEToggle: ((roe: import('../types/squad.ts').SquadROE) => void) | null = null;
   private _paused = false;
 
   constructor(
@@ -161,6 +162,7 @@ export class InputSystem {
         const newRoe = toggleROE(this.world.squadRoster);
         const roeLabel = newRoe === 'aggressive' ? 'AGGRESSIVE — squad engages on sight' : 'DEFENSIVE — squad holds formation';
         this.world.log(`Squad ROE: ${roeLabel}`, 'system');
+        if (this.onROEToggle) this.onROEToggle(newRoe);
       } else {
         this.world.log('No squad deployed.', 'info');
       }
@@ -226,6 +228,11 @@ export class InputSystem {
   /** Set callback for edge extraction (mission map boundary) */
   setEdgeExtractionCallback(cb: () => void): void {
     this.onEdgeExtraction = cb;
+  }
+
+  /** Set callback for ROE toggle (updates UI indicator) */
+  setROEToggleCallback(cb: (roe: import('../types/squad.ts').SquadROE) => void): void {
+    this.onROEToggle = cb;
   }
 
   /** Swap the world reference (for away mission transitions) */
