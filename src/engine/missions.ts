@@ -82,8 +82,8 @@ const RANK_WEIGHTS: Array<{ rank: MissionRank; weight: number }> = [
 export const RANK_UNLOCK_REQUIREMENTS: Record<MissionRank, { minRank: ShinobiRank; minPrevCompleted: number; prevRank?: MissionRank }> = {
   D: { minRank: 'genin', minPrevCompleted: 0 },
   C: { minRank: 'genin', minPrevCompleted: 15, prevRank: 'D' },
-  B: { minRank: 'chuunin', minPrevCompleted: 0 },
-  A: { minRank: 'jounin', minPrevCompleted: 0 },
+  B: { minRank: 'chuunin', minPrevCompleted: 10, prevRank: 'C' },
+  A: { minRank: 'jounin', minPrevCompleted: 15, prevRank: 'B' },
 };
 
 export function canTakeMission(

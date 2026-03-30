@@ -577,10 +577,10 @@ function spawnPlayer(
 /**
  * Enemy rank tiers — used for all away mission enemy types.
  *
- * Bandit tiers (C-rank — genin/chuunin level):
+ * Bandit tiers (C-rank — genin level):
  * - Thug: low genin-level hand-to-hand, cannon fodder
- * - Enforcer: high genin-level technique, very physically strong
- * - Boss: chuunin-level hand-to-hand, strength varies
+ * - Enforcer: mid genin-level technique, very physically strong
+ * - Boss: high genin-level hand-to-hand, toughest bandit but not a ninja
  *
  * Rogue Nin tiers (B-rank — chuunin level):
  * - Rogue Nin: low-mid chuunin, trained ninja gone rogue
@@ -712,11 +712,12 @@ function spawnEnemy(
       break;
 
     case 'boss':
-      tai = rng.nextInt(25, 40);
-      buki = rng.nextInt(15, 25);
+      // High genin-level — toughest bandit but not trained ninja
+      tai = rng.nextInt(18, 25);
+      buki = rng.nextInt(12, 22);
       nin = 0;
-      phy = rng.nextInt(15, 30);
-      men = rng.nextInt(12, 22);
+      phy = rng.nextInt(16, 28);
+      men = rng.nextInt(10, 18);
       cha = rng.nextInt(2, 6);
       title = 'Boss';
       description = `${name}. ${isMissionTarget ? 'The target of your mission. ' : ''}A dangerous gang leader who fights with brutal precision.`;
