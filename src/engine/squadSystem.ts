@@ -120,14 +120,14 @@ function generateSkills(rank: ShinobiRank): CharacterSkills {
 function generateStats(rank: ShinobiRank): CharacterStats {
   switch (rank) {
     case 'genin':
-      return { phy: rosterRandInt(8, 16), cha: rosterRandInt(6, 14), men: rosterRandInt(5, 12), soc: rosterRandInt(4, 10) };
+      return { phy: rosterRandInt(8, 16), cha: rosterRandInt(6, 14), men: rosterRandInt(5, 12) };
     case 'chuunin':
-      return { phy: rosterRandInt(16, 26), cha: rosterRandInt(14, 22), men: rosterRandInt(12, 20), soc: rosterRandInt(6, 14) };
+      return { phy: rosterRandInt(16, 26), cha: rosterRandInt(14, 22), men: rosterRandInt(12, 20) };
     case 'jounin':
     case 'special_jounin':
-      return { phy: rosterRandInt(24, 36), cha: rosterRandInt(22, 34), men: rosterRandInt(20, 30), soc: rosterRandInt(8, 16) };
+      return { phy: rosterRandInt(24, 36), cha: rosterRandInt(22, 34), men: rosterRandInt(20, 30) };
     default:
-      return { phy: 8, cha: 4, men: 4, soc: 6 };
+      return { phy: 8, cha: 4, men: 4 };
   }
 }
 

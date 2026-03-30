@@ -1033,7 +1033,7 @@ function spawnEnemy(
       break;
   }
 
-  const stats = { phy, cha, men, soc: rng.nextInt(2, 6) };
+  const stats = { phy, cha, men };
   const skills = { taijutsu: tai, bukijutsu: buki, ninjutsu: nin, genjutsu: 0, med: 0 };
   const hp = computeMaxHp(stats);
 

@@ -638,7 +638,7 @@ function spawnTrainingGroundsObjects(world: World, _devMode: boolean): void {
     world.characterSheets.set(id, {
       class: 'civilian', rank: 'academy_student', title: 'Training Equipment',
       skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: 0 },
-      stats: { phy: 10, cha: 0, men: 0, soc: 0 }, learnedJutsus: [],
+      stats: { phy: 10, cha: 0, men: 0 }, learnedJutsus: [],
     });
     world.destructibles.set(id, { onDestroyMessage: 'The training dummy splinters apart!', respawnTicks: 50 });
     world.aiControlled.set(id, { behavior: 'static' });

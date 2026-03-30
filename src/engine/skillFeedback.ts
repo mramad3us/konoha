@@ -106,16 +106,6 @@ const MEN_UP: string[] = [
   'The meditation is changing you. Your thoughts obey you more readily.',
 ];
 
-const SOC_UP: string[] = [
-  'You notice the subtle cues — a shift in posture, a hesitation in speech.',
-  'People seem more readable. Their intentions clearer in their expressions.',
-  'Your words land differently now. People listen a little more carefully.',
-  'Social currents that once confused you are starting to make sense.',
-  'You feel more comfortable in conversation. Less guarded, more natural.',
-  'The village is full of stories — and you\'re getting better at reading them.',
-  'Influence isn\'t about power. It\'s about understanding. And you understand more.',
-  'You catch yourself persuading where you once would have stumbled.',
-];
 
 // ── LOOKUP MAPS ──
 
@@ -131,7 +121,6 @@ const STAT_POOLS: Record<string, string[]> = {
   phy: PHY_UP,
   cha: CHA_UP,
   men: MEN_UP,
-  soc: SOC_UP,
 };
 
 const SKILL_LABELS: Record<string, string> = {
@@ -143,7 +132,6 @@ const SKILL_LABELS: Record<string, string> = {
   phy: 'Physical',
   cha: 'Chakra',
   men: 'Mental',
-  soc: 'Social',
 };
 
 /**

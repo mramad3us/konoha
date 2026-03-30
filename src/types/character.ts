@@ -75,7 +75,6 @@ export interface CharacterStats {
   phy: number;  // Physical fitness & strength
   cha: number;  // Chakra reserves
   men: number;  // Mental power / willpower
-  soc: number;  // Social skills
 }
 
 export type StatId = keyof CharacterStats;
@@ -84,17 +83,15 @@ export const STAT_LABELS: Record<StatId, string> = {
   phy: 'Physical',
   cha: 'Chakra',
   men: 'Mental',
-  soc: 'Social',
 } as const;
 
 export const STAT_DESCRIPTIONS: Record<StatId, string> = {
   phy: 'Strength, endurance — improves with physical activity',
   cha: 'Raw chakra reserves — improves with meditation and jutsu use',
   men: 'Willpower, mental fortitude — improves slowly through meditation',
-  soc: 'Social influence — improves through conversation and special training',
 } as const;
 
-export const ALL_STAT_IDS: StatId[] = ['phy', 'cha', 'men', 'soc'];
+export const ALL_STAT_IDS: StatId[] = ['phy', 'cha', 'men'];
 
 // ── PROFICIENCY TIERS (Dwarf Fortress inspired) ──
 // Maps 0-100 scale to named tiers
@@ -196,8 +193,6 @@ export const STAT_IMPROVEMENT_RATES = {
   cha_meditation: 0.000060,     // meditation (high impact for chakra)
   cha_ninjutsu_use: 0.000015,   // low impact
   men_meditation: 0.000020,     // very slow, only way
-  soc_conversation: 0.000008,   // very slow passive
-  soc_training: 0.000050,       // special trainer
 } as const;
 
 // ── RANK TIER HELPERS ──
@@ -251,7 +246,6 @@ export const DEFAULT_SHINOBI_SHEET: CharacterSheet = {
     phy: 12,
     cha: 8,
     men: 6,
-    soc: 10,
   },
   learnedJutsus: [],
 };

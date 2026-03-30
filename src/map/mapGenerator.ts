@@ -208,7 +208,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         rank: 'jounin' as const,
         title: 'Elite Shinobi',
         skills: { taijutsu: 90, bukijutsu: 90, ninjutsu: 90, genjutsu: 90, med: 90 },
-        stats: { phy: 90, cha: 90, men: 90, soc: 90 },
+        stats: { phy: 90, cha: 90, men: 90 },
         learnedJutsus: ['substitution', 'chakra_sprint', 'water_walk'],
       }
     : { ...DEFAULT_SHINOBI_SHEET, title: 'Academy Graduate' };
@@ -263,7 +263,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
         rank: 'academy_student',
         title: 'Training Equipment',
         skills: { taijutsu: 10, bukijutsu: 0, ninjutsu: 0, genjutsu: 0, med: 0 },
-        stats: { phy: 10, cha: 0, men: 0, soc: 0 },
+        stats: { phy: 10, cha: 0, men: 0 },
         learnedJutsus: [],
       });
       world.destructibles.set(id, {
@@ -283,7 +283,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
 
     if (cfg.sparring) {
       // Sparring partner — real combatant, stats scale HP
-      const sparStats = { phy: 20, cha: 10, men: 8, soc: 12 };
+      const sparStats = { phy: 20, cha: 10, men: 8 };
       const sparHp = computeMaxHp(sparStats);
       world.renderables.set(id, { spriteId: cfg.spriteId, layer: 'character', offsetY: cfg.offsetY });
       world.healths.set(id, { current: sparHp, max: sparHp });
@@ -305,7 +305,7 @@ export function generateTrainingGrounds(playerName: string, playerGender: 'shino
   // ── ANBU (dev mode only) ──
   if (devMode) {
     const anbuId = world.createEntity();
-    const anbuStats = { phy: 60, cha: 55, men: 50, soc: 30 };
+    const anbuStats = { phy: 60, cha: 55, men: 50 };
     const anbuHp = computeMaxHp(anbuStats);
     world.setPosition(anbuId, { x: 20, y: 3, facing: 's' });
     world.renderables.set(anbuId, { spriteId: 'char_anbu_s', layer: 'character', offsetY: -16 });
