@@ -824,7 +824,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     const playerSheet = world.characterSheets.get(world.playerEntityId);
     const playerRank = playerSheet?.rank ?? 'genin';
     const currentDay = getGameDay(world.gameTimeSeconds);
-    refreshMissionBoard(world.missionBoard, currentDay, playerRank, world.missionLog.completed);
+    refreshMissionBoard(world.missionBoard, currentDay, playerRank, world.missionLog.completed, world.missionSalt);
 
     const chosenId = await missionBoardUI.show(
       world.missionBoard, world.missionLog, playerRank, world.gameTimeSeconds,

@@ -226,11 +226,15 @@ export function getExamineText(world: World, entityId: EntityId): string[] {
   }
 
   // ── NPC Skill Assessment (roleplay text, no numbers) ──
-  if (charSheet && charSheet.class !== 'civilian') {
+  if (charSheet) {
     const playerSheet = world.characterSheets.get(world.playerEntityId);
     if (playerSheet) {
       const skillLines = assessNpcSkills(name, charSheet.skills, playerSheet.skills, entityId);
-      lines.push(...skillLines);
+      if (skillLines.length > 0) {
+        lines.push(...skillLines);
+      } else if (charSheet.class === 'civilian' || charSheet.class === 'merchant') {
+        lines.push('No combat training to speak of. Just an ordinary person.');
+      }
     }
   }
 

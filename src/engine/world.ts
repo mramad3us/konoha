@@ -49,8 +49,9 @@ export class World {
   meditationLastDay = -1;
   meditationSessionsToday = 0;
 
-  // Mission system
-  missionBoard: MissionBoard = createMissionBoard(1);
+  // Mission system — salt randomises missions across playthroughs
+  missionSalt: number = Math.floor(Math.random() * 1_000_000);
+  missionBoard: MissionBoard = createMissionBoard(1, 'genin', { D: 0, C: 0, B: 0, A: 0 }, this.missionSalt);
   missionLog: MissionLog = createMissionLog();
 
   // Away mission state (null when not on an away mission)
@@ -329,6 +330,7 @@ export class World {
       carrying: serializeMap(this.carrying),
       carried: serializeMap(this.carried),
       playerKillIntent: this.playerKillIntent,
+      missionSalt: this.missionSalt,
       missionBoard: this.missionBoard,
       missionLog: this.missionLog,
       awayMissionState: this.awayMissionState,
@@ -421,6 +423,9 @@ export class World {
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
+    }
+    if (data['missionSalt'] !== undefined) {
+      world.missionSalt = data['missionSalt'] as number;
     }
     if (data['missionBoard']) {
       world.missionBoard = data['missionBoard'] as MissionBoard;

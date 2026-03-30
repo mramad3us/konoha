@@ -778,27 +778,27 @@ function generateMission(seed: number, day: number): Mission {
   };
 }
 
-export function createMissionBoard(day: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }): MissionBoard {
+export function createMissionBoard(day: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }, salt: number = 0): MissionBoard {
   const missions: Mission[] = [];
   const bestRank = getHighestAccessibleRank(playerRank, completedLog);
 
   // Guarantee at least 2 missions at the player's best accessible rank
   const GUARANTEED = 2;
   for (let i = 0; i < GUARANTEED; i++) {
-    const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
+    const seed = cellHash(day * 1000 + i + salt, day * 7 + i * 31 + salt);
     missions.push(generateMissionOfRank(seed, day, bestRank));
   }
 
   // Fill remaining slots with weighted random ranks
   for (let i = GUARANTEED; i < BOARD_SIZE; i++) {
-    const seed = cellHash(day * 1000 + i, day * 7 + i * 31);
+    const seed = cellHash(day * 1000 + i + salt, day * 7 + i * 31 + salt);
     missions.push(generateMission(seed, day));
   }
 
   return { missions, lastRefreshDay: day };
 }
 
-export function refreshMissionBoard(board: MissionBoard, currentDay: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }): void {
+export function refreshMissionBoard(board: MissionBoard, currentDay: number, playerRank: ShinobiRank = 'genin', completedLog: Record<MissionRank, number> = { D: 0, C: 0, B: 0, A: 0 }, salt: number = 0): void {
   if (currentDay <= board.lastRefreshDay) return;
 
   board.missions = board.missions.filter(m => {
@@ -813,7 +813,7 @@ export function refreshMissionBoard(board: MissionBoard, currentDay: number, pla
   let needed = Math.max(0, 2 - accessibleCount);
 
   while (board.missions.length < BOARD_SIZE) {
-    const seed = cellHash(currentDay * 1000 + slotIdx, currentDay * 13 + slotIdx * 37);
+    const seed = cellHash(currentDay * 1000 + slotIdx + salt, currentDay * 13 + slotIdx * 37 + salt);
     if (needed > 0) {
       board.missions.push(generateMissionOfRank(seed, currentDay, bestRank));
       needed--;
