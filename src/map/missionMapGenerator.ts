@@ -13,6 +13,7 @@ import { TileMap } from './tileMap.ts';
 import { World } from '../engine/world.ts';
 import { stampRiver } from './buildingStamper.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
+import { JUTSU_REGISTRY } from '../data/jutsus.ts';
 import type { MissionMapConfig, CRankMissionData } from '../types/awayMission.ts';
 import type { TileType } from '../types/tiles.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -141,6 +142,17 @@ function registerNinjaEnemySprites(rng: SeededRng, type: 'rogue_nin' | 'missing_
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
   }
   return prefix;
+}
+
+/** Return all jutsu IDs the NPC qualifies for based on ninjutsu skill */
+function getAccessibleJutsus(ninjutsuSkill: number): string[] {
+  const jutsus: string[] = [];
+  for (const [id, def] of Object.entries(JUTSU_REGISTRY)) {
+    if (def.category === 'ninjutsu' && ninjutsuSkill >= def.minNinjutsuSkill) {
+      jutsus.push(id);
+    }
+  }
+  return jutsus;
 }
 
 function randomBanditName(rng: SeededRng): string {
@@ -1024,7 +1036,7 @@ function spawnEnemy(
     title,
     skills,
     stats,
-    learnedJutsus: isNinja && nin >= 15 ? ['substitution'] : [],
+    learnedJutsus: isNinja ? getAccessibleJutsus(nin) : [],
   });
   world.names.set(id, { display: name, article: '' });
 
