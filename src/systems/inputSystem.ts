@@ -2,7 +2,7 @@ import { resolveAction, GAME_KEYS, JUTSU_COMBAT_KEYS } from '../engine/actionRes
 import { tryCastJutsuByKey, getJutsuFailMessage } from '../engine/jutsuResolver.ts';
 import { getJutsuByCombatKey } from '../data/jutsus.ts';
 import { findAdjacentTarget as findTarget } from '../engine/combatSystem.ts';
-import { executeTurn } from '../engine/turnSystem.ts';
+import { executeTurn, advanceCombatPass } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
@@ -83,9 +83,12 @@ export class InputSystem {
 
       if (result.success) {
         this.world.log(result.message, 'combat_tempo');
+        // Advance world by one combat pass
+        advanceCombatPass(this.world);
         // Update camera to follow teleport
         const pp = this.world.positions.get(this.world.playerEntityId);
         if (pp) this.camera.snapTo(pp.x, pp.y);
+        clearStaleEngagements(this.world);
       } else {
         const jutsu = getJutsuByCombatKey(key);
         const failMsg = jutsu
@@ -120,10 +123,15 @@ export class InputSystem {
 
       const turnConsumed = processCombatMove(this.world, key);
       if (turnConsumed) {
+        // Advance world by one combat pass — ticks NPC movement and NPC-vs-NPC fights
+        advanceCombatPass(this.world);
+
         this.hud.update(this.world);
         this.tempoBeads.update(getPlayerTempo(this.world));
         this.conditionIndicator.update(getPlayerCondition(this.world));
-        // Player state checked by combatSystem via entityState
+
+        // Clear engagements if entities moved apart during the tick
+        clearStaleEngagements(this.world);
       }
       return;
     }

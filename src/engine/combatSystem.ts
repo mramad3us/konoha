@@ -13,8 +13,8 @@ import { resolveCombat } from './combatResolver.ts';
 import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, generateNpcObservation } from './flavorText.ts';
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
-import { checkEntityState, applyBleeding, tickBleeding, killEntity as killEntityDirect } from './entityState.ts';
-import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RESTORE_RATE, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
+import { checkEntityState, applyBleeding, killEntity as killEntityDirect } from './entityState.ts';
+import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RESTORE_RATE } from '../core/constants.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
@@ -69,6 +69,8 @@ export function findAdjacentTarget(world: World): EntityId | null {
       const entities = world.getEntitiesAt(playerPos.x + dx, playerPos.y + dy);
       for (const eid of entities) {
         if (eid === world.playerEntityId) continue;
+        // Skip squad members — they're allies
+        if (world.squadMembers.has(eid)) continue;
         // Skip unconscious and dead entities — can't fight them
         if (world.unconscious.has(eid) || world.dead.has(eid)) continue;
         // Skip entities invisible to the player
@@ -451,11 +453,8 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
     }
   }
 
-  // Combat pass = 4 subticks (2s). Stays within a coarse tick so NPCs don't react.
-  world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
-
-  // Tick bleeding for all entities (always runs in combat)
-  tickBleeding(world);
+  // Time advancement and world ticking is handled by the caller (inputSystem)
+  // via advanceCombatPass() so that NPC movement, other fights, etc. progress.
 
   return true;
 }
@@ -521,5 +520,112 @@ export function clearEntityEngagements(entityId: EntityId): void {
     if (eng.entityA === entityId || eng.entityB === entityId) {
       engagements.delete(key);
     }
+  }
+}
+
+/**
+ * Resolve one round of combat for all NPC-vs-NPC engagements (no player involved).
+ * Called each tick from advanceTurn so that NPC fights actually progress.
+ */
+export function resolveNpcCombatRounds(world: World): void {
+  const playerId = world.playerEntityId;
+
+  for (const [key, eng] of engagements) {
+    // Skip player-involved engagements — those are resolved by processCombatMove
+    if (eng.entityA === playerId || eng.entityB === playerId) continue;
+
+    // Skip if either combatant is dead/unconscious
+    if (world.unconscious.has(eng.entityA) || world.dead.has(eng.entityA) ||
+        world.unconscious.has(eng.entityB) || world.dead.has(eng.entityB)) {
+      engagements.delete(key);
+      continue;
+    }
+
+    // Skip if combatants moved apart
+    const posA = world.positions.get(eng.entityA);
+    const posB = world.positions.get(eng.entityB);
+    if (!posA || !posB || Math.max(Math.abs(posA.x - posB.x), Math.abs(posA.y - posB.y)) > 1) {
+      engagements.delete(key);
+      continue;
+    }
+
+    const sheetA = world.characterSheets.get(eng.entityA);
+    const sheetB = world.characterSheets.get(eng.entityB);
+    const taiA = sheetA?.skills.taijutsu ?? 10;
+    const taiB = sheetB?.skills.taijutsu ?? 10;
+    const phyA = sheetA?.stats.phy ?? 10;
+    const phyB = sheetB?.stats.phy ?? 10;
+
+    // Both NPCs pick moves
+    const condA = eng.conditionA;
+    const condB = eng.conditionB;
+    const moveA = condA.condition === 'stunned'
+      ? 'q' as CombatMove
+      : pickNpcMove('basic', taiA, eng.tempoA.current, eng.tempoB.current);
+    const moveB = condB.condition === 'stunned'
+      ? 'q' as CombatMove
+      : pickNpcMove('basic', taiB, eng.tempoB.current, eng.tempoA.current);
+
+    // Resolve
+    const outcome = resolveCombat(moveA, moveB, eng.entityA, eng.entityB,
+      eng.tempoA, eng.tempoB, eng.conditionA, eng.conditionB,
+      taiA, taiB, phyA, phyB);
+
+    // Apply tempo
+    const tAtk = outcome.tempoChange.attacker;
+    const tDef = outcome.tempoChange.defender;
+    if (outcome.attackerId === eng.entityA) {
+      eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tAtk));
+      eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + tDef));
+    } else {
+      eng.tempoB.current = Math.max(0, Math.min(eng.tempoB.max, eng.tempoB.current + tAtk));
+      eng.tempoA.current = Math.max(0, Math.min(eng.tempoA.max, eng.tempoA.current + tDef));
+    }
+
+    // Apply damage
+    if (outcome.damage > 0) {
+      const defHealth = world.healths.get(outcome.defenderId);
+      if (defHealth) {
+        defHealth.current = Math.max(0, defHealth.current - outcome.damage);
+      }
+
+      // Floating text
+      const defPos = world.positions.get(outcome.defenderId);
+      if (defPos) {
+        const defSquad = world.squadMembers.get(outcome.defenderId);
+        const lines = defSquad
+          ? SQUAD_COMBAT_LINES[defSquad.personality].hit
+          : ['Argh!', 'Tch!', 'Ngh!', 'Gah!'];
+        spawnFloatingText(defPos.x, defPos.y, lines[Math.floor(Math.random() * lines.length)],
+          defSquad ? '#66aaff' : '#ff6666');
+      }
+
+      // Critical check
+      const atkSkill = outcome.attackerId === eng.entityA ? taiA : taiB;
+      const defSkill = outcome.defenderId === eng.entityA ? taiA : taiB;
+      const crit = critChance(atkSkill, defSkill);
+      if (Math.random() < crit) {
+        const condition = Math.random() < 0.5 ? 'down' as const : 'stunned' as const;
+        const defCond = outcome.defenderId === eng.entityA ? eng.conditionA : eng.conditionB;
+        defCond.condition = condition;
+        defCond.turnsRemaining = 1;
+      }
+    }
+
+    // Tick conditions
+    if (condA.turnsRemaining > 0) {
+      condA.turnsRemaining--;
+      if (condA.turnsRemaining <= 0) condA.condition = null;
+    }
+    if (condB.turnsRemaining > 0) {
+      condB.turnsRemaining--;
+      if (condB.turnsRemaining <= 0) condB.condition = null;
+    }
+
+    // Check entity state (KO/death)
+    checkEntityState(world, eng.entityA);
+    checkEntityState(world, eng.entityB);
+
+    eng.round++;
   }
 }

@@ -12,7 +12,7 @@ import { sfxStep } from '../systems/audioSystem.ts';
 import { checkPatrolProgress, getMissionXpMultiplier } from './missions.ts';
 import { tickNpcMovement } from './npcMovementSystem.ts';
 import { tickDuskTransition, tickDawnTransition } from './npcLifecycleSystem.ts';
-import { getActiveEngagements, clearStaleEngagements } from './combatSystem.ts';
+import { getActiveEngagements, clearStaleEngagements, resolveNpcCombatRounds } from './combatSystem.ts';
 import { computeImprovement, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { calculateDamage } from '../types/combat.ts';
@@ -64,6 +64,43 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
   for (let t = 0; t < ticksElapsed; t++) {
     tickUnconsciousRecovery(world);
     tickBleeding(world);
+    tickProximityDialogue(world);
+    tickNpcMovement(world);
+    resolveNpcCombatRounds(world);
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+  }
+}
+
+/**
+ * Advance world by one combat pass (4 subticks / 2s).
+ * Unlike a full turn, this always ticks world systems so NPC movement
+ * and NPC-vs-NPC fights progress during player combat.
+ * Called by inputSystem after processCombatMove resolves.
+ */
+export function advanceCombatPass(world: World): void {
+  const oldTick = world.currentTick;
+  world.currentSubtick += COMBAT_PASS_SUBTICKS;
+  world.gameTimeSeconds += PASS_DURATION_SECONDS;
+  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
+
+  // Always recompute FOV
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (playerPos) {
+    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
+    const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
+    computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
+  }
+
+  // Always tick world systems during combat (not gated by coarse tick boundary)
+  // This ensures NPCs move and NPC-vs-NPC fights progress while player fights
+  tickBleeding(world);
+  resolveNpcCombatRounds(world);
+
+  // Coarse tick systems — NPC movement, dialogue, etc.
+  const ticksElapsed = world.currentTick - oldTick;
+  for (let t = 0; t < ticksElapsed; t++) {
+    tickUnconsciousRecovery(world);
     tickProximityDialogue(world);
     tickNpcMovement(world);
     tickDuskTransition(world);
