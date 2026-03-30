@@ -394,6 +394,19 @@ export function getThrowableTargets(world: World, entityId: EntityId): EntityId[
     targets.push(id);
   }
 
+  // For player/squad, also target destructibles (training dummies etc.)
+  if (isPlayer || isSquad) {
+    for (const [id] of world.destructibles) {
+      if (targets.includes(id)) continue; // already added via aggro
+      const targetPos = world.positions.get(id);
+      if (!targetPos) continue;
+      const dist = Math.max(Math.abs(pos.x - targetPos.x), Math.abs(pos.y - targetPos.y));
+      if (dist > 10 || dist < 1) continue;
+      if (!world.isVisible(targetPos.x, targetPos.y)) continue;
+      targets.push(id);
+    }
+  }
+
   // For enemy NPCs, target player and squad
   if (!isPlayer && !isSquad && world.aggros.has(entityId)) {
     // Target player

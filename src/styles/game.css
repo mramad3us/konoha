@@ -445,9 +445,16 @@
   opacity: 0.35;
 }
 
-.hud-ammo__sprite {
-  width: 24px;
-  height: 24px;
+.hud-ammo__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.hud-ammo__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
