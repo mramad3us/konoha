@@ -150,14 +150,14 @@ export function buildContextOptions(
     options.push({ id: 'revive', label: 'Revive', accent: true });
     options.push({ id: 'restrain', label: 'Restrain', accent: true });
     options.push({ id: 'carry', label: 'Carry', accent: true, disabled: playerIsCarrying, disabledReason: playerIsCarrying ? 'Already carrying someone' : undefined });
-    options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
+    options.push({ id: 'search', label: 'Search' });
     options.push({ id: 'execute', label: 'Execute', danger: true });
   }
 
   // ─��� NPC: Dead ──
   if (isNpc && dead) {
     options.push({ id: 'carry', label: 'Carry', accent: true, disabled: playerIsCarrying, disabledReason: playerIsCarrying ? 'Already carrying someone' : undefined });
-    options.push({ id: 'search', label: 'Search', disabled: true, disabledReason: 'Nothing to find' });
+    options.push({ id: 'search', label: 'Search' });
   }
 
   // ── Player is carrying: show "Drop" option ──

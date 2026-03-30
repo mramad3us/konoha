@@ -655,19 +655,28 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId }, world);
         if (msg) world.log(msg, 'system');
       }
-      // Check if searching dead bandit target for trophy (C-rank away missions)
-      if (world.awayMissionState && world.missionLog.active && !world.awayMissionState.hasTrophy) {
+    } else if (choice === 'search') {
+      const targetName = world.names.get(entityId)?.display ?? 'the body';
+      world.log(`You search ${targetName}...`, 'info');
+      world.advanceTime(SUBTICKS_PER_TICK, 3);
+
+      // Check for mission trophy (C-rank away missions)
+      if (world.awayMissionState && world.missionLog.active) {
         const away = world.awayMissionState;
-        const isDead = world.dead.has(entityId);
         const isTarget = away.targetEntityId === entityId || away.banditEntityIds.includes(entityId);
-        if (isDead && isTarget) {
+        if (isTarget && !away.hasTrophy) {
           away.hasTrophy = true;
           const data = getCRankData(world.missionLog.active.mission);
           const trophyName = data?.trophyItem ?? 'proof';
-          world.log(`You find ${trophyName} on the body.`, 'info');
+          world.log(`Found: ${trophyName}.`, 'info');
           const missionMsg = processMissionEvent(world.missionLog, { type: 'trophy_collected' });
           if (missionMsg) world.log(missionMsg, 'system');
+        } else {
+          world.log('Nothing useful.', 'info');
         }
+      } else {
+        // Generic search — placeholder for future loot system
+        world.log('Nothing useful.', 'info');
       }
     } else if (choice === 'talk') {
       // Check if this NPC is a delivery target
