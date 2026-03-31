@@ -66,6 +66,7 @@ export class IsoRenderer {
     const drawCommands: DrawCommand[] = [];
     const halfTW = TILE_WIDTH / 2;
     const halfTH = TILE_HEIGHT / 2;
+    const playerPos = world.positions.get(world.playerEntityId);
 
     // ── Build draw list ──
     for (let y = minY; y <= maxY; y++) {
@@ -121,6 +122,13 @@ export class IsoRenderer {
 
           // Skip entities that are invisible to the player
           if (world.isInvisibleToPlayer(eid)) continue;
+
+          // Skip hidden entities unless player is adjacent (Chebyshev ≤ 1)
+          if (world.hiddenUntilAdjacent.has(eid) && playerPos) {
+            const dx = Math.abs(x - playerPos.x);
+            const dy = Math.abs(y - playerPos.y);
+            if (dx > 1 || dy > 1) continue;
+          }
 
           const isShadowed = world.isInvisibleButDetected(eid);
 

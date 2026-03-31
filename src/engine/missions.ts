@@ -859,6 +859,7 @@ export function acceptMission(log: MissionLog, board: MissionBoard, missionId: s
       category: 'object',
     });
     world.interactables.set(eid, { interactionType: 'examine', label: 'Collect' });
+    world.hiddenUntilAdjacent.add(eid);
 
     progress.searchEntityId = eid;
   }

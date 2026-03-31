@@ -47,6 +47,7 @@ export class World {
   thrownAmmo = new Map<EntityId, ThrownAmmoComponent>();
   projectiles = new Map<EntityId, ProjectileComponent>();
   throwCooldowns = new Map<EntityId, ThrowCooldownComponent>();
+  hiddenUntilAdjacent = new Set<EntityId>();
 
   // Blood decals — keyed by "x:y", persistent for 1 in-game hour
   bloodDecals = new Map<string, { x: number; y: number; spawnTick: number; variant: number }>();
@@ -202,6 +203,7 @@ export class World {
     this.thrownAmmo.delete(id);
     this.projectiles.delete(id);
     this.throwCooldowns.delete(id);
+    this.hiddenUntilAdjacent.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -349,6 +351,7 @@ export class World {
       thrownAmmo: serializeMap(this.thrownAmmo),
       projectiles: serializeMap(this.projectiles),
       throwCooldowns: serializeMap(this.throwCooldowns),
+      hiddenUntilAdjacent: Array.from(this.hiddenUntilAdjacent),
       bloodDecals: Object.fromEntries(this.bloodDecals),
       playerKillIntent: this.playerKillIntent,
       missionSalt: this.missionSalt,
@@ -454,6 +457,9 @@ export class World {
     }
     if (data['throwCooldowns']) {
       deserializeMap(world.throwCooldowns, data['throwCooldowns'] as Record<string, ThrowCooldownComponent>);
+    }
+    if (data['hiddenUntilAdjacent']) {
+      world.hiddenUntilAdjacent = new Set(data['hiddenUntilAdjacent'] as EntityId[]);
     }
     if (data['bloodDecals']) {
       const raw = data['bloodDecals'] as Record<string, { x: number; y: number; spawnTick: number; variant: number }>;
