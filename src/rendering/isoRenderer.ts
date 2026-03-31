@@ -166,7 +166,7 @@ export class IsoRenderer {
         ctx.globalAlpha = cmd.alpha;
         const { r, g, b } = cmd.bloodDot;
         ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(Math.round(cmd.screenX), Math.round(cmd.screenY), 3, 2);
+        ctx.fillRect(Math.round(cmd.screenX), Math.round(cmd.screenY), 5, 4);
         continue;
       }
 
