@@ -229,9 +229,6 @@ export class IsoRenderer {
     // ── Combat status indicators above characters ──
     this.drawCombatIndicators(ctx, world, offset);
 
-    // ── Invisibility eye icon above invisible entities ──
-    this.drawInvisibilityIndicators(ctx, world, offset);
-
     // ── Throw target highlight ──
     if (throwTargetId !== undefined) {
       this.drawThrowTargetHighlight(ctx, world, offset, throwTargetId);
@@ -329,68 +326,6 @@ export class IsoRenderer {
 
     // ── Carry indicator above player (drawn after night overlay so it's always visible) ──
     this.drawCarryIndicator(ctx, world, offset);
-  }
-
-  /** Draw eye icon above invisible entities visible to the player */
-  private drawInvisibilityIndicators(
-    ctx: CanvasRenderingContext2D,
-    world: World,
-    offset: { ox: number; oy: number },
-  ): void {
-    const halfTW = TILE_WIDTH / 2;
-    const halfTH = TILE_HEIGHT / 2;
-
-    // Check all invisible entities
-    for (const [entityId] of world.invisible) {
-      // Must be visible to the player (self or detected)
-      const isPlayer = entityId === world.playerEntityId;
-      const isDetected = world.isInvisibleButDetected(entityId);
-      if (!isPlayer && !isDetected) continue;
-
-      const pos = world.positions.get(entityId);
-      if (!pos) continue;
-      if (!world.fovVisible.has(world.fovKey(pos.x, pos.y))) continue;
-
-      const sx = (pos.x - pos.y) * halfTW + offset.ox;
-      const sy = (pos.x + pos.y) * halfTH + offset.oy;
-      const centerX = sx + TILE_WIDTH / 2;
-      const aboveY = sy - 26;
-
-      // Pulsing alpha for subtle breathing effect
-      const pulse = 0.6 + 0.3 * Math.sin(Date.now() / 600);
-      ctx.globalAlpha = pulse;
-
-      // Eye icon color: blue for self, purple for detected NPCs
-      const eyeColor = isPlayer ? '#8ab4f8' : '#bb88dd';
-
-      // ── Draw pixel-art eye icon (11×5 pixels) ──
-      ctx.fillStyle = eyeColor;
-
-      // Eye outline — almond shape
-      // Row 0 (top):       ··XXX···
-      ctx.fillRect(centerX - 2, aboveY, 5, 1);
-      // Row 1:           ·X·····X·
-      ctx.fillRect(centerX - 4, aboveY + 1, 1, 1);
-      ctx.fillRect(centerX + 4, aboveY + 1, 1, 1);
-      // Row 2 (middle):  X···O···X  (O = pupil)
-      ctx.fillRect(centerX - 5, aboveY + 2, 1, 1);
-      ctx.fillRect(centerX + 5, aboveY + 2, 1, 1);
-      // Row 3:           ·X·····X·
-      ctx.fillRect(centerX - 4, aboveY + 3, 1, 1);
-      ctx.fillRect(centerX + 4, aboveY + 3, 1, 1);
-      // Row 4 (bottom):    ··XXX··
-      ctx.fillRect(centerX - 2, aboveY + 4, 5, 1);
-
-      // Pupil — dark center dot
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(centerX - 1, aboveY + 1, 3, 3);
-
-      // Pupil highlight — tiny white glint
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(centerX, aboveY + 1, 1, 1);
-    }
-
-    ctx.globalAlpha = 1.0;
   }
 
   /** Draw carry weight indicator above player when carrying a body */
