@@ -10,6 +10,10 @@ import {
 import type { MissionRank } from '../engine/missions.ts';
 import { getAvailableTechniques, getNextTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
 import type { NinjutsuTechnique } from '../data/techniques.ts';
+import { getAvailableNinpo, getNextNinpo, getVanishDuration, getShadowStepRange } from '../data/ninpo.ts';
+import type { NinpoDefinition } from '../types/ninpo.ts';
+import { HAND_SIGNS } from '../types/ninpo.ts';
+import type { HandSignKey } from '../types/ninpo.ts';
 import type { SquadRoster, SquadMember } from '../types/squad.ts';
 
 export interface MissionRecord {
@@ -118,32 +122,57 @@ export class CharacterSheetUI {
     }
     this.content.appendChild(statsGrid);
 
-    // ── Ninjutsu Techniques ──
+    // ── Passive Ninjutsu Techniques ──
     const techniques = getAvailableTechniques(sheet.skills.ninjutsu);
     const nextTech = getNextTechnique(sheet.skills.ninjutsu);
+    const passiveTechs = techniques.filter(t => t.category !== 'ninpo');
+    const nextPassive = nextTech && nextTech.category !== 'ninpo' ? nextTech : null;
 
     this.content.appendChild(
-      createElement('div', { className: 'charsheet-section-title', text: '// Ninjutsu Techniques' })
+      createElement('div', { className: 'charsheet-section-title', text: '// Passive Ninjutsu' })
     );
     const techGrid = createElement('div', { className: 'charsheet-techniques' });
 
-    if (techniques.length > 0) {
-      for (const tech of techniques) {
+    if (passiveTechs.length > 0) {
+      for (const tech of passiveTechs) {
         techGrid.appendChild(this.renderTechnique(tech, sheet.skills.ninjutsu));
       }
     }
-
-    // Show next locked technique as a teaser
-    if (nextTech) {
-      techGrid.appendChild(this.renderLockedTechnique(nextTech));
+    if (nextPassive) {
+      techGrid.appendChild(this.renderLockedTechnique(nextPassive));
     }
-
-    // Show "none yet" if no techniques AND no upcoming ones (shouldn't happen, but safe)
-    if (techniques.length === 0 && !nextTech) {
-      techGrid.appendChild(createElement('div', { className: 'charsheet-technique charsheet-technique--locked', text: 'No techniques known yet.' }));
+    if (passiveTechs.length === 0 && !nextPassive) {
+      techGrid.appendChild(createElement('div', { className: 'charsheet-technique charsheet-technique--locked', text: 'No passive techniques yet.' }));
     }
-
     this.content.appendChild(techGrid);
+
+    // ── Ninpo Techniques (hand-sign jutsu) ──
+    const ninpoList = getAvailableNinpo(sheet.skills.ninjutsu);
+    const nextNinpo = getNextNinpo(sheet.skills.ninjutsu);
+
+    this.content.appendChild(
+      createElement('div', { className: 'charsheet-section-title', text: '// Ninpo Techniques' })
+    );
+    const ninpoGrid = createElement('div', { className: 'charsheet-techniques' });
+
+    for (const ninpo of ninpoList) {
+      ninpoGrid.appendChild(this.renderNinpoTechnique(ninpo, sheet.skills.ninjutsu));
+    }
+    if (nextNinpo) {
+      ninpoGrid.appendChild(createElement('div', {
+        className: 'charsheet-technique charsheet-technique--locked',
+      }));
+      const lockedScroll = createElement('span', { className: 'charsheet-technique__scroll charsheet-technique__scroll--locked' });
+      ninpoGrid.lastElementChild!.prepend(lockedScroll);
+      ninpoGrid.lastElementChild!.appendChild(createElement('span', {
+        className: 'charsheet-technique__name',
+        text: `??? — Ninjutsu ${nextNinpo.requiredNinjutsu}`,
+      }));
+    }
+    if (ninpoList.length === 0 && !nextNinpo) {
+      ninpoGrid.appendChild(createElement('div', { className: 'charsheet-technique charsheet-technique--locked', text: 'No ninpo known yet.' }));
+    }
+    this.content.appendChild(ninpoGrid);
 
     // ── Squad Roster ──
     if (squad && squad.members.length > 0) {
@@ -221,6 +250,53 @@ export class CharacterSheetUI {
       text: tech.description,
     });
     row.appendChild(desc);
+
+    return row;
+  }
+
+  private renderNinpoTechnique(ninpo: NinpoDefinition, ninjutsuLevel: number): HTMLElement {
+    const row = createElement('div', { className: 'charsheet-technique charsheet-technique--ninpo' });
+
+    // Scroll icon
+    row.appendChild(createElement('span', { className: 'charsheet-technique__scroll' }));
+
+    // Name
+    row.appendChild(createElement('span', {
+      className: 'charsheet-technique__name',
+      text: ninpo.name,
+    }));
+
+    // Scaling detail
+    const cost = ninpo.chakraCost(ninjutsuLevel);
+    let detail = `${cost} chakra`;
+    if (ninpo.effectType === 'vanish') {
+      const dur = getVanishDuration(ninjutsuLevel);
+      detail += dur < 0 ? ' · Permanent' : dur >= 3600 ? ' · 1 hour' : ' · 1 min';
+    } else if (ninpo.effectType === 'shadow_step') {
+      detail += ` · ${getShadowStepRange(ninjutsuLevel)} tiles`;
+    }
+    row.appendChild(createElement('span', {
+      className: 'charsheet-technique__detail',
+      text: detail,
+    }));
+
+    // Sign sequence as key badges with Japanese names
+    const seqWrap = createElement('div', { className: 'charsheet-ninpo-signs' });
+    for (const key of ninpo.sequence) {
+      const sign = HAND_SIGNS[key as HandSignKey];
+      const badge = createElement('span', {
+        className: 'charsheet-ninpo-sign',
+        text: sign ? sign.japaneseName : key,
+      });
+      seqWrap.appendChild(badge);
+    }
+    row.appendChild(seqWrap);
+
+    // Description
+    row.appendChild(createElement('div', {
+      className: 'charsheet-technique__desc',
+      text: ninpo.description,
+    }));
 
     return row;
   }

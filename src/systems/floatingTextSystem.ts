@@ -18,7 +18,8 @@ export interface FloatingText {
 
 const texts: FloatingText[] = [];
 
-/** Spawn floating text above a grid position */
+/** Spawn floating text above a grid position.
+ *  Set `force` to true to bypass the per-tile limit (used for hand sign names). */
 export function spawnFloatingText(
   gridX: number,
   gridY: number,
@@ -26,13 +27,16 @@ export function spawnFloatingText(
   color: string = '#ffffff',
   duration: number = 1.8,
   fontSize: number = 11,
+  force: boolean = false,
 ): void {
   // Don't pile up too many texts on the same tile — skip if 2+ already there
-  let count = 0;
-  for (const t of texts) {
-    if (t.gridX === gridX && t.gridY === gridY) count++;
+  if (!force) {
+    let count = 0;
+    for (const t of texts) {
+      if (t.gridX === gridX && t.gridY === gridY) count++;
+    }
+    if (count >= 2) return;
   }
-  if (count >= 2) return;
 
   texts.push({
     gridX,

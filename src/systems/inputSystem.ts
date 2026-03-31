@@ -2,7 +2,7 @@ import { resolveAction, GAME_KEYS, JUTSU_COMBAT_KEYS } from '../engine/actionRes
 import { tryCastJutsuByKey, getJutsuFailMessage } from '../engine/jutsuResolver.ts';
 import { getJutsuByCombatKey } from '../data/jutsus.ts';
 import { findAdjacentTarget as findTarget } from '../engine/combatSystem.ts';
-import { executeTurn, advanceCombatPass, advanceThrowSubtick } from '../engine/turnSystem.ts';
+import { executeTurn, advanceCombatPass, advanceThrowSubtick, advanceNinpoSign } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
@@ -20,6 +20,11 @@ import type { ThrownWeaponType } from '../types/throwing.ts';
 import { spawnProjectile, canThrow, getThrowableTargets } from '../systems/projectileSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import type { EntityId } from '../types/ecs.ts';
+import type { HandSignKey } from '../types/ninpo.ts';
+import { HAND_SIGNS } from '../types/ninpo.ts';
+import { isHandSignKey, matchNinpoSequence, getSignSpeedSubticks } from '../data/ninpo.ts';
+import { resolveNinpo, applyShadowStep } from '../engine/ninpoResolver.ts';
+import { sfxHandSign } from '../systems/audioSystem.ts';
 
 export class InputSystem {
   private world: World;
@@ -44,6 +49,15 @@ export class InputSystem {
   private _throwWeapon: ThrownWeaponType = 'kunai';
   private _throwTargets: EntityId[] = [];
   private _throwTargetIndex = 0;
+
+  // ── Ninpo mode state ──
+  private _ninpoMode = false;
+  private _ninpoSigns: HandSignKey[] = [];
+
+  // ── Shadow Step tile picker state ──
+  private _shadowStepMode = false;
+  private _shadowStepCursor = { x: 0, y: 0 };
+  private _shadowStepRange = 0;
 
   constructor(
     world: World,
@@ -76,8 +90,8 @@ export class InputSystem {
 
     const key = e.key;
 
-    // Prevent default for game keys, combat keys, and jutsu keys
-    if (GAME_KEYS.has(key) || isCombatKey(key) || JUTSU_COMBAT_KEYS.has(key) || key === 't' || key === 'Tab') {
+    // Prevent default for game keys, combat keys, jutsu keys, and hand signs
+    if (GAME_KEYS.has(key) || isCombatKey(key) || JUTSU_COMBAT_KEYS.has(key) || key === 't' || key === 'Tab' || isHandSignKey(key)) {
       e.preventDefault();
     }
 
@@ -86,9 +100,27 @@ export class InputSystem {
     if (now - this.lastInputTime < INPUT_DEBOUNCE_MS) return;
     this.lastInputTime = now;
 
+    // ── Shadow Step tile picker ──
+    if (this._shadowStepMode) {
+      this.handleShadowStepInput(key);
+      return;
+    }
+
+    // ── Ninpo mode input ──
+    if (this._ninpoMode) {
+      this.handleNinpoInput(key);
+      return;
+    }
+
     // ── Throwing mode input ──
     if (this._throwingMode) {
       this.handleThrowingInput(key);
+      return;
+    }
+
+    // ── Enter ninpo mode (hand sign key) ──
+    if (isHandSignKey(key)) {
+      this.enterNinpoMode(key);
       return;
     }
 
@@ -402,11 +434,194 @@ export class InputSystem {
     this.hud.update(this.world, this._throwingMode, this._throwWeapon);
   }
 
+  // ── Ninpo Mode ──
+
+  private enterNinpoMode(firstSign: HandSignKey): void {
+    this._ninpoMode = true;
+    this._ninpoSigns = [];
+    this.processSign(firstSign);
+  }
+
+  private handleNinpoInput(key: string): void {
+    if (isHandSignKey(key)) {
+      this.processSign(key);
+    } else {
+      // Any non-sign key cancels
+      this.exitNinpoMode();
+      this.world.log('Signs broken.', 'info');
+    }
+  }
+
+  private processSign(sign: HandSignKey): void {
+    const playerId = this.world.playerEntityId;
+    const pos = this.world.positions.get(playerId);
+    const sheet = this.world.characterSheets.get(playerId);
+    if (!pos || !sheet) { this.exitNinpoMode(); return; }
+
+    const ninjutsuLevel = sheet.skills.ninjutsu;
+
+    // Add sign to sequence
+    this._ninpoSigns.push(sign);
+
+    // Visual: floating text with Japanese sign name
+    const signInfo = HAND_SIGNS[sign];
+    spawnFloatingText(pos.x, pos.y, signInfo.japaneseName, '#e8c84a', 1.0, 14, true);
+
+    // Audio: wood-chop sound
+    sfxHandSign();
+
+    // Sprite vibration (100ms)
+    this.world.spriteVibrations.set(playerId, Date.now() + 100);
+
+    // Advance world time per sign — engaged enemies get free hits naturally
+    const subticks = getSignSpeedSubticks(ninjutsuLevel);
+    advanceNinpoSign(this.world, subticks);
+
+    // Update HUD
+    this.hud.update(this.world, this._throwingMode, this._throwWeapon);
+    this.tempoBeads.update(getPlayerTempo(this.world));
+    this.conditionIndicator.update(getPlayerCondition(this.world));
+    clearStaleEngagements(this.world);
+
+    // Match sequence against trie
+    const result = matchNinpoSequence(this._ninpoSigns);
+
+    if (result.status === 'match') {
+      const ninpo = result.ninpo;
+      // Check if player has the required level
+      if (ninjutsuLevel < ninpo.requiredNinjutsu) {
+        this.world.log('The signs mean nothing to you — technique unknown.', 'info');
+        this.exitNinpoMode();
+        return;
+      }
+
+      // Attempt to cast
+      const success = resolveNinpo(this.world, playerId, ninpo);
+      this.exitNinpoMode();
+
+      if (success) {
+        // Check if shadow step needs tile picker
+        if (this.world._pendingShadowStep) {
+          this.enterShadowStepMode();
+        }
+      }
+
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
+      this.tempoBeads.update(getPlayerTempo(this.world));
+      this.conditionIndicator.update(getPlayerCondition(this.world));
+      return;
+    }
+
+    if (result.status === 'invalid') {
+      this.world.log('Signs broken — no technique matches.', 'info');
+      this.exitNinpoMode();
+      return;
+    }
+
+    // status === 'partial' — continue signing
+  }
+
+  private exitNinpoMode(): void {
+    this._ninpoMode = false;
+    this._ninpoSigns = [];
+  }
+
+  // ── Shadow Step Tile Picker ──
+
+  private enterShadowStepMode(): void {
+    const pending = this.world._pendingShadowStep;
+    if (!pending) return;
+
+    const pos = this.world.positions.get(pending.casterId);
+    if (!pos) { this.world._pendingShadowStep = null; return; }
+
+    this._shadowStepMode = true;
+    this._shadowStepCursor = { x: pos.x, y: pos.y };
+    this._shadowStepRange = pending.maxRange;
+
+    this.world.log(`Shadow Step: pick destination [h/j/k/l: move cursor, Enter: teleport, Esc: cancel]`, 'system');
+  }
+
+  private handleShadowStepInput(key: string): void {
+    const pending = this.world._pendingShadowStep;
+    if (!pending) { this.exitShadowStepMode(); return; }
+
+    const casterPos = this.world.positions.get(pending.casterId);
+    if (!casterPos) { this.exitShadowStepMode(); return; }
+
+    // Movement keys — move cursor
+    const DIRS: Record<string, [number, number]> = {
+      h: [-1, 0], l: [1, 0], k: [0, -1], j: [0, 1],
+      y: [-1, -1], u: [1, -1], b: [-1, 1], n: [1, 1],
+    };
+
+    if (DIRS[key]) {
+      const [dx, dy] = DIRS[key];
+      const nx = this._shadowStepCursor.x + dx;
+      const ny = this._shadowStepCursor.y + dy;
+
+      // Check range (Chebyshev distance from caster)
+      const dist = Math.max(Math.abs(nx - casterPos.x), Math.abs(ny - casterPos.y));
+      if (dist > this._shadowStepRange) return;
+
+      // Check FOV visibility
+      if (!this.world.fovVisible.has(`${nx},${ny}`)) return;
+
+      this._shadowStepCursor = { x: nx, y: ny };
+      return;
+    }
+
+    if (key === 'Enter' || key === 'f') {
+      const tx = this._shadowStepCursor.x;
+      const ty = this._shadowStepCursor.y;
+
+      // Validate: walkable and not blocked
+      if (!this.world.tileMap.isWalkable(tx, ty) || this.world.isBlockedByEntity(tx, ty)) {
+        this.world.log('Cannot step there — blocked.', 'info');
+        return;
+      }
+
+      // Same tile as caster — no point
+      if (tx === casterPos.x && ty === casterPos.y) {
+        this.world.log('You\'re already there.', 'info');
+        return;
+      }
+
+      // Apply teleport
+      applyShadowStep(this.world, pending.casterId, tx, ty);
+      this.camera.snapTo(tx, ty);
+      this.exitShadowStepMode();
+
+      this.hud.update(this.world, this._throwingMode, this._throwWeapon);
+      this.tempoBeads.update(getPlayerTempo(this.world));
+      this.conditionIndicator.update(getPlayerCondition(this.world));
+      clearStaleEngagements(this.world);
+      return;
+    }
+
+    if (key === 'Escape') {
+      this.world.log('Shadow Step cancelled — chakra spent.', 'info');
+      this.exitShadowStepMode();
+      return;
+    }
+  }
+
+  private exitShadowStepMode(): void {
+    this._shadowStepMode = false;
+    this._shadowStepRange = 0;
+    this.world._pendingShadowStep = null;
+  }
+
   /** Whether the player is currently in throwing mode (for rendering target highlights) */
   get throwingMode(): boolean { return this._throwingMode; }
   get throwTargets(): EntityId[] { return this._throwTargets; }
   get throwTargetIndex(): number { return this._throwTargetIndex; }
   get throwWeapon(): ThrownWeaponType { return this._throwWeapon; }
+  get ninpoMode(): boolean { return this._ninpoMode; }
+  get ninpoSigns(): HandSignKey[] { return this._ninpoSigns; }
+  get shadowStepMode(): boolean { return this._shadowStepMode; }
+  get shadowStepCursor(): { x: number; y: number } { return this._shadowStepCursor; }
+  get shadowStepRange(): number { return this._shadowStepRange; }
 
   /** Remove event listener */
   dispose(): void {

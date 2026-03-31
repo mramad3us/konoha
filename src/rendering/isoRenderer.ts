@@ -49,7 +49,7 @@ export class IsoRenderer {
   }
 
   /** Render a full frame. throwTargetId highlights the selected throw target. */
-  draw(world: World, throwTargetId?: EntityId): void {
+  draw(world: World, throwTargetId?: EntityId, shadowStepCursor?: { x: number; y: number; range: number }): void {
     const ctx = this.ctx;
     const dpr = this.dpr;
 
@@ -143,8 +143,14 @@ export class IsoRenderer {
 
           const isShadowed = world.isInvisibleButDetected(eid);
 
+          // Sprite vibration for hand-sign animation
+          const vibEnd = world.spriteVibrations.get(eid);
+          const vibOffset = (vibEnd && Date.now() < vibEnd)
+            ? (Math.random() * 4 - 2)
+            : 0;
+
           drawCommands.push({
-            screenX: sx,
+            screenX: sx + vibOffset,
             screenY: sy,
             spriteId: renderable.spriteId,
             depth,
@@ -213,6 +219,11 @@ export class IsoRenderer {
     // ── Throw target highlight ──
     if (throwTargetId !== undefined) {
       this.drawThrowTargetHighlight(ctx, world, offset, throwTargetId);
+    }
+
+    // ── Shadow Step cursor ──
+    if (shadowStepCursor) {
+      this.drawShadowStepCursor(ctx, offset, shadowStepCursor);
     }
 
     // ── Particles (smoke, chakra flashes) ──
@@ -375,6 +386,49 @@ export class IsoRenderer {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff4444';
     ctx.fillText(name, cx, sy - 4);
+    ctx.textAlign = 'start';
+
+    ctx.globalAlpha = 1.0;
+  }
+
+  /** Draw Shadow Step destination cursor — pulsing purple diamond */
+  private drawShadowStepCursor(
+    ctx: CanvasRenderingContext2D,
+    offset: { ox: number; oy: number },
+    cursor: { x: number; y: number; range: number },
+  ): void {
+    const halfTW = TILE_WIDTH / 2;
+    const halfTH = TILE_HEIGHT / 2;
+    const sx = (cursor.x - cursor.y) * halfTW + offset.ox;
+    const sy = (cursor.x + cursor.y) * halfTH + offset.oy;
+
+    // Pulsing purple diamond
+    const pulse = 0.5 + 0.4 * Math.sin(Date.now() / 150);
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#cc88ff';
+    ctx.lineWidth = 2;
+
+    const cx = sx + halfTW;
+    const cy = sy + halfTH;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - halfTH);
+    ctx.lineTo(cx + halfTW, cy);
+    ctx.lineTo(cx, cy + halfTH);
+    ctx.lineTo(cx - halfTW, cy);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Semi-transparent fill
+    ctx.globalAlpha = pulse * 0.15;
+    ctx.fillStyle = '#cc88ff';
+    ctx.fill();
+
+    // Label
+    ctx.globalAlpha = pulse + 0.1;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#cc88ff';
+    ctx.fillText('Shadow Step', cx, sy - 4);
     ctx.textAlign = 'start';
 
     ctx.globalAlpha = 1.0;

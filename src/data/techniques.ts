@@ -11,7 +11,11 @@ export interface NinjutsuTechnique {
   description: string;
   /** Minimum ninjutsu skill required to use this technique */
   requiredNinjutsu: number;
-  category: 'movement' | 'combat' | 'utility';
+  category: 'movement' | 'combat' | 'utility' | 'ninpo';
+  /** Hand sign sequence (only for ninpo techniques) */
+  signSequence?: string[];
+  /** Link to ninpo registry ID (only for ninpo techniques) */
+  ninpoId?: string;
 }
 
 /** Master list of all ninjutsu techniques */
@@ -36,6 +40,25 @@ export const NINJUTSU_TECHNIQUES: NinjutsuTechnique[] = [
     description: 'Walk on water by channeling a steady flow of chakra through the soles of your feet.',
     requiredNinjutsu: 15,
     category: 'movement',
+  },
+  // ── Ninpo (hand-sign techniques) ──
+  {
+    id: 'vanish',
+    name: 'Ninpo: Vanish',
+    description: 'Conceal your presence entirely. Duration scales with mastery.',
+    requiredNinjutsu: 5,
+    category: 'ninpo',
+    signSequence: ['Saru', 'U', 'Tatsu', 'Hitsuji', 'Ne', 'I'],
+    ninpoId: 'vanish',
+  },
+  {
+    id: 'shadow_step',
+    name: 'Ninpo: Shadow Step',
+    description: 'Flicker to a visible location instantly. Range scales with mastery.',
+    requiredNinjutsu: 10,
+    category: 'ninpo',
+    signSequence: ['Tatsu', 'Hitsuji', 'Saru', 'U', 'Ne', 'I'],
+    ninpoId: 'shadow_step',
   },
 ];
 

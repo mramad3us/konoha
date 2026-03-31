@@ -1052,7 +1052,10 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       updateParticles(dt);
       updateFloatingTexts(dt);
       const throwTarget = inputSystem.throwingMode ? inputSystem.throwTargets[inputSystem.throwTargetIndex] : undefined;
-      renderer.draw(world, throwTarget);
+      const shadowCursor = inputSystem.shadowStepMode
+        ? { x: inputSystem.shadowStepCursor.x, y: inputSystem.shadowStepCursor.y, range: inputSystem.shadowStepRange }
+        : undefined;
+      renderer.draw(world, throwTarget, shadowCursor);
     }
 
     rafId = requestAnimationFrame(renderLoop);

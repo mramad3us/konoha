@@ -19,6 +19,7 @@ import { calculateDamage } from '../types/combat.ts';
 import type { EntityId } from '../types/ecs.ts';
 import { updateCarriedPosition } from './restraintCarry.ts';
 import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem.ts';
+import { tickNinpoTimers } from './ninpoResolver.ts';
 
 /**
  * Advance game time by subticks and recompute FOV.
@@ -79,6 +80,7 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
     tickDuskTransition(world);
     tickDawnTransition(world);
     cleanupBloodDecals(world);
+    tickNinpoTimers(world);
   }
 }
 
@@ -124,6 +126,7 @@ export function advanceCombatPass(world: World): void {
     tickDuskTransition(world);
     tickDawnTransition(world);
     cleanupBloodDecals(world);
+    tickNinpoTimers(world);
   }
 }
 
@@ -157,7 +160,17 @@ export function advanceThrowSubtick(world: World): void {
     tickDuskTransition(world);
     tickDawnTransition(world);
     cleanupBloodDecals(world);
+    tickNinpoTimers(world);
   }
+}
+
+/**
+ * Advance world by N subticks for a ninpo hand sign.
+ * Uses skipCombatStrikes=false so engaged enemies get free hits.
+ */
+export function advanceNinpoSign(world: World, subticks: number): void {
+  const gameSeconds = subticks * SUBTICK_DURATION;
+  advanceTurn(world, subticks, gameSeconds, false);
 }
 
 /** Stance to game seconds per step (chakra_sprint is dynamic, handled separately) */

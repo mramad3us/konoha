@@ -16,6 +16,12 @@ import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
 import { getCurrentROE } from './squadSystem.ts';
 import { isInCombat } from './combatSystem.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
+import { hasTechnique } from '../data/techniques.ts';
+import { NINPO_REGISTRY } from '../data/ninpo.ts';
+import { HAND_SIGNS } from '../types/ninpo.ts';
+import type { HandSignKey } from '../types/ninpo.ts';
+import { resolveNinpo } from './ninpoResolver.ts';
+import { sfxHandSign } from '../systems/audioSystem.ts';
 
 const CARDINAL_DIRS: Array<{ dx: number; dy: number; dir: Direction }> = [
   { dx: 0, dy: -1, dir: 'n' },
@@ -189,6 +195,24 @@ export function tickNpcMovement(world: World): void {
       }
     }
 
+    // ── NPC Ninpo signing ──
+    if (tickNpcNinpo(world, id, pos)) continue;
+
+    // NPCs that are fleeing and know Vanish: start signing
+    if (ai.behavior === 'flee' && !world.invisible.has(id) && !world.npcNinpoState.has(id)) {
+      const sheet = world.characterSheets.get(id);
+      if (sheet && hasTechnique(sheet.skills.ninjutsu, 'vanish')) {
+        const vanish = NINPO_REGISTRY.find(n => n.id === 'vanish');
+        if (vanish) {
+          world.npcNinpoState.set(id, {
+            ninpoId: 'vanish',
+            signsCompleted: 0,
+            totalSigns: vanish.sequence.length,
+          });
+        }
+      }
+    }
+
     // Skip idle movement if NPC is in an active combat engagement
     if (isInCombat(id) && ai.behavior !== 'chase' && ai.behavior !== 'flee') {
       continue;
@@ -212,6 +236,9 @@ export function tickNpcMovement(world: World): void {
         break;
     }
   }
+
+  // Clear squad ninpo mirror signal after one tick (so members only start signing once)
+  world._squadNinpoMirror = null;
 }
 
 function tickWander(
@@ -567,4 +594,58 @@ function tickFlee(
 
   const { dx, dy } = pickDirectionAway(pos, playerPos.x, playerPos.y);
   tryStepToward(world, id, pos, dx, dy);
+}
+
+// ── NPC Ninpo Signing ──
+
+/**
+ * Advance NPC ninpo signing by one step per coarse tick.
+ * Returns true if the NPC is actively signing (skip normal behavior).
+ */
+function tickNpcNinpo(
+  world: World,
+  id: EntityId,
+  pos: { x: number; y: number },
+): boolean {
+  const state = world.npcNinpoState.get(id);
+  if (!state) return false;
+
+  const ninpo = NINPO_REGISTRY.find(n => n.id === state.ninpoId);
+  if (!ninpo) {
+    world.npcNinpoState.delete(id);
+    return false;
+  }
+
+  // Interrupt signing if NPC entered combat
+  if (isInCombat(id)) {
+    world.npcNinpoState.delete(id);
+    if (world.fovVisible.has(`${pos.x},${pos.y}`)) {
+      const name = world.names.get(id)?.display ?? 'The shinobi';
+      spawnFloatingText(pos.x, pos.y, 'Signs broken!', '#ff6644', 1.0, 11, true);
+      world.log(`${name}'s signs are interrupted!`, 'info');
+    }
+    return false;
+  }
+
+  // Show current sign floating text if player can see this NPC
+  const signKey = ninpo.sequence[state.signsCompleted] as HandSignKey;
+  const signInfo = HAND_SIGNS[signKey];
+  if (signInfo && world.fovVisible.has(`${pos.x},${pos.y}`)) {
+    spawnFloatingText(pos.x, pos.y, signInfo.japaneseName, '#e8c84a', 0.8, 12, true);
+    sfxHandSign();
+  }
+
+  // Sprite vibration
+  world.spriteVibrations.set(id, Date.now() + 100);
+
+  state.signsCompleted++;
+
+  // Sequence complete — cast the ninpo
+  if (state.signsCompleted >= state.totalSigns) {
+    world.npcNinpoState.delete(id);
+    resolveNinpo(world, id, ninpo);
+    return true;
+  }
+
+  return true; // Still signing, skip normal behavior
 }

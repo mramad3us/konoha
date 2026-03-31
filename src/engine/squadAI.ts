@@ -20,6 +20,7 @@ import { hasTechnique } from '../data/techniques.ts';
 import { WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
 import { hasLineOfSight } from './npcMovementSystem.ts';
+import { NINPO_REGISTRY } from '../data/ninpo.ts';
 
 /** Tag component — marks an entity as a squad member on the mission map */
 export interface SquadMemberTag {
@@ -139,6 +140,40 @@ export function tickSquadMember(
 
   // If already in combat, don't move (combat system handles attacks)
   if (isInCombat(entityId)) return;
+
+  // ── Ninpo mirroring ──
+  // If NPC is currently signing a ninpo, let the npcMovementSystem handle it
+  if (world.npcNinpoState.has(entityId)) return;
+
+  // Check if player requested squad ninpo mirror
+  if (world._squadNinpoMirror) {
+    const mirrorId = world._squadNinpoMirror;
+    const sheet = world.characterSheets.get(entityId);
+    const ninpo = NINPO_REGISTRY.find(n => n.id === mirrorId);
+
+    if (ninpo && sheet && hasTechnique(sheet.skills.ninjutsu, mirrorId)) {
+      // This member knows the ninpo — start signing
+      if (!world.npcNinpoState.has(entityId)) {
+        world.npcNinpoState.set(entityId, {
+          ninpoId: mirrorId,
+          signsCompleted: 0,
+          totalSigns: ninpo.sequence.length,
+        });
+      }
+      return; // Signing takes over behavior
+    }
+
+    // Member doesn't know the ninpo
+    if (mirrorId === 'vanish' && world.invisible.has(world.playerEntityId)) {
+      // Player is invisible and member can't Vanish — hold position until player is visible
+      return;
+    }
+  }
+
+  // If player is invisible and member can't see them, hold position
+  if (world.invisible.has(world.playerEntityId) && !world.invisible.has(entityId)) {
+    return;
+  }
 
   // Swimming penalty: 24s/step same as player (NPCs tick every 3s, so move once per 8 ticks)
   if (world.tileMap.isWater(pos.x, pos.y)) {

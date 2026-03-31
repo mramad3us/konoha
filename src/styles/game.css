@@ -1042,6 +1042,31 @@
   background: var(--color-ink-faded);
 }
 
+/* ── Ninpo sign sequence badges ── */
+.charsheet-ninpo-signs {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 2px 0;
+}
+
+.charsheet-ninpo-sign {
+  display: inline-block;
+  padding: 1px 4px;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: #e8c84a;
+  background: rgba(232, 200, 74, 0.1);
+  border: 1px solid rgba(232, 200, 74, 0.3);
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.charsheet-technique--ninpo .charsheet-technique__name {
+  color: #ccaaff;
+}
+
 /* ── Squad Roster (in character sheet) ── */
 .charsheet-squad {
   display: flex;

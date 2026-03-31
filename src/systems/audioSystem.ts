@@ -404,3 +404,29 @@ export function sfxProjectileFleshHit(): void {
 export function sfxStep(): void {
   noiseHit(0.04, 2, 0, vol(0.06), 800 + Math.random() * 400);
 }
+
+/** Hand sign — sharp wood-chop transient with low thud */
+export function sfxHandSign(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const variation = 0.9 + Math.random() * 0.2;
+  const v = vol(0.25);
+
+  // Sharp wood-chop crack
+  noiseHit(0.06 * variation, 2, 200 * variation, v, 2500 + Math.random() * 500);
+
+  // Brief low thud for body
+  const sub = ac.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(150 * variation, now);
+  sub.frequency.exponentialRampToValueAtTime(60, now + 0.06);
+
+  const subGain = ac.createGain();
+  subGain.gain.setValueAtTime(v * 0.3, now);
+  subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+  sub.connect(subGain).connect(ac.destination);
+  sub.start(now);
+  sub.stop(now + 0.1);
+}

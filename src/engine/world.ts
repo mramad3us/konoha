@@ -1,4 +1,5 @@
 import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent, ThrownAmmoComponent, ProjectileComponent, ThrowCooldownComponent } from '../types/ecs.ts';
+import type { NinpoTimerComponent } from '../types/ninpo.ts';
 import type { SquadRoster } from '../types/squad.ts';
 import { createSquadRoster } from './squadSystem.ts';
 import type { GameLogEntry } from '../types/actions.ts';
@@ -48,6 +49,13 @@ export class World {
   projectiles = new Map<EntityId, ProjectileComponent>();
   throwCooldowns = new Map<EntityId, ThrowCooldownComponent>();
   hiddenUntilAdjacent = new Set<EntityId>();
+
+  // Ninpo system
+  ninpoTimers = new Map<EntityId, NinpoTimerComponent>();
+  spriteVibrations = new Map<EntityId, number>();  // entityId → end timestamp (Date.now() ms)
+  npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number }>();
+  _pendingShadowStep: { casterId: EntityId; maxRange: number } | null = null;
+  _squadNinpoMirror: string | null = null;  // ninpo ID that squad should mirror
 
   // Blood decals — keyed by "x:y", each tile can have multiple dots
   bloodDecals = new Map<string, {
@@ -207,6 +215,9 @@ export class World {
     this.projectiles.delete(id);
     this.throwCooldowns.delete(id);
     this.hiddenUntilAdjacent.delete(id);
+    this.ninpoTimers.delete(id);
+    this.spriteVibrations.delete(id);
+    this.npcNinpoState.delete(id);
   }
 
   /** Get entity at a specific tile position (first found) — O(1) via spatial hash */
@@ -355,6 +366,7 @@ export class World {
       projectiles: serializeMap(this.projectiles),
       throwCooldowns: serializeMap(this.throwCooldowns),
       hiddenUntilAdjacent: Array.from(this.hiddenUntilAdjacent),
+      ninpoTimers: serializeMap(this.ninpoTimers),
       bloodDecals: Object.fromEntries(this.bloodDecals),
       playerKillIntent: this.playerKillIntent,
       missionSalt: this.missionSalt,
@@ -463,6 +475,9 @@ export class World {
     }
     if (data['hiddenUntilAdjacent']) {
       world.hiddenUntilAdjacent = new Set(data['hiddenUntilAdjacent'] as EntityId[]);
+    }
+    if (data['ninpoTimers']) {
+      deserializeMap(world.ninpoTimers, data['ninpoTimers'] as Record<string, NinpoTimerComponent>);
     }
     if (data['bloodDecals']) {
       const raw = data['bloodDecals'] as Record<string, Record<string, unknown>>;

@@ -204,6 +204,12 @@ export const THROW_COOLDOWN_TIER2 = 4;   // buki 16-30: 2s
 export const THROW_COOLDOWN_TIER3 = 2;   // buki 31-45: 1s
 export const THROW_COOLDOWN_TIER4 = 1;   // buki 46+:   0.5s
 
+// ── Ninpo (hand-sign jutsu) ──
+export const NINPO_SIGN_SPEED_THRESHOLDS = [10, 30, 50] as const;
+export const NINPO_SIGN_SPEED_SUBTICKS = { tier1: 4, tier2: 3, tier3: 2, tier4: 1 } as const;
+// Vanish duration brackets (game-seconds): <30 → 60s, 30-49 → 3600s, 50+ → permanent (-1)
+// Shadow Step range: level 10 → 3 tiles, level 50+ → 10 tiles (linear fill)
+
 // ── Away Missions ──
 export const MISSION_MAP_WIDTH = 160;
 export const MISSION_MAP_HEIGHT = 160;
