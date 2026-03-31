@@ -22,6 +22,8 @@ export class IsoRenderer {
   /** Offscreen canvas for shadow tint compositing */
   private shadowCanvas: OffscreenCanvas;
   private shadowCtx: OffscreenCanvasRenderingContext2D;
+  /** Offscreen canvas for night overlay with torch light holes */
+  private _nightCanvas: OffscreenCanvas | null = null;
 
   constructor(canvas: HTMLCanvasElement, camera: Camera) {
     this.canvas = canvas;
@@ -202,7 +204,7 @@ export class IsoRenderer {
     drawFloatingTexts(ctx, offset);
 
     // ── Night overlay ──
-    // Two-pass: desaturating blue tint + darkness overlay for atmospheric night
+    // Two-pass: desaturating blue tint + darkness overlay with torch light holes
     const nightDim = getNightDimFactor(world.gameTimeSeconds);
     if (nightDim > 0.01) {
       const w = this.camera.viewportWidth;
@@ -212,16 +214,70 @@ export class IsoRenderer {
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
       const blueLerp = Math.min(1, nightDim * 1.5);
-      const r = Math.round(255 - blueLerp * 120);   // 255 → 135
-      const g = Math.round(255 - blueLerp * 110);   // 255 → 145
-      const b = Math.round(255 - blueLerp * 50);    // 255 → 205
+      const r = Math.round(255 - blueLerp * 120);
+      const g = Math.round(255 - blueLerp * 110);
+      const b = Math.round(255 - blueLerp * 50);
       ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
-      // Pass 2: Darkness overlay — straight alpha
-      ctx.fillStyle = `rgba(3, 3, 15, ${nightDim * 0.85})`;
-      ctx.fillRect(0, 0, w, h);
+      // Pass 2: Darkness overlay with torch light holes
+      // Build on offscreen canvas so we can use destination-out for lights
+      if (!this._nightCanvas || this._nightCanvas.width !== w || this._nightCanvas.height !== h) {
+        this._nightCanvas = new OffscreenCanvas(w, h);
+      }
+      const nctx = this._nightCanvas.getContext('2d')!;
+      nctx.clearRect(0, 0, w, h);
+
+      // Fill with darkness
+      nctx.fillStyle = `rgba(3, 3, 15, ${nightDim * 0.85})`;
+      nctx.fillRect(0, 0, w, h);
+
+      // Punch radial gradient holes for light sources
+      nctx.globalCompositeOperation = 'destination-out';
+      for (const [eid, light] of world.lightSources) {
+        if (!light.activeAtNight) continue;
+        const lpos = world.positions.get(eid);
+        if (!lpos) continue;
+        // Convert tile position to screen position
+        const sx = (lpos.x - lpos.y) * (TILE_WIDTH / 2) + offset.ox;
+        const sy = (lpos.x + lpos.y) * (TILE_HEIGHT / 2) + offset.oy;
+        const pixelRadius = light.radius * TILE_WIDTH * 0.6;
+
+        const grad = nctx.createRadialGradient(sx, sy - 8, 0, sx, sy - 8, pixelRadius);
+        // Stronger erasure at center, fading to nothing at edge
+        const strength = Math.min(1, nightDim * 1.4);
+        grad.addColorStop(0, `rgba(0,0,0,${strength})`);
+        grad.addColorStop(0.4, `rgba(0,0,0,${strength * 0.6})`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        nctx.fillStyle = grad;
+        nctx.fillRect(sx - pixelRadius, sy - 8 - pixelRadius, pixelRadius * 2, pixelRadius * 2);
+      }
+      nctx.globalCompositeOperation = 'source-over';
+
+      // Composite onto main canvas
+      ctx.drawImage(this._nightCanvas, 0, 0);
+
+      // Warm glow halos on top for torches (additive orange tint)
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (const [eid, light] of world.lightSources) {
+        if (!light.activeAtNight) continue;
+        const lpos = world.positions.get(eid);
+        if (!lpos) continue;
+        const sx = (lpos.x - lpos.y) * (TILE_WIDTH / 2) + offset.ox;
+        const sy = (lpos.x + lpos.y) * (TILE_HEIGHT / 2) + offset.oy;
+        const glowRadius = light.radius * TILE_WIDTH * 0.35;
+        const glowStrength = Math.min(0.15, nightDim * 0.2);
+
+        const grad = ctx.createRadialGradient(sx, sy - 8, 0, sx, sy - 8, glowRadius);
+        grad.addColorStop(0, `rgba(255, 160, 60, ${glowStrength})`);
+        grad.addColorStop(0.5, `rgba(255, 120, 30, ${glowStrength * 0.3})`);
+        grad.addColorStop(1, 'rgba(255, 100, 20, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(sx - glowRadius, sy - 8 - glowRadius, glowRadius * 2, glowRadius * 2);
+      }
+      ctx.restore();
     }
 
     // ── Carry indicator above player (drawn after night overlay so it's always visible) ──
