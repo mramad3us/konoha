@@ -333,6 +333,12 @@ export function executeTurn(action: GameAction, world: World): boolean {
       } else if (!world.tileMap.isWalkable(newX, newY) && !world.tileMap.isWater(newX, newY)) {
         // Solid terrain blocks
         world.log('The way is blocked.', 'info');
+      } else if (
+        world.tileMap.isWater(newX, newY) && !canWaterWalk(world, playerId, newX, newY)
+        && (world.resources.get(playerId)?.stamina ?? 0) < 2
+      ) {
+        // Too exhausted to swim
+        world.log('Too exhausted to swim. Rest to recover stamina.', 'info');
       } else {
         // Move!
         world.moveInGrid(playerId, playerPos.x, playerPos.y, newX, newY);
@@ -459,6 +465,12 @@ export function executeTurn(action: GameAction, world: World): boolean {
       if (isSwimming) {
         moveGameSeconds = SWIM_SECONDS;
         subtickCost = Math.max(1, Math.round(SWIM_SECONDS / 0.5));
+        // Swimming costs 2 stamina per step
+        const swimRes = world.resources.get(playerId);
+        if (swimRes) {
+          swimRes.stamina = Math.max(0, swimRes.stamina - 2);
+          swimRes.lastExertionTick = world.currentTick;
+        }
         // Swimming trains PHY
         const swimSheet = world.characterSheets.get(playerId);
         if (swimSheet) {
