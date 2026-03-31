@@ -303,8 +303,10 @@ export class InputSystem {
       return;
     }
 
-    // Pick a weapon type that has ammo
-    this._throwWeapon = ammo.kunai > 0 ? 'kunai' : 'shuriken';
+    // Keep last weapon choice if it still has ammo, otherwise switch
+    if (ammo[this._throwWeapon] <= 0) {
+      this._throwWeapon = this._throwWeapon === 'kunai' ? 'shuriken' : 'kunai';
+    }
     this._throwTargets = targets;
     this._throwTargetIndex = 0;
     this._throwingMode = true;

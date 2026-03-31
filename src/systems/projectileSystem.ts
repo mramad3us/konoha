@@ -381,6 +381,8 @@ export function getThrowableTargets(world: World, entityId: EntityId): EntityId[
     }
     // Skip dead/unconscious/restrained
     if (world.dead.has(id) || world.unconscious.has(id) || world.restrained.has(id)) continue;
+    // Skip invisible entities the player can't detect
+    if (world.isInvisibleToPlayer(id)) continue;
 
     const targetPos = world.positions.get(id);
     if (!targetPos) continue;
