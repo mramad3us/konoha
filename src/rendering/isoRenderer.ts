@@ -101,19 +101,28 @@ export class IsoRenderer {
           offsetY: 0,
         });
 
-        // Blood decals (floor layer, above tile)
+        // Blood decals — rendered as small pixel dots directly
         const decalKey = `${x}:${y}`;
         const decal = world.bloodDecals.get(decalKey);
-        if (decal) {
-          drawCommands.push({
-            screenX: sx,
-            screenY: sy,
-            spriteId: `blood_splatter_${decal.variant}`,
-            depth,
-            layer: 'floor',
-            alpha: alpha * 0.8,
-            offsetY: 0,
-          });
+        if (decal && isVisible) {
+          for (const dot of decal.dots) {
+            const dotSx = sx + dot.dx * halfTW;
+            const dotSy = sy + dot.dy * halfTH;
+            // Shade: dark blood (120,15,20) to bright (170,30,35)
+            const r = Math.round(120 + dot.shade * 50);
+            const g = Math.round(15 + dot.shade * 15);
+            const b = Math.round(20 + dot.shade * 15);
+            drawCommands.push({
+              screenX: dotSx,
+              screenY: dotSy,
+              spriteId: `__blood_dot_${r}_${g}_${b}`,
+              depth,
+              layer: 'floor',
+              alpha: alpha * 0.85,
+              offsetY: 0,
+              bloodDot: { r, g, b },
+            });
+          }
         }
 
         // Entities at this position
@@ -152,6 +161,15 @@ export class IsoRenderer {
     sortDrawCommands(drawCommands);
 
     for (const cmd of drawCommands) {
+      // Blood dots — draw as small pixel rectangles, no sprite needed
+      if (cmd.bloodDot) {
+        ctx.globalAlpha = cmd.alpha;
+        const { r, g, b } = cmd.bloodDot;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(Math.round(cmd.screenX), Math.round(cmd.screenY), 3, 2);
+        continue;
+      }
+
       const sprite = spriteCache.get(cmd.spriteId);
       if (!sprite) continue;
 

@@ -329,11 +329,27 @@ function resolveProjectileHit(
 
 // ── Blood Decals ──
 
-/** Spawn a blood decal at the given tile */
-export function spawnBloodDecal(world: World, x: number, y: number): void {
+/** Spawn blood dots at the given tile (1-3 random pixel dots) */
+export function spawnBloodDecal(world: World, x: number, y: number, dotCount = 0): void {
   const key = `${x}:${y}`;
-  const variant = Math.floor(Math.random() * 3); // 0, 1, or 2
-  world.bloodDecals.set(key, { x, y, spawnTick: world.currentTick, variant });
+  const existing = world.bloodDecals.get(key);
+  const count = dotCount > 0 ? dotCount : 1 + Math.floor(Math.random() * 2); // 1-2 dots by default
+  const newDots: Array<{ dx: number; dy: number; shade: number }> = [];
+  for (let i = 0; i < count; i++) {
+    newDots.push({
+      dx: Math.random() * 0.8 - 0.4,  // -0.4 to 0.4 tile offset
+      dy: Math.random() * 0.8 - 0.4,
+      shade: Math.random(),             // 0=dark, 1=bright blood
+    });
+  }
+  if (existing) {
+    // Add dots to existing decal, cap at 8 per tile
+    existing.dots.push(...newDots);
+    if (existing.dots.length > 8) existing.dots.length = 8;
+    existing.spawnTick = world.currentTick; // refresh age
+  } else {
+    world.bloodDecals.set(key, { x, y, spawnTick: world.currentTick, dots: newDots });
+  }
 }
 
 /** Remove blood decals older than the configured duration */

@@ -10,6 +10,7 @@ export interface DrawCommand {
   alpha: number;
   offsetY: number;
   shadowTint?: boolean; // if true, draw with dark shadow overlay (invisible-but-detected)
+  bloodDot?: { r: number; g: number; b: number }; // if set, draw as a small colored pixel
 }
 
 /** Sort draw commands back-to-front for correct isometric rendering */

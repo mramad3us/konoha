@@ -49,8 +49,11 @@ export class World {
   throwCooldowns = new Map<EntityId, ThrowCooldownComponent>();
   hiddenUntilAdjacent = new Set<EntityId>();
 
-  // Blood decals — keyed by "x:y", persistent for 1 in-game hour
-  bloodDecals = new Map<string, { x: number; y: number; spawnTick: number; variant: number }>();
+  // Blood decals — keyed by "x:y", each tile can have multiple dots
+  bloodDecals = new Map<string, {
+    x: number; y: number; spawnTick: number;
+    dots: Array<{ dx: number; dy: number; shade: number }>;
+  }>();
 
   // Combat intent
   playerKillIntent = false;
@@ -462,8 +465,13 @@ export class World {
       world.hiddenUntilAdjacent = new Set(data['hiddenUntilAdjacent'] as EntityId[]);
     }
     if (data['bloodDecals']) {
-      const raw = data['bloodDecals'] as Record<string, { x: number; y: number; spawnTick: number; variant: number }>;
-      for (const [k, v] of Object.entries(raw)) world.bloodDecals.set(k, v);
+      const raw = data['bloodDecals'] as Record<string, Record<string, unknown>>;
+      for (const [k, v] of Object.entries(raw)) {
+        const dots = Array.isArray(v.dots) ? v.dots as Array<{ dx: number; dy: number; shade: number }> : [
+          { dx: Math.random() * 0.6 - 0.3, dy: Math.random() * 0.6 - 0.3, shade: Math.random() },
+        ];
+        world.bloodDecals.set(k, { x: v.x as number, y: v.y as number, spawnTick: v.spawnTick as number, dots });
+      }
     }
     if (data['playerKillIntent'] !== undefined) {
       world.playerKillIntent = data['playerKillIntent'] as boolean;
