@@ -1,3 +1,9 @@
+/* ── Cursor auto-hide on keyboard input ── */
+.cursor-hidden,
+.cursor-hidden * {
+  cursor: none !important;
+}
+
 /* ── Game Screen Layout ── */
 .screen--game {
   flex-direction: row;

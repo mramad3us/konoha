@@ -191,6 +191,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   layout.appendChild(gameBody);
   container.appendChild(layout);
 
+  // Hide mouse cursor on keyboard input, restore on mouse move
+  document.addEventListener('keydown', () => {
+    document.body.classList.add('cursor-hidden');
+  });
+  document.addEventListener('mousemove', () => {
+    document.body.classList.remove('cursor-hidden');
+  });
+
   // Keybindings panel (inside canvas container for positioning)
   const keybindingsPanel = new KeybindingsPanel();
   canvasContainer.appendChild(keybindingsPanel.element);
