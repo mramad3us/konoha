@@ -1086,26 +1086,24 @@ function spawnEnemy(
   });
   world.names.set(id, { display: name, article: '' });
 
-  // Give ninja enemies chakra resources so they can use jutsu
-  if (isNinja) {
-    const maxChakra = 20 + Math.floor(nin * 0.8);
-    const maxStam = 30 + Math.floor(phy * 0.5);
-    const maxWill = 20 + Math.floor(men * 0.6);
-    world.resources.set(id, {
-      chakra: maxChakra,
-      maxChakra,
-      chakraCeiling: maxChakra,
-      lastChakraExertionTick: 0,
-      willpower: maxWill,
-      maxWillpower: maxWill,
-      stamina: maxStam,
-      maxStamina: maxStam,
-      staminaCeiling: maxStam,
-      lastExertionTick: 0,
-      blood: 100,
-      maxBlood: 100,
-    });
-  }
+  // All enemies get resources — ninja get chakra, non-ninja don't
+  const maxChakra = isNinja ? (20 + Math.floor(nin * 0.8)) : 0;
+  const maxStam = 30 + Math.floor(phy * 0.5);
+  const maxWill = 20 + Math.floor(men * 0.6);
+  world.resources.set(id, {
+    chakra: maxChakra,
+    maxChakra,
+    chakraCeiling: maxChakra,
+    lastChakraExertionTick: 0,
+    willpower: maxWill,
+    maxWillpower: maxWill,
+    stamina: maxStam,
+    maxStamina: maxStam,
+    staminaCeiling: maxStam,
+    lastExertionTick: 0,
+    blood: 100,
+    maxBlood: 100,
+  });
 
   world.aiControlled.set(id, {
     behavior: isMissionTarget ? 'static' : 'wander',

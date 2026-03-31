@@ -8,7 +8,7 @@ import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
 import type { NpcCategory } from '../types/ecs.ts';
 import { ACCENTS_TAKESHI, ACCENTS_ANBU, ACCENTS_ANBU_2, ACCENTS_ANBU_3, ACCENTS_ANBU_4, ACCENTS_ANBU_5, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES, RAISED_BODIES, ANBU_RAISED_BODIES, SIGNING_BODIES, ANBU_SIGNING_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
-import { computeMaxHp } from '../engine/derivedStats.ts';
+import { computeMaxHp, computeMaxChakra, computeMaxWillpower, computeMaxStamina } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { TG_OFFSET_X, TG_OFFSET_Y, NPC_WANDER_RADIUS, NPC_WANDER_INTERVAL_MIN, NPC_WANDER_INTERVAL_MAX, VILLAGE_WIDTH, VILLAGE_HEIGHT } from '../core/constants.ts';
@@ -111,6 +111,26 @@ function spawnNpc(world: World, def: NpcDef, spritePrefix?: string): number {
   world.renderables.set(id, { spriteId: `${actualPrefix}_s`, layer: 'character', offsetY: -16 });
   world.blockings.set(id, { blocksMovement: true, blocksSight: false });
   world.healths.set(id, { current: hp, max: hp });
+
+  // All NPCs get resources derived from their stats
+  const maxChakra = isNinja ? computeMaxChakra(def.stats) : 0;
+  const maxWillpower = computeMaxWillpower(def.stats);
+  const maxStamina = computeMaxStamina(def.stats);
+  world.resources.set(id, {
+    chakra: maxChakra,
+    maxChakra,
+    chakraCeiling: maxChakra,
+    lastChakraExertionTick: 0,
+    willpower: maxWillpower,
+    maxWillpower,
+    stamina: maxStamina,
+    maxStamina,
+    staminaCeiling: maxStamina,
+    lastExertionTick: 0,
+    blood: 100,
+    maxBlood: 100,
+  });
+
   world.combatStats.set(id, {
     damage: Math.floor(def.skills.taijutsu * 0.3),
     accuracy: 50 + def.skills.taijutsu,

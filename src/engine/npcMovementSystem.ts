@@ -198,15 +198,20 @@ export function tickNpcMovement(world: World): void {
     // ── NPC Ninpo signing ──
     if (tickNpcNinpo(world, id, pos)) continue;
 
-    // NPCs that know Vanish and are not invisible: start signing
-    // Triggers when fleeing OR when out of combat (ANBU re-cloaking)
-    if (!world.invisible.has(id) && !world.npcNinpoState.has(id)) {
-      const shouldSign = ai.behavior === 'flee' || !isInCombat(id);
-      if (shouldSign) {
-        const sheet = world.characterSheets.get(id);
-        if (sheet && hasTechnique(sheet.skills.ninjutsu, 'vanish')) {
+    // Vanish signing — only specific NPCs attempt this:
+    //   ANBU: always re-cloak when out of combat (it's their duty)
+    //   Any ninja fleeing: attempt vanish to escape
+    // Regular ninja at rest do NOT try to hide — it would be weird
+    if (!world.invisible.has(id) && !world.npcNinpoState.has(id) && !isInCombat(id)) {
+      const sheet = world.characterSheets.get(id);
+      if (sheet && hasTechnique(sheet.skills.ninjutsu, 'vanish')) {
+        const isAnbu = sheet.rank === 'anbu';
+        const isFleeing = ai.behavior === 'flee';
+        if (isAnbu || isFleeing) {
+          // Check they have enough chakra before starting
+          const res = world.resources.get(id);
           const vanish = NINPO_REGISTRY.find(n => n.id === 'vanish');
-          if (vanish) {
+          if (vanish && res && res.chakra >= vanish.chakraCost(sheet.skills.ninjutsu)) {
             world.npcNinpoState.set(id, {
               ninpoId: 'vanish',
               signsCompleted: 0,
@@ -664,17 +669,6 @@ function tickNpcNinpo(
   // Sequence complete — cast the ninpo
   if (state.signsCompleted >= state.totalSigns) {
     world.npcNinpoState.delete(id);
-
-    // NPCs need chakra to cast — create resources if missing
-    if (!world.resources.has(id)) {
-      const chakraMax = ninjutsuLevel * 3 + 50;
-      world.resources.set(id, {
-        chakra: chakraMax, maxChakra: chakraMax, chakraCeiling: chakraMax, lastChakraExertionTick: 0,
-        willpower: 100, maxWillpower: 100,
-        stamina: 100, maxStamina: 100, staminaCeiling: 100, lastExertionTick: 0,
-        blood: 100, maxBlood: 100,
-      });
-    }
     resolveNinpo(world, id, ninpo);
     return true;
   }

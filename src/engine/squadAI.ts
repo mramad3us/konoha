@@ -152,16 +152,21 @@ export function tickSquadMember(
     const ninpo = NINPO_REGISTRY.find(n => n.id === mirrorId);
 
     if (ninpo && sheet && hasTechnique(sheet.skills.ninjutsu, mirrorId)) {
-      // This member knows the ninpo — start signing
-      if (!world.npcNinpoState.has(entityId)) {
-        world.npcNinpoState.set(entityId, {
-          ninpoId: mirrorId,
-          signsCompleted: 0,
-          totalSigns: ninpo.sequence.length,
-          nextSignSubtick: world.currentSubtick,
-        });
+      // Check they have enough chakra before committing to signing
+      const res = world.resources.get(entityId);
+      if (res && res.chakra >= ninpo.chakraCost(sheet.skills.ninjutsu)) {
+        // This member knows the ninpo and has chakra — start signing
+        if (!world.npcNinpoState.has(entityId)) {
+          world.npcNinpoState.set(entityId, {
+            ninpoId: mirrorId,
+            signsCompleted: 0,
+            totalSigns: ninpo.sequence.length,
+            nextSignSubtick: world.currentSubtick,
+          });
+        }
+        return; // Signing takes over behavior
       }
-      return; // Signing takes over behavior
+      // Not enough chakra — fall through to hold-position logic if player is invisible
     }
 
     // Member doesn't know the ninpo
