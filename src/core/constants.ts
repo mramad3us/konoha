@@ -170,7 +170,7 @@ export const STANCE_TICK_COST: Record<string, number> = {
 };
 
 export const STANCE_STAMINA_COST: Record<string, number> = {
-  sprint: 2,
+  sprint: 1,
   walk: 0,
   creep: 0,
   crawl: 0,
