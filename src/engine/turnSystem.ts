@@ -192,6 +192,7 @@ function directionToCardinal(dir: Direction): 'n' | 's' | 'e' | 'w' {
     case 's': case 'sw': case 'se': return 's';
     case 'e': return 'e';
     case 'w': return 'w';
+    default: return 's';
   }
 }
 
@@ -652,6 +653,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
       return interactWithEntity(world, candidates[0], playerId);
     }
   }
+
+  return false;
 }
 
 /**
