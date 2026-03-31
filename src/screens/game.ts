@@ -223,8 +223,9 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   // Update time label on every HUD update (move, combat, etc.)
   const origUpdate = hud.update.bind(hud);
-  hud.update = (w: World) => {
-    origUpdate(w);
+  hud.update = (...args: Parameters<typeof origUpdate>) => {
+    origUpdate(...args);
+    const w = args[0];
     timeLabel.textContent = formatGameTime(w.gameTimeSeconds);
     const pp = w.positions.get(w.playerEntityId);
     if (pp) {

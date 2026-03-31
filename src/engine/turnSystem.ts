@@ -521,8 +521,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       }
 
-      // Wait always passes 1 coarse tick (6s) regardless of stance
-      advanceTurn(world, SUBTICKS_PER_TICK, TICK_DURATION_SECONDS);
+      // Wait passes 1 subtick (0.5s)
+      advanceTurn(world, 1, SUBTICK_DURATION);
       return true;
     }
 
