@@ -21,7 +21,7 @@ export class KeybindingsPanel {
       [
         { keys: ',', descs: 'Faster' },
         { keys: ';', descs: 'Slower' },
-        { keys: '@', descs: 'Jutsu' },
+        { keys: '@', descs: 'Kawarimi' },
       ],
       [
         { keys: 'a/z/e', descs: 'Attack' },
