@@ -56,14 +56,13 @@ export function getNightDimFactor(gameTimeSeconds: number): number {
   if (hourFrac >= DAWN_HOUR + 1 && hourFrac <= DUSK_HOUR - 1) return 0;
 
   // Map hour to a 0-1 cycle: 0 at noon (12), 1 at midnight (0/24)
-  // Use cosine for smooth transition
-  const noon = 12;
-  const distFromNoon = Math.abs(((hourFrac - noon + 24) % 24) - 12);
-  // distFromNoon: 0 at noon, 12 at midnight
-  const normalized = distFromNoon / 12; // 0 at noon, 1 at midnight
+  // Cosine gives smooth transition: cos(0)=1 at noon → cos(π)=-1 at midnight
+  // Remap to 0 at noon, 1 at midnight
+  const radians = ((hourFrac - 12) / 12) * Math.PI; // 0 at noon, ±π at midnight
+  const normalized = (1 - Math.cos(radians)) / 2;   // 0 at noon, 1 at midnight
 
-  // Smooth curve: only dim when normalized > 0.5 (after dusk / before dawn)
-  if (normalized < 0.42) return 0; // ~5pm cutoff
+  // Only dim when normalized > 0.42 (roughly after dusk / before dawn)
+  if (normalized < 0.42) return 0;
   const dimCurve = (normalized - 0.42) / 0.58; // 0 to 1
   return NIGHT_MAX_DIM * dimCurve * dimCurve; // quadratic ease-in
 }
