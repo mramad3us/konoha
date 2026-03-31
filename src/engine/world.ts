@@ -52,7 +52,8 @@ export class World {
 
   // Ninpo system
   ninpoTimers = new Map<EntityId, NinpoTimerComponent>();
-  spriteVibrations = new Map<EntityId, number>();  // entityId → end timestamp (Date.now() ms)
+  /** Signing animation: frames remaining in "joined" pose. 0 = show "raised". */
+  signingJoinedFrames = new Map<EntityId, number>();
   npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number }>();
   playerSigningNinpo = false;  // true while player is in hand-sign mode (for sprite swap)
   _pendingShadowStep: { casterId: EntityId; maxRange: number } | null = null;
@@ -217,7 +218,7 @@ export class World {
     this.throwCooldowns.delete(id);
     this.hiddenUntilAdjacent.delete(id);
     this.ninpoTimers.delete(id);
-    this.spriteVibrations.delete(id);
+    this.signingJoinedFrames.delete(id);
     this.npcNinpoState.delete(id);
   }
 

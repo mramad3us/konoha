@@ -159,15 +159,19 @@ export class IsoRenderer {
             ? (isVisible ? 0.55 : 0.15)
             : (isVisible ? 1.0 : 0.25);
 
-          // Swap to signing sprite if entity is performing hand signs
-          // Each sign press: flash hands-apart briefly, then snap to hands-joined
+          // Swap to raised/joined sprite if entity is performing hand signs
+          // Frame counter driven: joined (countdown > 0) or raised (countdown = 0)
           let spriteId = renderable.spriteId;
           const isSigning = world.npcNinpoState.has(eid) || (isPlayerEntity && world.playerSigningNinpo);
           if (isSigning) {
-            const signAnimEnd = world.spriteVibrations.get(eid);
-            const isApartFlash = signAnimEnd !== undefined && Date.now() < signAnimEnd;
-            if (!isApartFlash) {
+            const joinedFrames = world.signingJoinedFrames.get(eid) ?? 0;
+            if (joinedFrames > 0) {
+              // Hands clasped — decrement counter each render frame
               spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
+              world.signingJoinedFrames.set(eid, joinedFrames - 1);
+            } else {
+              // Hands raised but apart — ready/between-signs pose
+              spriteId = spriteId.replace(/_([snew])$/, '_raised_$1');
             }
           }
 

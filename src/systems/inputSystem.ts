@@ -53,7 +53,6 @@ export class InputSystem {
   // ── Ninpo mode state ──
   private _ninpoMode = false;
   private _ninpoSigns: HandSignKey[] = [];
-  private _ninpoExitTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Shadow Step tile picker state ──
   private _shadowStepMode = false;
@@ -123,6 +122,11 @@ export class InputSystem {
     if (isHandSignKey(key)) {
       this.enterNinpoMode(key);
       return;
+    }
+
+    // ── Any non-sign action clears signing pose ──
+    if (this.world.playerSigningNinpo) {
+      this.clearSigningVisuals();
     }
 
     // ── Enter throwing mode ('t') ──
@@ -441,11 +445,6 @@ export class InputSystem {
     this._ninpoMode = true;
     this.world.playerSigningNinpo = true;
     this._ninpoSigns = [];
-    // Cancel any pending delayed exit from a previous sequence
-    if (this._ninpoExitTimer !== null) {
-      clearTimeout(this._ninpoExitTimer);
-      this._ninpoExitTimer = null;
-    }
     this.processSign(firstSign);
   }
 
@@ -453,22 +452,20 @@ export class InputSystem {
     if (isHandSignKey(key)) {
       this.processSign(key);
     } else {
-      // Any non-sign key cancels — immediate revert, no animation
-      this.exitNinpoMode(false);
+      // Any non-sign key cancels
+      this.exitNinpoMode();
       this.world.log('Signs broken.', 'info');
     }
   }
 
-  /** Duration (ms) for hands-apart flash before snapping to joined */
-  private static readonly SIGN_APART_MS = 120;
-  /** How long to hold joined pose after the final sign before reverting */
-  private static readonly SIGN_JOINED_HOLD_MS = 250;
+  /** Render frames to show "joined" pose before returning to "raised" */
+  private static readonly SIGN_JOINED_FRAMES = 8;  // ~133ms at 60fps
 
   private processSign(sign: HandSignKey): void {
     const playerId = this.world.playerEntityId;
     const pos = this.world.positions.get(playerId);
     const sheet = this.world.characterSheets.get(playerId);
-    if (!pos || !sheet) { this.exitNinpoMode(false); return; }
+    if (!pos || !sheet) { this.exitNinpoMode(); return; }
 
     const ninjutsuLevel = sheet.skills.ninjutsu;
 
@@ -492,9 +489,8 @@ export class InputSystem {
     this.conditionIndicator.update(getPlayerCondition(this.world));
     clearStaleEngagements(this.world);
 
-    // Set apart→joined flash for EVERY sign press (including the final one)
-    const apartEnd = Date.now() + InputSystem.SIGN_APART_MS;
-    this.world.spriteVibrations.set(playerId, apartEnd);
+    // Set frame counter → renderer shows "joined" for N frames, then reverts to "raised"
+    this.world.signingJoinedFrames.set(playerId, InputSystem.SIGN_JOINED_FRAMES);
 
     // Match sequence against trie
     const result = matchNinpoSequence(this._ninpoSigns);
@@ -504,13 +500,15 @@ export class InputSystem {
       // Check if player has the required level
       if (ninjutsuLevel < ninpo.requiredNinjutsu) {
         this.world.log('The signs mean nothing to you — technique unknown.', 'info');
-        this.exitNinpoMode(true);
+        this.exitNinpoMode();
         return;
       }
 
-      // Attempt to cast
+      // Attempt to cast — signing mode stays active until player moves/acts
       const success = resolveNinpo(this.world, playerId, ninpo);
-      this.exitNinpoMode(true);
+      this._ninpoMode = false;
+      this._ninpoSigns = [];
+      // Keep playerSigningNinpo = true — cleared on next player action
 
       if (success) {
         // Check if shadow step needs tile picker
@@ -527,33 +525,23 @@ export class InputSystem {
 
     if (result.status === 'invalid') {
       this.world.log('Signs broken — no technique matches.', 'info');
-      this.exitNinpoMode(true);
+      this.exitNinpoMode();
       return;
     }
 
     // status === 'partial' — continue signing
   }
 
-  /**
-   * @param delayedVisual If true, keep playerSigningNinpo active long enough
-   *   for the last apart→joined animation to complete before reverting.
-   */
-  private exitNinpoMode(delayedVisual: boolean): void {
+  private exitNinpoMode(): void {
     this._ninpoMode = false;
     this._ninpoSigns = [];
+    this.clearSigningVisuals();
+  }
 
-    if (delayedVisual) {
-      // Let the apart flash expire, then hold joined briefly, then revert
-      const delay = InputSystem.SIGN_APART_MS + InputSystem.SIGN_JOINED_HOLD_MS;
-      this._ninpoExitTimer = setTimeout(() => {
-        this.world.playerSigningNinpo = false;
-        this.world.spriteVibrations.delete(this.world.playerEntityId);
-        this._ninpoExitTimer = null;
-      }, delay);
-    } else {
-      this.world.playerSigningNinpo = false;
-      this.world.spriteVibrations.delete(this.world.playerEntityId);
-    }
+  /** Clear signing pose visuals — called when player takes any non-sign action */
+  private clearSigningVisuals(): void {
+    this.world.playerSigningNinpo = false;
+    this.world.signingJoinedFrames.delete(this.world.playerEntityId);
   }
 
   // ── Shadow Step Tile Picker ──
@@ -656,9 +644,5 @@ export class InputSystem {
   /** Remove event listener */
   dispose(): void {
     document.removeEventListener('keydown', this.handler);
-    if (this._ninpoExitTimer !== null) {
-      clearTimeout(this._ninpoExitTimer);
-      this._ninpoExitTimer = null;
-    }
   }
 }

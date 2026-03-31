@@ -24,7 +24,7 @@ import {
 } from '../core/constants.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxStamina, computeMaxWillpower } from '../engine/derivedStats.ts';
 import type { CharacterAccents } from '../sprites/characters.ts';
-import { generateCharacterSprites, CIVILIAN_BODIES, SIGNING_BODIES } from '../sprites/characters.ts';
+import { generateCharacterSprites, CIVILIAN_BODIES, RAISED_BODIES, SIGNING_BODIES } from '../sprites/characters.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
 import type { SquadMember } from '../types/squad.ts';
 
@@ -143,7 +143,12 @@ function registerNinjaEnemySprites(rng: SeededRng, type: 'rogue_nin' | 'missing_
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
   }
-  // Signing sprites (hands joined pose)
+  // Raised + signing sprites (hand-sign poses)
+  const raisedSprites = generateCharacterSprites(accents, RAISED_BODIES);
+  for (const [dir, pattern] of Object.entries(raisedSprites)) {
+    if (dir === 'prone') continue;
+    spriteCache.registerDynamic(`${prefix}_raised_${dir}`, pattern, 48, 48, true);
+  }
   const signingSprites = generateCharacterSprites(accents, SIGNING_BODIES);
   for (const [dir, pattern] of Object.entries(signingSprites)) {
     if (dir === 'prone') continue;
@@ -1217,7 +1222,12 @@ function spawnSquadMember(
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
   }
-  // Signing sprites (hands joined pose)
+  // Raised + signing sprites (hand-sign poses)
+  const raisedSprites = generateCharacterSprites(member.accents, RAISED_BODIES);
+  for (const [dir, pattern] of Object.entries(raisedSprites)) {
+    if (dir === 'prone') continue;
+    spriteCache.registerDynamic(`${prefix}_raised_${dir}`, pattern, 48, 48, true);
+  }
   const signingSprites = generateCharacterSprites(member.accents, SIGNING_BODIES);
   for (const [dir, pattern] of Object.entries(signingSprites)) {
     if (dir === 'prone') continue;

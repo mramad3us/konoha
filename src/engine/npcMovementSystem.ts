@@ -635,8 +635,8 @@ function tickNpcNinpo(
     sfxHandSign();
   }
 
-  // Sign animation flash — briefly show hands-apart before snapping to hands-joined
-  world.spriteVibrations.set(id, Date.now() + 100);
+  // Set frame counter → renderer shows "joined" for N frames, then reverts to "raised"
+  world.signingJoinedFrames.set(id, 8);
 
   state.signsCompleted++;
 
