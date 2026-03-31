@@ -33,6 +33,7 @@ export interface ProjectileComponent {
 /** Throw cooldown — tracks when entity can throw again */
 export interface ThrowCooldownComponent {
   readyAtSubtick: number;
+  totalSubticks: number;   // total cooldown duration for progress bar
 }
 
 /** Static data for each thrown weapon type */

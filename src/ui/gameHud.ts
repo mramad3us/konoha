@@ -133,9 +133,15 @@ export class GameHud {
       }
     }
 
-    // Ammo display
+    // Ammo display — compute cooldown progress (0=just thrown, 1=ready)
     const ammo = world.thrownAmmo.get(playerId);
-    this.ammoDisplay.update(ammo, selectedWeapon, throwingMode);
+    let cooldownProgress = 1;
+    const cd = world.throwCooldowns.get(playerId);
+    if (cd && cd.totalSubticks > 0 && world.currentSubtick < cd.readyAtSubtick) {
+      const remaining = cd.readyAtSubtick - world.currentSubtick;
+      cooldownProgress = Math.max(0, 1 - remaining / cd.totalSubticks);
+    }
+    this.ammoDisplay.update(ammo, selectedWeapon, throwingMode, cooldownProgress);
 
     this.gameLog.update(world.gameLog, world.gameTimeSeconds);
   }

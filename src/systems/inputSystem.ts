@@ -2,7 +2,7 @@ import { resolveAction, GAME_KEYS, JUTSU_COMBAT_KEYS } from '../engine/actionRes
 import { tryCastJutsuByKey, getJutsuFailMessage } from '../engine/jutsuResolver.ts';
 import { getJutsuByCombatKey } from '../data/jutsus.ts';
 import { findAdjacentTarget as findTarget } from '../engine/combatSystem.ts';
-import { executeTurn, advanceCombatPass } from '../engine/turnSystem.ts';
+import { executeTurn, advanceCombatPass, advanceThrowSubtick } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
@@ -335,8 +335,6 @@ export class InputSystem {
         this._throwWeapon = 'kunai';
       }
 
-      const targetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
-      this.world.log(`Throwing: ${this._throwWeapon} — aiming at ${targetName}`, 'system');
       this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       return;
     }
@@ -381,8 +379,8 @@ export class InputSystem {
 
       spawnProjectile(this.world, playerId, this._throwWeapon, targetPos.x, targetPos.y);
 
-      // Advance time by one combat pass (throwing takes time)
-      advanceCombatPass(this.world);
+      // Advance time by 1 subtick (0.5s) — throwing is fast, cooldown handles pacing
+      advanceThrowSubtick(this.world);
 
       this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       this.tempoBeads.update(getPlayerTempo(this.world));
@@ -404,8 +402,6 @@ export class InputSystem {
         return;
       }
 
-      const nextTargetName = this.world.names.get(this._throwTargets[this._throwTargetIndex])?.display ?? 'target';
-      this.world.log(`Throwing: ${this._throwWeapon} — aiming at ${nextTargetName}`, 'system');
       return;
     }
   }

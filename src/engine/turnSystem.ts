@@ -3,7 +3,7 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, STANCE_SUBTICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
+import { FOV_RADIUS, STANCE_SUBTICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS, SUBTICK_DURATION } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 import { hasTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
 import { tickUnconsciousRecovery, tickBleeding, checkEntityState } from './entityState.ts';
@@ -118,6 +118,39 @@ export function advanceCombatPass(world: World): void {
   // Coarse tick systems — NPC movement, dialogue, etc.
   const ticksElapsed = world.currentTick - oldTick;
   for (let t = 0; t < ticksElapsed; t++) {
+    tickUnconsciousRecovery(world);
+    tickProximityDialogue(world);
+    tickNpcMovement(world);
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+    cleanupBloodDecals(world);
+  }
+}
+
+/**
+ * Advance world by exactly 1 subtick (0.5s).
+ * Used for throwing — the throw action itself is fast; cooldown handles pacing.
+ */
+export function advanceThrowSubtick(world: World): void {
+  const oldTick = world.currentTick;
+  world.gameTimeSeconds += SUBTICK_DURATION;
+  world.currentSubtick += 1;
+  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
+
+  tickProjectiles(world);
+
+  // Recompute FOV
+  const playerPos = world.positions.get(world.playerEntityId);
+  if (playerPos) {
+    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
+    const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
+    computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
+  }
+
+  // Coarse tick systems if we crossed a tick boundary
+  if (world.currentTick > oldTick) {
+    tickBleeding(world);
+    resolveNpcCombatRounds(world);
     tickUnconsciousRecovery(world);
     tickProximityDialogue(world);
     tickNpcMovement(world);

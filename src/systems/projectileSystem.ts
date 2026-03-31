@@ -121,6 +121,7 @@ export function spawnProjectile(
   const cooldownSubticks = getThrowCooldown(bukijutsu);
   world.throwCooldowns.set(sourceId, {
     readyAtSubtick: world.currentSubtick + cooldownSubticks,
+    totalSubticks: cooldownSubticks,
   });
 
   // ── Bukijutsu skill improvement (10× taijutsu punch rate) ──

@@ -50,8 +50,8 @@ const SHURIKEN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12
 </svg>`;
 
 /**
- * Ammo display HUD component — shows weapon type with pixel art SVG icons
- * and current ammo counts for both kunai and shuriken.
+ * Ammo display HUD component — shows weapon type with pixel art SVG icons,
+ * current ammo counts, selected weapon indicator, and cooldown progress.
  */
 export class AmmoDisplay {
   readonly element: HTMLElement;
@@ -59,6 +59,8 @@ export class AmmoDisplay {
   private shurikenCount: HTMLElement;
   private kunaiRow: HTMLElement;
   private shurikenRow: HTMLElement;
+  private kunaiCooldown: HTMLElement;
+  private shurikenCooldown: HTMLElement;
 
   constructor() {
     this.element = createElement('div', { className: 'hud-ammo' });
@@ -68,35 +70,47 @@ export class AmmoDisplay {
 
     // Kunai row
     this.kunaiRow = createElement('div', { className: 'hud-ammo__row' });
+    const kunaiSelector = createElement('span', { className: 'hud-ammo__selector', text: '\u25B8' });
+    this.kunaiRow.appendChild(kunaiSelector);
     const kunaiIcon = createElement('div', { className: 'hud-ammo__icon' });
     kunaiIcon.innerHTML = KUNAI_SVG;
     this.kunaiRow.appendChild(kunaiIcon);
-
     const kunaiLabel = createElement('span', { className: 'hud-ammo__label', text: 'KUN' });
     this.kunaiRow.appendChild(kunaiLabel);
-
     this.kunaiCount = createElement('span', { className: 'hud-ammo__count', text: `0/${MAX_THROWN_AMMO}` });
     this.kunaiRow.appendChild(this.kunaiCount);
-
+    this.kunaiCooldown = createElement('div', { className: 'hud-ammo__cooldown' });
+    this.kunaiCooldown.appendChild(createElement('div', { className: 'hud-ammo__cooldown-fill' }));
+    this.kunaiRow.appendChild(this.kunaiCooldown);
     this.element.appendChild(this.kunaiRow);
 
     // Shuriken row
     this.shurikenRow = createElement('div', { className: 'hud-ammo__row' });
+    const shurikenSelector = createElement('span', { className: 'hud-ammo__selector', text: '\u25B8' });
+    this.shurikenRow.appendChild(shurikenSelector);
     const shurikenIcon = createElement('div', { className: 'hud-ammo__icon' });
     shurikenIcon.innerHTML = SHURIKEN_SVG;
     this.shurikenRow.appendChild(shurikenIcon);
-
     const shurikenLabel = createElement('span', { className: 'hud-ammo__label', text: 'SHU' });
     this.shurikenRow.appendChild(shurikenLabel);
-
     this.shurikenCount = createElement('span', { className: 'hud-ammo__count', text: `0/${MAX_THROWN_AMMO}` });
     this.shurikenRow.appendChild(this.shurikenCount);
-
+    this.shurikenCooldown = createElement('div', { className: 'hud-ammo__cooldown' });
+    this.shurikenCooldown.appendChild(createElement('div', { className: 'hud-ammo__cooldown-fill' }));
+    this.shurikenRow.appendChild(this.shurikenCooldown);
     this.element.appendChild(this.shurikenRow);
   }
 
-  /** Update ammo counts and highlight selected weapon */
-  update(ammo: ThrownAmmoComponent | undefined, selectedWeapon: ThrownWeaponType, throwingMode: boolean): void {
+  /**
+   * Update ammo counts, selected weapon indicator, and cooldown state.
+   * @param cooldownProgress 0 = just thrown (full cooldown), 1 = ready to throw
+   */
+  update(
+    ammo: ThrownAmmoComponent | undefined,
+    selectedWeapon: ThrownWeaponType,
+    throwingMode: boolean,
+    cooldownProgress: number,
+  ): void {
     const kunai = ammo?.kunai ?? 0;
     const shuriken = ammo?.shuriken ?? 0;
 
@@ -107,8 +121,31 @@ export class AmmoDisplay {
     this.kunaiRow.classList.toggle('hud-ammo__row--empty', kunai <= 0);
     this.shurikenRow.classList.toggle('hud-ammo__row--empty', shuriken <= 0);
 
-    // Highlight selected weapon in throwing mode
-    this.kunaiRow.classList.toggle('hud-ammo__row--selected', throwingMode && selectedWeapon === 'kunai');
-    this.shurikenRow.classList.toggle('hud-ammo__row--selected', throwingMode && selectedWeapon === 'shuriken');
+    // Always show selected weapon indicator (arrow marker)
+    this.kunaiRow.classList.toggle('hud-ammo__row--selected', selectedWeapon === 'kunai');
+    this.shurikenRow.classList.toggle('hud-ammo__row--selected', selectedWeapon === 'shuriken');
+
+    // Throwing mode active highlight (brighter when aiming)
+    this.kunaiRow.classList.toggle('hud-ammo__row--aiming', throwingMode && selectedWeapon === 'kunai');
+    this.shurikenRow.classList.toggle('hud-ammo__row--aiming', throwingMode && selectedWeapon === 'shuriken');
+
+    // Cooldown overlay on the selected weapon row
+    const onCooldown = cooldownProgress < 1;
+    const selectedCooldown = selectedWeapon === 'kunai' ? this.kunaiCooldown : this.shurikenCooldown;
+    const otherCooldown = selectedWeapon === 'kunai' ? this.shurikenCooldown : this.kunaiCooldown;
+
+    // Show cooldown bar only on selected weapon
+    selectedCooldown.classList.toggle('hud-ammo__cooldown--active', onCooldown);
+    otherCooldown.classList.toggle('hud-ammo__cooldown--active', false);
+
+    // Fill width represents remaining cooldown (shrinks as cooldown expires)
+    const fill = selectedCooldown.firstElementChild as HTMLElement;
+    if (fill) {
+      fill.style.width = onCooldown ? `${(1 - cooldownProgress) * 100}%` : '0%';
+    }
+    const otherFill = otherCooldown.firstElementChild as HTMLElement;
+    if (otherFill) {
+      otherFill.style.width = '0%';
+    }
   }
 }
