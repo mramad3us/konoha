@@ -397,11 +397,16 @@ export class InputSystem {
       }
       this._throwTargetIndex = Math.min(this._throwTargetIndex, this._throwTargets.length - 1);
 
-      // Check if we still have ammo
-      if (!canThrow(this.world, playerId)) {
+      // Check if we still have ammo for the selected weapon
+      const remainingAmmo = this.world.thrownAmmo.get(playerId);
+      if (!remainingAmmo || (remainingAmmo.kunai <= 0 && remainingAmmo.shuriken <= 0)) {
         this.world.log('Out of ammo.', 'info');
         this.exitThrowingMode();
         return;
+      }
+      // Switch weapon if current type is depleted
+      if (remainingAmmo[this._throwWeapon] <= 0) {
+        this._throwWeapon = this._throwWeapon === 'kunai' ? 'shuriken' : 'kunai';
       }
 
       return;
