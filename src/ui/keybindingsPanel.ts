@@ -28,6 +28,9 @@ export class KeybindingsPanel {
         { keys: 'q/s/d', descs: 'Defend' },
       ],
       [
+        { keys: '&é"\'(§è!çà)-', descs: 'Hand Signs' },
+      ],
+      [
         { keys: '.', descs: 'Wait' },
         { keys: 'f', descs: 'Interact' },
         { keys: 'r', descs: 'Squad ROE' },

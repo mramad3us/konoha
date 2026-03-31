@@ -131,8 +131,14 @@ export class IsoRenderer {
           const renderable = world.renderables.get(eid);
           if (!renderable) continue;
 
-          // Skip entities that are invisible to the player
-          if (world.isInvisibleToPlayer(eid)) continue;
+          // Visibility logic for invisible entities
+          const isPlayerEntity = eid === world.playerEntityId;
+          const isInvisible = world.invisible.has(eid);
+          const isInvisibleToPlayer = world.isInvisibleToPlayer(eid);
+          const isDetected = world.isInvisibleButDetected(eid);
+
+          // Skip entities truly invisible to the player (not self, not detected)
+          if (isInvisibleToPlayer && !isPlayerEntity) continue;
 
           // Skip hidden entities unless player is adjacent (Chebyshev ≤ 1)
           if (world.hiddenUntilAdjacent.has(eid) && playerPos) {
@@ -141,7 +147,8 @@ export class IsoRenderer {
             if (dx > 1 || dy > 1) continue;
           }
 
-          const isShadowed = world.isInvisibleButDetected(eid);
+          // Entities that are invisible get shadow tint: player sees self dimmed, detected NPCs dimmed
+          const isShadowed = isDetected || (isInvisible && isPlayerEntity);
 
           // Sprite vibration for hand-sign animation
           const vibEnd = world.spriteVibrations.get(eid);
@@ -149,13 +156,18 @@ export class IsoRenderer {
             ? (Math.random() * 4 - 2)
             : 0;
 
+          // Dimmer alpha for invisible entities
+          const entityAlpha = isShadowed
+            ? (isVisible ? 0.55 : 0.15)
+            : (isVisible ? 1.0 : 0.25);
+
           drawCommands.push({
             screenX: sx + vibOffset,
             screenY: sy,
             spriteId: renderable.spriteId,
             depth,
             layer: renderable.layer,
-            alpha: isVisible ? 1.0 : 0.25,
+            alpha: entityAlpha,
             offsetY: renderable.offsetY,
             shadowTint: isShadowed,
           });
@@ -201,7 +213,8 @@ export class IsoRenderer {
           sctx.clearRect(0, 0, sw, sh);
           sctx.drawImage(sprite, 0, 0, sw, sh);
           sctx.globalCompositeOperation = 'source-atop';
-          sctx.fillStyle = 'rgba(10, 8, 20, 0.55)';
+          // Desaturate + blue shift for "invisible / ghostly" look
+          sctx.fillStyle = 'rgba(30, 40, 80, 0.50)';
           sctx.fillRect(0, 0, sw, sh);
           sctx.globalCompositeOperation = 'source-over';
           ctx.drawImage(this.shadowCanvas, 0, 0, sw, sh, drawX, drawY, sw, sh);
@@ -215,6 +228,9 @@ export class IsoRenderer {
 
     // ── Combat status indicators above characters ──
     this.drawCombatIndicators(ctx, world, offset);
+
+    // ── Invisibility eye icon above invisible entities ──
+    this.drawInvisibilityIndicators(ctx, world, offset);
 
     // ── Throw target highlight ──
     if (throwTargetId !== undefined) {
@@ -313,6 +329,68 @@ export class IsoRenderer {
 
     // ── Carry indicator above player (drawn after night overlay so it's always visible) ──
     this.drawCarryIndicator(ctx, world, offset);
+  }
+
+  /** Draw eye icon above invisible entities visible to the player */
+  private drawInvisibilityIndicators(
+    ctx: CanvasRenderingContext2D,
+    world: World,
+    offset: { ox: number; oy: number },
+  ): void {
+    const halfTW = TILE_WIDTH / 2;
+    const halfTH = TILE_HEIGHT / 2;
+
+    // Check all invisible entities
+    for (const [entityId] of world.invisible) {
+      // Must be visible to the player (self or detected)
+      const isPlayer = entityId === world.playerEntityId;
+      const isDetected = world.isInvisibleButDetected(entityId);
+      if (!isPlayer && !isDetected) continue;
+
+      const pos = world.positions.get(entityId);
+      if (!pos) continue;
+      if (!world.fovVisible.has(world.fovKey(pos.x, pos.y))) continue;
+
+      const sx = (pos.x - pos.y) * halfTW + offset.ox;
+      const sy = (pos.x + pos.y) * halfTH + offset.oy;
+      const centerX = sx + TILE_WIDTH / 2;
+      const aboveY = sy - 26;
+
+      // Pulsing alpha for subtle breathing effect
+      const pulse = 0.6 + 0.3 * Math.sin(Date.now() / 600);
+      ctx.globalAlpha = pulse;
+
+      // Eye icon color: blue for self, purple for detected NPCs
+      const eyeColor = isPlayer ? '#8ab4f8' : '#bb88dd';
+
+      // ── Draw pixel-art eye icon (11×5 pixels) ──
+      ctx.fillStyle = eyeColor;
+
+      // Eye outline — almond shape
+      // Row 0 (top):       ··XXX···
+      ctx.fillRect(centerX - 2, aboveY, 5, 1);
+      // Row 1:           ·X·····X·
+      ctx.fillRect(centerX - 4, aboveY + 1, 1, 1);
+      ctx.fillRect(centerX + 4, aboveY + 1, 1, 1);
+      // Row 2 (middle):  X···O···X  (O = pupil)
+      ctx.fillRect(centerX - 5, aboveY + 2, 1, 1);
+      ctx.fillRect(centerX + 5, aboveY + 2, 1, 1);
+      // Row 3:           ·X·····X·
+      ctx.fillRect(centerX - 4, aboveY + 3, 1, 1);
+      ctx.fillRect(centerX + 4, aboveY + 3, 1, 1);
+      // Row 4 (bottom):    ··XXX··
+      ctx.fillRect(centerX - 2, aboveY + 4, 5, 1);
+
+      // Pupil — dark center dot
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(centerX - 1, aboveY + 1, 3, 3);
+
+      // Pupil highlight — tiny white glint
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(centerX, aboveY + 1, 1, 1);
+    }
+
+    ctx.globalAlpha = 1.0;
   }
 
   /** Draw carry weight indicator above player when carrying a body */
