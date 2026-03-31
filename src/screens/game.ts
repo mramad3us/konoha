@@ -20,7 +20,7 @@ import { KillIntentToggle } from '../ui/killIntentToggle.ts';
 import { buildContextOptions, getExamineText, TRAINING_GROUNDS_FLAGS } from '../engine/interactionBuilder.ts';
 import { ContextMenu } from '../ui/contextMenu.ts';
 import { MissionBoardUI } from '../ui/missionBoardUI.ts';
-import { interactWithEntity } from '../engine/turnSystem.ts';
+import { interactWithEntity, dispelInvisibilityOnInteract } from '../engine/turnSystem.ts';
 import { refreshMissionBoard, acceptMission, reportMission, abandonMission, getGameDay, processMissionEvent, getActiveMissionStatus, getMissionXpMultiplier, getCRankData } from '../engine/missions.ts';
 import { updateParticles } from '../systems/particleSystem.ts';
 import { updateFloatingTexts } from '../systems/floatingTextSystem.ts';
@@ -744,6 +744,9 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   // ── Shared context menu choice handler ──
   const handleContextChoice = async (choice: string | null, entityId: number) => {
     if (!choice) return;
+
+    // Committing to a context menu action dispels invisibility
+    dispelInvisibilityOnInteract(world);
 
     if (choice === 'examine') {
       const lines = getExamineText(world, entityId);

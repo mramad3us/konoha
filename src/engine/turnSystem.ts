@@ -665,17 +665,21 @@ export function executeTurn(action: GameAction, world: World): boolean {
 }
 
 /**
- * Interact with a specific entity. Handles doors, simple examine, and complex context menus.
- * Exported so the target selector can call this after the player picks a target.
+ * Dispel player invisibility when they commit to a real interaction (not just opening a menu).
  */
-export function interactWithEntity(world: World, eid: number, _playerId?: number): boolean {
-  // Actually interacting dispels player's own invisibility
-  const playerId = _playerId ?? world.playerEntityId;
+export function dispelInvisibilityOnInteract(world: World): void {
+  const playerId = world.playerEntityId;
   if (world.invisible.has(playerId)) {
     world.invisible.delete(playerId);
     world.log('Your invisibility fades as you interact.', 'info');
   }
+}
 
+/**
+ * Interact with a specific entity. Handles doors, simple examine, and complex context menus.
+ * Exported so the target selector can call this after the player picks a target.
+ */
+export function interactWithEntity(world: World, eid: number, _playerId?: number): boolean {
   // Doors toggle immediately (but check for locks)
   const door = world.doors.get(eid);
   if (door) {
@@ -683,6 +687,8 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
       world.log('The door is locked.', 'info');
       return false;
     }
+    // Opening/closing a door is a real interaction — dispels invisibility
+    dispelInvisibilityOnInteract(world);
     door.isOpen = !door.isOpen;
     const renderable = world.renderables.get(eid);
     const blocking = world.blockings.get(eid);
