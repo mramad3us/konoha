@@ -160,15 +160,18 @@ export class IsoRenderer {
             : (isVisible ? 1.0 : 0.25);
 
           // Swap to signing sprite if entity is performing hand signs
-          // During sign-press window: show normal sprite (hands apart)
-          // After window settles: show signing sprite (hands joined)
-          // This creates a rhythmic away→joined snap on each sign press
           let spriteId = renderable.spriteId;
           const isSigning = world.npcNinpoState.has(eid) || (isPlayerEntity && world.playerSigningNinpo);
           const signAnimEnd = world.spriteVibrations.get(eid);
-          const isSignFlash = signAnimEnd !== undefined && Date.now() < signAnimEnd;
-          if (isSigning && !isSignFlash) {
-            spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
+          const now = Date.now();
+          const isSignFlash = signAnimEnd !== undefined && now < signAnimEnd;
+          if (isSigning) {
+            if (isSignFlash) {
+              console.log(`[SIGN] frame: APART  now=${now} end=${signAnimEnd} remaining=${signAnimEnd! - now}ms`);
+            } else {
+              console.log(`[SIGN] frame: JOINED now=${now} end=${signAnimEnd ?? 'none'} expired=${signAnimEnd ? now - signAnimEnd : 'n/a'}ms ago`);
+              spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
+            }
           }
 
           drawCommands.push({

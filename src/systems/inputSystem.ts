@@ -518,7 +518,9 @@ export class InputSystem {
 
     // Sign animation flash — set AFTER all processing so the next render frame
     // catches the "apart" state before it expires into "joined".
-    this.world.spriteVibrations.set(playerId, Date.now() + 150);
+    const flashEnd = Date.now() + 150;
+    console.log(`[SIGN] SET TIMER now=${Date.now()} end=${flashEnd}`);
+    this.world.spriteVibrations.set(playerId, flashEnd);
   }
 
   private exitNinpoMode(): void {
