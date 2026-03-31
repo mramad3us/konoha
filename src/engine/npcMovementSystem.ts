@@ -635,7 +635,7 @@ function tickNpcNinpo(
     sfxHandSign();
   }
 
-  // Sprite vibration
+  // Sign animation flash — briefly show hands-apart before snapping to hands-joined
   world.spriteVibrations.set(id, Date.now() + 100);
 
   state.signsCompleted++;

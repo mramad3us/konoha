@@ -154,27 +154,25 @@ export class IsoRenderer {
           // Entities that are invisible get shadow tint: player sees self dimmed, detected NPCs dimmed
           const isShadowed = isDetected || (isInvisible && isPlayerEntity);
 
-          // Sprite vibration for hand-sign animation
-          const vibEnd = world.spriteVibrations.get(eid);
-          const vibOffset = (vibEnd && Date.now() < vibEnd)
-            ? (Math.random() * 4 - 2)
-            : 0;
-
           // Dimmer alpha for invisible entities
           const entityAlpha = isShadowed
             ? (isVisible ? 0.55 : 0.15)
             : (isVisible ? 1.0 : 0.25);
 
           // Swap to signing sprite if entity is performing hand signs
+          // During sign-press window: show normal sprite (hands apart)
+          // After window settles: show signing sprite (hands joined)
+          // This creates a rhythmic away→joined snap on each sign press
           let spriteId = renderable.spriteId;
           const isSigning = world.npcNinpoState.has(eid) || (isPlayerEntity && world.playerSigningNinpo);
-          if (isSigning) {
-            // char_shinobi_s → char_shinobi_sign_s, npc_5_e → npc_5_sign_e
+          const signAnimEnd = world.spriteVibrations.get(eid);
+          const isSignFlash = signAnimEnd !== undefined && Date.now() < signAnimEnd;
+          if (isSigning && !isSignFlash) {
             spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
           }
 
           drawCommands.push({
-            screenX: sx + vibOffset,
+            screenX: sx,
             screenY: sy,
             spriteId,
             depth,

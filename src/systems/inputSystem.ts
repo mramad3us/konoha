@@ -471,7 +471,7 @@ export class InputSystem {
     // Audio: wood-chop sound
     sfxHandSign();
 
-    // Sprite vibration (100ms)
+    // Sign animation flash — briefly show hands-apart before snapping to hands-joined
     this.world.spriteVibrations.set(playerId, Date.now() + 100);
 
     // Advance world time per sign — engaged enemies get free hits naturally
