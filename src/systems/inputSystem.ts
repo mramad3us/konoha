@@ -384,31 +384,13 @@ export class InputSystem {
       // Advance time by 1 subtick (0.5s) — throwing is fast, cooldown handles pacing
       advanceThrowSubtick(this.world);
 
+      // Exit throwing mode immediately — player can re-enter with 't' when ready
+      this.exitThrowingMode();
+
       this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       this.tempoBeads.update(getPlayerTempo(this.world));
       this.conditionIndicator.update(getPlayerCondition(this.world));
       clearStaleEngagements(this.world);
-
-      // Refresh targets (some may have died or moved)
-      this._throwTargets = getThrowableTargets(this.world, playerId);
-      if (this._throwTargets.length === 0) {
-        this.exitThrowingMode();
-        return;
-      }
-      this._throwTargetIndex = Math.min(this._throwTargetIndex, this._throwTargets.length - 1);
-
-      // Check if we still have ammo for the selected weapon
-      const remainingAmmo = this.world.thrownAmmo.get(playerId);
-      if (!remainingAmmo || (remainingAmmo.kunai <= 0 && remainingAmmo.shuriken <= 0)) {
-        this.world.log('Out of ammo.', 'info');
-        this.exitThrowingMode();
-        return;
-      }
-      // Switch weapon if current type is depleted
-      if (remainingAmmo[this._throwWeapon] <= 0) {
-        this._throwWeapon = this._throwWeapon === 'kunai' ? 'shuriken' : 'kunai';
-      }
-
       return;
     }
   }
