@@ -103,6 +103,11 @@ export function knockUnconscious(
 
   const name = world.names.get(entityId)?.display ?? 'Someone';
 
+  // Falling unconscious dispels invisibility
+  if (world.invisible.has(entityId)) {
+    world.invisible.delete(entityId);
+  }
+
   // Set unconscious component with random recovery time (10-600 ticks = ~1min to ~1hr)
   const recoveryDelay = 10 + Math.floor(Math.random() * 590);
   world.unconscious.set(entityId, { reason, tickFallen: world.currentTick, recoveryTick: world.currentTick + recoveryDelay });

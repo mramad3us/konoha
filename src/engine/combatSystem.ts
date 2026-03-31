@@ -195,6 +195,17 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
         targetHealth.current = Math.max(0, targetHealth.current - finalDamage);
       }
 
+      // Taking damage dispels invisibility
+      if (world.invisible.has(outcome.defenderId)) {
+        world.invisible.delete(outcome.defenderId);
+        const defName = world.names.get(outcome.defenderId)?.display ?? 'Someone';
+        if (outcome.defenderId === playerId) {
+          world.log('The impact shatters your invisibility.', 'info');
+        } else {
+          world.log(`${defName} flickers into view as the blow lands.`, 'info');
+        }
+      }
+
       // Bleeding chance with weapons (kunai/blade)
       if (attackerLethal) {
         // Blood decal at the defender's position

@@ -198,17 +198,21 @@ export function tickNpcMovement(world: World): void {
     // ── NPC Ninpo signing ──
     if (tickNpcNinpo(world, id, pos)) continue;
 
-    // NPCs that are fleeing and know Vanish: start signing
-    if (ai.behavior === 'flee' && !world.invisible.has(id) && !world.npcNinpoState.has(id)) {
-      const sheet = world.characterSheets.get(id);
-      if (sheet && hasTechnique(sheet.skills.ninjutsu, 'vanish')) {
-        const vanish = NINPO_REGISTRY.find(n => n.id === 'vanish');
-        if (vanish) {
-          world.npcNinpoState.set(id, {
-            ninpoId: 'vanish',
-            signsCompleted: 0,
-            totalSigns: vanish.sequence.length,
-          });
+    // NPCs that know Vanish and are not invisible: start signing
+    // Triggers when fleeing OR when out of combat (ANBU re-cloaking)
+    if (!world.invisible.has(id) && !world.npcNinpoState.has(id)) {
+      const shouldSign = ai.behavior === 'flee' || !isInCombat(id);
+      if (shouldSign) {
+        const sheet = world.characterSheets.get(id);
+        if (sheet && hasTechnique(sheet.skills.ninjutsu, 'vanish')) {
+          const vanish = NINPO_REGISTRY.find(n => n.id === 'vanish');
+          if (vanish) {
+            world.npcNinpoState.set(id, {
+              ninpoId: 'vanish',
+              signsCompleted: 0,
+              totalSigns: vanish.sequence.length,
+            });
+          }
         }
       }
     }
@@ -554,6 +558,11 @@ function tickChase(
   // Adjacent to target — initiate real combat engagement
   if (dist <= 1) {
     const npcName = world.names.get(id)?.display ?? 'An enemy';
+    // Engaging in combat dispels invisibility
+    if (world.invisible.has(id)) {
+      world.invisible.delete(id);
+      world.log(`${npcName} shimmers into view!`, 'info');
+    }
     const isNew = initiateNpcEngagement(world, id, targetId);
     if (isNew) {
       const targetName = world.names.get(targetId)?.display ?? 'their target';
