@@ -71,7 +71,7 @@ function ownedBed(world: World, x: number, y: number): void {
 
 /** Meditation carpet — functional, improves ninjutsu + chakra */
 function meditationCarpet(world: World, x: number, y: number): void {
-  spawn(world, { x, y, spriteId: 'obj_sleeping_bag', layer: 'object', offsetY: -14,
+  spawn(world, { x, y, spriteId: 'obj_meditation_carpet', layer: 'object', offsetY: -14,
     blocksMove: false, blocksSight: false, name: 'meditation carpet', article: 'a',
     description: 'A woven mat for chakra meditation. Sit and focus your energy.',
     category: 'object', interactType: 'meditate', interactLabel: 'Meditate' });

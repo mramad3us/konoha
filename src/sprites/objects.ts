@@ -396,6 +396,40 @@ export const OBJ_ROCK_MOSSY: PixelPattern = {
   ],
 };
 
+// ── FUTON / BED ──
+const SLEEPBAG_PAL: Record<string, [number, number, number]> = {
+  b: [55, 75, 110],    // blanket blue
+  B: [70, 90, 130],    // blanket highlight
+  d: [40, 55, 80],     // blanket dark
+  p: [180, 170, 150],  // pillow cream
+  P: [200, 190, 170],  // pillow highlight
+  m: [120, 100, 70],   // mat/frame
+  M: [140, 120, 85],   // mat highlight
+};
+
+export const OBJ_SLEEPING_BAG: PixelPattern = {
+  width: 16, height: 16,
+  palette: SLEEPBAG_PAL,
+  pixels: [
+    '................',
+    '................',
+    '.......pP.......',
+    '......pPPPp.....',
+    '.....MpPPPpM....',
+    '....MdbbBbdM....',
+    '...MdbBBBbdM....',
+    '..MdbbBBbbdM....',
+    '..MdbBBBBbdM....',
+    '...MdbbBbdM.....',
+    '....MdddM.......',
+    '.....MmM........',
+    '......M.........',
+    '................',
+    '................',
+    '................',
+  ],
+};
+
 // ── MEDITATION CARPET ──
 // Flat woven mat with fringe edges — earthy tones, no pillow
 const CARPET_PAL: Record<string, [number, number, number]> = {
@@ -408,7 +442,7 @@ const CARPET_PAL: Record<string, [number, number, number]> = {
   C: [150, 40, 35],    // center dark
 };
 
-export const OBJ_SLEEPING_BAG: PixelPattern = {
+export const OBJ_MEDITATION_CARPET: PixelPattern = {
   width: 16, height: 16,
   palette: CARPET_PAL,
   pixels: [

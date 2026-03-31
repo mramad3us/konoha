@@ -6,7 +6,7 @@ import {
   OBJ_BUSH_SMALL, OBJ_BUSH_BERRY, OBJ_BUSH_TALL, OBJ_BUSH_FLOWER,
   OBJ_TALL_GRASS, OBJ_REEDS,
   OBJ_ROCK_SMALL, OBJ_ROCK_MEDIUM, OBJ_ROCK_LARGE, OBJ_ROCK_MOSSY,
-  OBJ_SLEEPING_BAG, OBJ_TORCH_PILLAR,
+  OBJ_SLEEPING_BAG, OBJ_MEDITATION_CARPET, OBJ_TORCH_PILLAR,
   OBJ_DOOR_CLOSED, OBJ_DOOR_OPEN,
   OBJ_DESK, OBJ_SHELF, OBJ_COUNTER, OBJ_WEAPONS_RACK, OBJ_MEDICINE_CABINET,
   OBJ_WELL, OBJ_BARREL, OBJ_SCARECROW, OBJ_BENCH,
@@ -82,8 +82,9 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'obj_rock_large',  pattern: OBJ_ROCK_LARGE,  displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'obj_rock_mossy',  pattern: OBJ_ROCK_MOSSY,  displayWidth: 48, displayHeight: 48, outline: true },
 
-  // Sleeping bag & torch
-  { id: 'obj_sleeping_bag',  pattern: OBJ_SLEEPING_BAG,  displayWidth: 48, displayHeight: 48 },
+  // Sleeping bag, meditation carpet & torch
+  { id: 'obj_sleeping_bag',       pattern: OBJ_SLEEPING_BAG,       displayWidth: 48, displayHeight: 48 },
+  { id: 'obj_meditation_carpet',  pattern: OBJ_MEDITATION_CARPET,  displayWidth: 48, displayHeight: 48 },
   { id: 'obj_torch_pillar',  pattern: OBJ_TORCH_PILLAR,  displayWidth: 48, displayHeight: 48, outline: true },
 
   // Furniture
