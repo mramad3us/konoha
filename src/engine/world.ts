@@ -54,7 +54,7 @@ export class World {
   ninpoTimers = new Map<EntityId, NinpoTimerComponent>();
   /** Signing animation: frames remaining in "joined" pose. 0 = show "raised". */
   signingJoinedFrames = new Map<EntityId, number>();
-  npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number }>();
+  npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number; nextSignSubtick: number }>();
   playerSigningNinpo = false;  // true while player is in hand-sign mode (for sprite swap)
   _pendingShadowStep: { casterId: EntityId; maxRange: number } | null = null;
   _squadNinpoMirror: string | null = null;  // ninpo ID that squad should mirror

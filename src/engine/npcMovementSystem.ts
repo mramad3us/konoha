@@ -17,7 +17,7 @@ import { getCurrentROE } from './squadSystem.ts';
 import { isInCombat } from './combatSystem.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
 import { hasTechnique } from '../data/techniques.ts';
-import { NINPO_REGISTRY } from '../data/ninpo.ts';
+import { NINPO_REGISTRY, getSignSpeedSubticks } from '../data/ninpo.ts';
 import { HAND_SIGNS } from '../types/ninpo.ts';
 import type { HandSignKey } from '../types/ninpo.ts';
 import { resolveNinpo } from './ninpoResolver.ts';
@@ -211,6 +211,7 @@ export function tickNpcMovement(world: World): void {
               ninpoId: 'vanish',
               signsCompleted: 0,
               totalSigns: vanish.sequence.length,
+              nextSignSubtick: world.currentSubtick,
             });
           }
         }
@@ -636,6 +637,11 @@ function tickNpcNinpo(
     return false;
   }
 
+  // Sign speed scales with NPC's ninjutsu level (same brackets as player)
+  if (world.currentSubtick < state.nextSignSubtick) {
+    return true; // Still waiting for next sign — skip normal behavior but don't advance
+  }
+
   // Show current sign floating text if player can see this NPC
   const signKey = ninpo.sequence[state.signsCompleted] as HandSignKey;
   const signInfo = HAND_SIGNS[signKey];
@@ -649,9 +655,26 @@ function tickNpcNinpo(
 
   state.signsCompleted++;
 
+  // Schedule next sign based on NPC's ninjutsu level
+  const npcSheet = world.characterSheets.get(id);
+  const ninjutsuLevel = npcSheet?.skills.ninjutsu ?? 0;
+  const subticks = getSignSpeedSubticks(ninjutsuLevel);
+  state.nextSignSubtick = world.currentSubtick + subticks;
+
   // Sequence complete — cast the ninpo
   if (state.signsCompleted >= state.totalSigns) {
     world.npcNinpoState.delete(id);
+
+    // NPCs need chakra to cast — create resources if missing
+    if (!world.resources.has(id)) {
+      const chakraMax = ninjutsuLevel * 3 + 50;
+      world.resources.set(id, {
+        chakra: chakraMax, maxChakra: chakraMax, chakraCeiling: chakraMax, lastChakraExertionTick: 0,
+        willpower: 100, maxWillpower: 100,
+        stamina: 100, maxStamina: 100, staminaCeiling: 100, lastExertionTick: 0,
+        blood: 100, maxBlood: 100,
+      });
+    }
     resolveNinpo(world, id, ninpo);
     return true;
   }
