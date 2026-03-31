@@ -160,16 +160,13 @@ export class IsoRenderer {
             : (isVisible ? 1.0 : 0.25);
 
           // Swap to signing sprite if entity is performing hand signs
+          // Each sign press: flash hands-apart briefly, then snap to hands-joined
           let spriteId = renderable.spriteId;
           const isSigning = world.npcNinpoState.has(eid) || (isPlayerEntity && world.playerSigningNinpo);
-          const signAnimEnd = world.spriteVibrations.get(eid);
-          const now = Date.now();
-          const isSignFlash = signAnimEnd !== undefined && now < signAnimEnd;
           if (isSigning) {
-            if (isSignFlash) {
-              console.log(`[SIGN] frame: APART  now=${now} end=${signAnimEnd} remaining=${signAnimEnd! - now}ms`);
-            } else {
-              console.log(`[SIGN] frame: JOINED now=${now} end=${signAnimEnd ?? 'none'} expired=${signAnimEnd ? now - signAnimEnd : 'n/a'}ms ago`);
+            const signAnimEnd = world.spriteVibrations.get(eid);
+            const isApartFlash = signAnimEnd !== undefined && Date.now() < signAnimEnd;
+            if (!isApartFlash) {
               spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
             }
           }
