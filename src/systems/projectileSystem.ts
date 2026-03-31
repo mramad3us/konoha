@@ -329,26 +329,61 @@ function resolveProjectileHit(
 
 // ── Blood Decals ──
 
-/** Spawn blood dots at the given tile (1-3 random pixel dots) */
+// Blood dot grid: tile area is divided into a grid of cells.
+// Each cell can hold one dot. ~80% fill = saturated.
+const BLOOD_GRID_COLS = 12;
+const BLOOD_GRID_ROWS = 8;
+const BLOOD_MAX_DOTS = Math.floor(BLOOD_GRID_COLS * BLOOD_GRID_ROWS * 0.8); // 76 dots = 80% full
+
+/** Spawn blood dots at the given tile (1-3 random pixel dots, placed in empty grid cells) */
 export function spawnBloodDecal(world: World, x: number, y: number, dotCount = 0): void {
   const key = `${x}:${y}`;
   const existing = world.bloodDecals.get(key);
-  const count = dotCount > 0 ? dotCount : 1 + Math.floor(Math.random() * 2); // 1-2 dots by default
-  const newDots: Array<{ dx: number; dy: number; shade: number }> = [];
-  for (let i = 0; i < count; i++) {
-    newDots.push({
-      dx: Math.random() * 0.8 - 0.4,  // -0.4 to 0.4 tile offset
-      dy: Math.random() * 0.8 - 0.4,
-      shade: Math.random(),             // 0=dark, 1=bright blood
-    });
+  const count = dotCount > 0 ? dotCount : 1 + Math.floor(Math.random() * 3); // 1-3 dots
+
+  const dots = existing?.dots ?? [];
+  if (dots.length >= BLOOD_MAX_DOTS) {
+    // Already saturated
+    if (existing) existing.spawnTick = world.currentTick;
+    return;
   }
+
+  // Track occupied grid cells
+  const occupied = new Set<number>();
+  for (const dot of dots) {
+    const col = Math.floor((dot.dx + 0.45) / 0.9 * BLOOD_GRID_COLS);
+    const row = Math.floor((dot.dy + 0.45) / 0.9 * BLOOD_GRID_ROWS);
+    occupied.add(row * BLOOD_GRID_COLS + col);
+  }
+
+  // Place new dots in random empty cells
+  const totalCells = BLOOD_GRID_COLS * BLOOD_GRID_ROWS;
+  for (let i = 0; i < count && dots.length < BLOOD_MAX_DOTS; i++) {
+    // Try to find an empty cell
+    let placed = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const cell = Math.floor(Math.random() * totalCells);
+      if (occupied.has(cell)) continue;
+      occupied.add(cell);
+
+      const col = cell % BLOOD_GRID_COLS;
+      const row = Math.floor(cell / BLOOD_GRID_COLS);
+      // Map grid cell to tile offset (-0.45 to 0.45) with small jitter
+      const dx = (col / BLOOD_GRID_COLS) * 0.9 - 0.45 + (Math.random() * 0.04 - 0.02);
+      const dy = (row / BLOOD_GRID_ROWS) * 0.9 - 0.45 + (Math.random() * 0.04 - 0.02);
+      dots.push({ dx, dy, shade: Math.random() });
+      placed = true;
+      break;
+    }
+    // If all attempts collided, just skip
+    if (!placed) break;
+  }
+
   if (existing) {
-    // Add dots to existing decal, cap at 8 per tile
-    existing.dots.push(...newDots);
-    if (existing.dots.length > 8) existing.dots.length = 8;
-    existing.spawnTick = world.currentTick; // refresh age
+    existing.dots = dots;
+    existing.spawnTick = world.currentTick;
   } else {
-    world.bloodDecals.set(key, { x, y, spawnTick: world.currentTick, dots: newDots });
+    world.bloodDecals.set(key, { x, y, spawnTick: world.currentTick, dots });
   }
 }
 
