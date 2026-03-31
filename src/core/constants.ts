@@ -89,7 +89,7 @@ export const COMBAT_PASS_SUBTICKS = 4;    // 2 seconds = 4 subticks (1 combat ex
 
 // ── Stamina Rework ──
 export const STAMINA_ATTACK_COST = 1;     // per combat key press (attack only)
-export const STAMINA_SPRINT_COST = 2;     // per sprint step
+export const STAMINA_SPRINT_COST = 1;     // per sprint step
 export const STAMINA_RESTORE_RATE = 0.02; // fraction of max per tick when resting
 export const STAMINA_REST_TICKS = 3;      // coarse ticks of rest before regen starts
 export const STAMINA_FATIGUE_DRAIN = 0.1; // ceiling drop per exertion
@@ -178,7 +178,7 @@ export const STANCE_STAMINA_COST: Record<string, number> = {
 };
 
 // ── Chakra Sprint ──
-export const CHAKRA_SPRINT_COST = 3;    // chakra per step
+export const CHAKRA_SPRINT_COST = 1;    // chakra per step
 
 // ── Water Walk ──
 export const WATER_WALK_CHAKRA_COST = 2;  // chakra per step on water
