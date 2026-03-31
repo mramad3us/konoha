@@ -13,7 +13,7 @@ import { hasLethalIntent } from '../engine/combatSystem.ts';
 import { checkEntityState, applyBleeding, killEntity } from '../engine/entityState.ts';
 import { spawnFloatingText } from './floatingTextSystem.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
-import { sfxThrow, sfxProjectileParry, sfxProjectileDummyHit, sfxProjectileFleshHit } from './audioSystem.ts';
+import { sfxMenuClick, sfxProjectileParry, sfxProjectileDummyHit, sfxProjectileFleshHit } from './audioSystem.ts';
 import { getMissionXpMultiplier } from '../engine/missions.ts';
 import { checkSkillUp } from '../engine/skillFeedback.ts';
 
@@ -137,7 +137,7 @@ export function spawnProjectile(
 
   // Floating text + sound at source
   spawnFloatingText(sourcePos.x, sourcePos.y, pickRandom(THROW_SOUNDS), '#aaddff');
-  sfxThrow();
+  sfxMenuClick();
 
   return projId;
 }

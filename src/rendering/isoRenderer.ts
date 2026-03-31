@@ -233,12 +233,13 @@ export class IsoRenderer {
       nctx.fillStyle = `rgba(3, 3, 15, ${nightDim * 0.85})`;
       nctx.fillRect(0, 0, w, h);
 
-      // Punch radial gradient holes for light sources
+      // Punch radial gradient holes for light sources (only visible ones)
       nctx.globalCompositeOperation = 'destination-out';
       for (const [eid, light] of world.lightSources) {
         if (!light.activeAtNight) continue;
         const lpos = world.positions.get(eid);
         if (!lpos) continue;
+        if (!world.isVisible(lpos.x, lpos.y)) continue;
         // Convert tile position to screen position
         const sx = (lpos.x - lpos.y) * (TILE_WIDTH / 2) + offset.ox;
         const sy = (lpos.x + lpos.y) * (TILE_HEIGHT / 2) + offset.oy;
@@ -258,13 +259,14 @@ export class IsoRenderer {
       // Composite onto main canvas
       ctx.drawImage(this._nightCanvas, 0, 0);
 
-      // Warm glow halos on top for torches (additive orange tint)
+      // Warm glow halos on top for torches (additive orange tint, visible only)
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
       for (const [eid, light] of world.lightSources) {
         if (!light.activeAtNight) continue;
         const lpos = world.positions.get(eid);
         if (!lpos) continue;
+        if (!world.isVisible(lpos.x, lpos.y)) continue;
         const sx = (lpos.x - lpos.y) * (TILE_WIDTH / 2) + offset.ox;
         const sy = (lpos.x + lpos.y) * (TILE_HEIGHT / 2) + offset.oy;
         const glowRadius = light.radius * TILE_WIDTH * 0.35;
