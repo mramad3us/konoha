@@ -165,10 +165,18 @@ export class IsoRenderer {
             ? (isVisible ? 0.55 : 0.15)
             : (isVisible ? 1.0 : 0.25);
 
+          // Swap to signing sprite if entity is performing hand signs
+          let spriteId = renderable.spriteId;
+          const isSigning = world.npcNinpoState.has(eid) || (isPlayerEntity && world.playerSigningNinpo);
+          if (isSigning) {
+            // char_shinobi_s → char_shinobi_sign_s, npc_5_e → npc_5_sign_e
+            spriteId = spriteId.replace(/_([snew])$/, '_sign_$1');
+          }
+
           drawCommands.push({
             screenX: sx + vibOffset,
             screenY: sy,
-            spriteId: renderable.spriteId,
+            spriteId,
             depth,
             layer: renderable.layer,
             alpha: entityAlpha,

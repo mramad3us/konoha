@@ -16,12 +16,20 @@ import {
   CHAR_SHINOBI_S, CHAR_SHINOBI_N, CHAR_SHINOBI_E, CHAR_SHINOBI_W,
   CHAR_KUNOICHI_S, CHAR_KUNOICHI_N, CHAR_KUNOICHI_E, CHAR_KUNOICHI_W,
   CHAR_SHINOBI_PRONE, CHAR_KUNOICHI_PRONE,
+  CHAR_SHINOBI_SIGN_S, CHAR_SHINOBI_SIGN_N, CHAR_SHINOBI_SIGN_E, CHAR_SHINOBI_SIGN_W,
+  CHAR_KUNOICHI_SIGN_S, CHAR_KUNOICHI_SIGN_N, CHAR_KUNOICHI_SIGN_E, CHAR_KUNOICHI_SIGN_W,
   CHAR_TAKESHI_S, CHAR_TAKESHI_N, CHAR_TAKESHI_E, CHAR_TAKESHI_W, CHAR_TAKESHI_PRONE,
+  CHAR_TAKESHI_SIGN_S, CHAR_TAKESHI_SIGN_N, CHAR_TAKESHI_SIGN_E, CHAR_TAKESHI_SIGN_W,
   CHAR_ANBU_S, CHAR_ANBU_N, CHAR_ANBU_E, CHAR_ANBU_W, CHAR_ANBU_PRONE,
+  CHAR_ANBU_SIGN_S, CHAR_ANBU_SIGN_N, CHAR_ANBU_SIGN_E, CHAR_ANBU_SIGN_W,
   CHAR_ANBU2_S, CHAR_ANBU2_N, CHAR_ANBU2_E, CHAR_ANBU2_W, CHAR_ANBU2_PRONE,
+  CHAR_ANBU2_SIGN_S, CHAR_ANBU2_SIGN_N, CHAR_ANBU2_SIGN_E, CHAR_ANBU2_SIGN_W,
   CHAR_ANBU3_S, CHAR_ANBU3_N, CHAR_ANBU3_E, CHAR_ANBU3_W, CHAR_ANBU3_PRONE,
+  CHAR_ANBU3_SIGN_S, CHAR_ANBU3_SIGN_N, CHAR_ANBU3_SIGN_E, CHAR_ANBU3_SIGN_W,
   CHAR_ANBU4_S, CHAR_ANBU4_N, CHAR_ANBU4_E, CHAR_ANBU4_W, CHAR_ANBU4_PRONE,
+  CHAR_ANBU4_SIGN_S, CHAR_ANBU4_SIGN_N, CHAR_ANBU4_SIGN_E, CHAR_ANBU4_SIGN_W,
   CHAR_ANBU5_S, CHAR_ANBU5_N, CHAR_ANBU5_E, CHAR_ANBU5_W, CHAR_ANBU5_PRONE,
+  CHAR_ANBU5_SIGN_S, CHAR_ANBU5_SIGN_N, CHAR_ANBU5_SIGN_E, CHAR_ANBU5_SIGN_W,
 } from './characters.ts';
 import {
   PROJ_KUNAI_E, PROJ_KUNAI_W, PROJ_KUNAI_N, PROJ_KUNAI_S,
@@ -116,11 +124,23 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_shinobi_e', pattern: CHAR_SHINOBI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_shinobi_w', pattern: CHAR_SHINOBI_W, displayWidth: 48, displayHeight: 48, outline: true },
 
+  // Shinobi signing (hands joined)
+  { id: 'char_shinobi_sign_s', pattern: CHAR_SHINOBI_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_shinobi_sign_n', pattern: CHAR_SHINOBI_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_shinobi_sign_e', pattern: CHAR_SHINOBI_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_shinobi_sign_w', pattern: CHAR_SHINOBI_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
+
   // Kunoichi
   { id: 'char_kunoichi_s', pattern: CHAR_KUNOICHI_S, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_n', pattern: CHAR_KUNOICHI_N, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_e', pattern: CHAR_KUNOICHI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_kunoichi_w', pattern: CHAR_KUNOICHI_W, displayWidth: 48, displayHeight: 48, outline: true },
+
+  // Kunoichi signing (hands joined)
+  { id: 'char_kunoichi_sign_s', pattern: CHAR_KUNOICHI_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_kunoichi_sign_n', pattern: CHAR_KUNOICHI_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_kunoichi_sign_e', pattern: CHAR_KUNOICHI_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_kunoichi_sign_w', pattern: CHAR_KUNOICHI_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Takeshi (sparring partner)
   { id: 'char_takeshi_s', pattern: CHAR_TAKESHI_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -128,6 +148,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_takeshi_e', pattern: CHAR_TAKESHI_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_takeshi_w', pattern: CHAR_TAKESHI_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_takeshi_prone', pattern: CHAR_TAKESHI_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_sign_s', pattern: CHAR_TAKESHI_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_sign_n', pattern: CHAR_TAKESHI_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_sign_e', pattern: CHAR_TAKESHI_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_takeshi_sign_w', pattern: CHAR_TAKESHI_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // ANBU
   { id: 'char_anbu_s', pattern: CHAR_ANBU_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -135,6 +159,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu_e', pattern: CHAR_ANBU_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu_w', pattern: CHAR_ANBU_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu_prone', pattern: CHAR_ANBU_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_sign_s', pattern: CHAR_ANBU_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_sign_n', pattern: CHAR_ANBU_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_sign_e', pattern: CHAR_ANBU_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu_sign_w', pattern: CHAR_ANBU_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // ANBU variant 2 (black hair, off-white mask)
   { id: 'char_anbu2_s', pattern: CHAR_ANBU2_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -142,6 +170,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu2_e', pattern: CHAR_ANBU2_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu2_w', pattern: CHAR_ANBU2_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu2_prone', pattern: CHAR_ANBU2_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_sign_s', pattern: CHAR_ANBU2_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_sign_n', pattern: CHAR_ANBU2_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_sign_e', pattern: CHAR_ANBU2_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu2_sign_w', pattern: CHAR_ANBU2_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // ANBU variant 3 (silver hair, light grey mask)
   { id: 'char_anbu3_s', pattern: CHAR_ANBU3_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -149,6 +181,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu3_e', pattern: CHAR_ANBU3_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu3_w', pattern: CHAR_ANBU3_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu3_prone', pattern: CHAR_ANBU3_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_sign_s', pattern: CHAR_ANBU3_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_sign_n', pattern: CHAR_ANBU3_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_sign_e', pattern: CHAR_ANBU3_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu3_sign_w', pattern: CHAR_ANBU3_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // ANBU variant 4 (brown hair, warm white mask)
   { id: 'char_anbu4_s', pattern: CHAR_ANBU4_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -156,6 +192,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu4_e', pattern: CHAR_ANBU4_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu4_w', pattern: CHAR_ANBU4_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu4_prone', pattern: CHAR_ANBU4_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_sign_s', pattern: CHAR_ANBU4_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_sign_n', pattern: CHAR_ANBU4_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_sign_e', pattern: CHAR_ANBU4_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu4_sign_w', pattern: CHAR_ANBU4_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // ANBU variant 5 (purple hair, cool grey mask)
   { id: 'char_anbu5_s', pattern: CHAR_ANBU5_S, displayWidth: 48, displayHeight: 48, outline: true },
@@ -163,6 +203,10 @@ export const SPRITE_MANIFEST: SpriteRegistration[] = [
   { id: 'char_anbu5_e', pattern: CHAR_ANBU5_E, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu5_w', pattern: CHAR_ANBU5_W, displayWidth: 48, displayHeight: 48, outline: true },
   { id: 'char_anbu5_prone', pattern: CHAR_ANBU5_PRONE, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_sign_s', pattern: CHAR_ANBU5_SIGN_S, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_sign_n', pattern: CHAR_ANBU5_SIGN_N, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_sign_e', pattern: CHAR_ANBU5_SIGN_E, displayWidth: 48, displayHeight: 48, outline: true },
+  { id: 'char_anbu5_sign_w', pattern: CHAR_ANBU5_SIGN_W, displayWidth: 48, displayHeight: 48, outline: true },
 
   // Prone / unconscious
   { id: 'char_shinobi_prone',  pattern: CHAR_SHINOBI_PRONE,  displayWidth: 48, displayHeight: 48, outline: true },

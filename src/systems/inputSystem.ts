@@ -438,6 +438,7 @@ export class InputSystem {
 
   private enterNinpoMode(firstSign: HandSignKey): void {
     this._ninpoMode = true;
+    this.world.playerSigningNinpo = true;
     this._ninpoSigns = [];
     this.processSign(firstSign);
   }
@@ -523,6 +524,7 @@ export class InputSystem {
 
   private exitNinpoMode(): void {
     this._ninpoMode = false;
+    this.world.playerSigningNinpo = false;
     this._ninpoSigns = [];
   }
 

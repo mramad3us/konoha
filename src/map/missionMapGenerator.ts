@@ -24,7 +24,7 @@ import {
 } from '../core/constants.ts';
 import { computeMaxHp, computeMaxChakra, computeMaxStamina, computeMaxWillpower } from '../engine/derivedStats.ts';
 import type { CharacterAccents } from '../sprites/characters.ts';
-import { generateCharacterSprites, CIVILIAN_BODIES } from '../sprites/characters.ts';
+import { generateCharacterSprites, CIVILIAN_BODIES, SIGNING_BODIES } from '../sprites/characters.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
 import type { SquadMember } from '../types/squad.ts';
 
@@ -142,6 +142,12 @@ function registerNinjaEnemySprites(rng: SeededRng, type: 'rogue_nin' | 'missing_
   const sprites = generateCharacterSprites(accents);
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
+  }
+  // Signing sprites (hands joined pose)
+  const signingSprites = generateCharacterSprites(accents, SIGNING_BODIES);
+  for (const [dir, pattern] of Object.entries(signingSprites)) {
+    if (dir === 'prone') continue;
+    spriteCache.registerDynamic(`${prefix}_sign_${dir}`, pattern, 48, 48, true);
   }
   return prefix;
 }
@@ -1210,6 +1216,12 @@ function spawnSquadMember(
   const sprites = generateCharacterSprites(member.accents, bodyOverride);
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
+  }
+  // Signing sprites (hands joined pose)
+  const signingSprites = generateCharacterSprites(member.accents, SIGNING_BODIES);
+  for (const [dir, pattern] of Object.entries(signingSprites)) {
+    if (dir === 'prone') continue;
+    spriteCache.registerDynamic(`${prefix}_sign_${dir}`, pattern, 48, 48, true);
   }
 
   const stats = member.stats;

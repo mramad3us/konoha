@@ -6,7 +6,7 @@
 import type { World } from '../engine/world.ts';
 import type { CharacterAccents, BodyOverrides } from '../sprites/characters.ts';
 import type { NpcCategory } from '../types/ecs.ts';
-import { ACCENTS_TAKESHI, ACCENTS_ANBU, ACCENTS_ANBU_2, ACCENTS_ANBU_3, ACCENTS_ANBU_4, ACCENTS_ANBU_5, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES } from '../sprites/characters.ts';
+import { ACCENTS_TAKESHI, ACCENTS_ANBU, ACCENTS_ANBU_2, ACCENTS_ANBU_3, ACCENTS_ANBU_4, ACCENTS_ANBU_5, generateCharacterSprites, ANBU_BODIES, CIVILIAN_BODIES, FEMALE_CIVILIAN_BODIES, SIGNING_BODIES, ANBU_SIGNING_BODIES } from '../sprites/characters.ts';
 import { ANBU_DIALOGUE, TAKESHI_DIALOGUE } from '../engine/proximityDialogue.ts';
 import { computeMaxHp } from '../engine/derivedStats.ts';
 import { spriteCache } from '../rendering/spriteCache.ts';
@@ -51,6 +51,19 @@ function registerNpcAccentSprites(accents: CharacterAccents, overrides?: BodyOve
   for (const [dir, pattern] of Object.entries(sprites)) {
     spriteCache.registerDynamic(`${prefix}_${dir}`, pattern, 48, 48, true);
   }
+
+  // Register signing sprites for non-civilian characters (ninja hand-sign pose)
+  const isCivilian = overrides === CIVILIAN_BODIES || overrides === FEMALE_CIVILIAN_BODIES;
+  if (!isCivilian) {
+    const isAnbu = overrides === ANBU_BODIES;
+    const signingBodies = isAnbu ? ANBU_SIGNING_BODIES : SIGNING_BODIES;
+    const signingSprites = generateCharacterSprites(accents, signingBodies);
+    for (const [dir, pattern] of Object.entries(signingSprites)) {
+      if (dir === 'prone') continue; // no signing while prone
+      spriteCache.registerDynamic(`${prefix}_sign_${dir}`, pattern, 48, 48, true);
+    }
+  }
+
   return prefix;
 }
 

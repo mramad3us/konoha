@@ -256,6 +256,152 @@ const BODY_PRONE: string[] = [
   '................',
 ];
 
+// ── SIGNING BODY PATTERNS ──
+// Hands joined at chest level — the classic ninja hand-sign pose.
+// Wraps (w) move from outer edges to center/chest; arms pulled inward.
+
+const BODY_SIGN_S: string[] = [
+  '................',
+  '....hhhhhh......',
+  '...hbbbbbbh.....',
+  '...hmMmmMmh.....',
+  '...hsssssh......',
+  '...sepsspes.....',
+  '....ssssss......',
+  '....oossoo......',
+  '...oOowwOoo.....',  // arms in, wraps meeting at center
+  '...oOowwOoo.....',  // hands clasped
+  '...ooGggGoo.....',  // belt (no side wraps)
+  '....oooooo......',  // body (no side wraps)
+  '....oSooSo......',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....SS..SS......',
+];
+
+const BODY_SIGN_N: string[] = [
+  '................',
+  '....hhhhhh......',
+  '...hhhhhhhh.....',
+  '...hhhhhhhh.....',
+  '...hhhhhhhh.....',
+  '...bbhhhbbb.....',
+  '....hhhhhh......',
+  '....oossoo......',
+  '...oOoOoOoo.....',  // upper back unchanged
+  '...oOowwOoo.....',  // wraps peeking from behind
+  '...ooGggGoo.....',  // no side wraps
+  '....oooooo......',  // no side wraps
+  '....oSooSo......',
+  '....oSooSo......',
+  '....oSooSo......',
+  '....SS..SS......',
+];
+
+const BODY_SIGN_E: string[] = [
+  '................',
+  '.....hhhhh......',
+  '....hhhhhh......',
+  '....bbbmMhh.....',
+  '....hsssshh.....',
+  '....hsseps......',
+  '.....sssss......',
+  '.....oosso......',
+  '....oOoOoo......',  // upper body same
+  '....oOowwoo.....',  // wraps meeting at front
+  '....oGggoo......',  // belt, no wrap at right
+  '.....ooooo......',  // no side wraps
+  '.....oSoSo......',
+  '.....oSoSo......',
+  '.....oSoSo......',
+  '.....SS.SS......',
+];
+
+const BODY_SIGN_W: string[] = [
+  '................',
+  '......hhhhh.....',
+  '......hhhhhh....',
+  '.....hhMmbbbb...',
+  '.....hhssssh....',
+  '......spessh....',
+  '......sssss.....',
+  '......ossoo.....',
+  '......ooOoOo....',  // upper body same
+  '.....oowwOoo....',  // wraps meeting at front
+  '......ooggGo....',  // belt, no wrap at left
+  '......oooooo....',  // no side wraps
+  '......oSoSo.....',
+  '......oSoSo.....',
+  '......oSoSo.....',
+  '......SS.SS.....',
+];
+
+/** Signing body overrides for regular shinobi */
+export const SIGNING_BODIES: BodyOverrides = {
+  s: BODY_SIGN_S,
+  n: BODY_SIGN_N,
+  e: BODY_SIGN_E,
+  w: BODY_SIGN_W,
+};
+
+/** Signing body overrides for ANBU — mask face + signing hands */
+export const ANBU_SIGNING_BODIES: BodyOverrides = {
+  s: [
+    '................',
+    '....hhhhhh......',
+    '...hhKKKKhh.....',
+    '...hKKKKKKh.....',
+    '...hKKKKKKh.....',
+    '...hKKKKKKh.....',
+    '....hKKKKh......',
+    '....ooKKoo......',
+    '...oOowwOoo.....',
+    '...oOowwOoo.....',
+    '...ooGggGoo.....',
+    '....oooooo......',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....oSooSo......',
+    '....SS..SS......',
+  ],
+  e: [
+    '................',
+    '.....hhhhh......',
+    '....hhKKKh......',
+    '....hKKKKhh.....',
+    '....hKKKKhh.....',
+    '....hKKKKK......',
+    '.....KKKK.......',
+    '.....ooKKo......',
+    '....oOoOoo......',
+    '....oOowwoo.....',
+    '....oGggoo......',
+    '.....ooooo......',
+    '.....oSoSo......',
+    '.....oSoSo......',
+    '.....oSoSo......',
+    '.....SS.SS......',
+  ],
+  w: [
+    '................',
+    '......hhhhh.....',
+    '......KKKhh.....',
+    '.....hhKKKKh....',
+    '.....hhKKKKh....',
+    '......KKKKKh....',
+    '......KKKK......',
+    '......oKKoo.....',
+    '......ooOoOo....',
+    '.....oowwOoo....',
+    '......ooggGo....',
+    '......oooooo....',
+    '......oSoSo.....',
+    '......oSoSo.....',
+    '......oSoSo.....',
+    '......SS.SS.....',
+  ],
+};
+
 // ── SPRITE GENERATION ──
 
 /** Optional custom body patterns for special character types */
@@ -297,6 +443,19 @@ export const CHAR_KUNOICHI_N = kasura.n;
 export const CHAR_KUNOICHI_E = kasura.e;
 export const CHAR_KUNOICHI_W = kasura.w;
 export const CHAR_KUNOICHI_PRONE = kasura.prone;
+
+// ── Pre-built SIGNING sprites (hands joined) ──
+const hasuke_sign = generateCharacterSprites(ACCENTS_HASUKE, SIGNING_BODIES);
+export const CHAR_SHINOBI_SIGN_S = hasuke_sign.s;
+export const CHAR_SHINOBI_SIGN_N = hasuke_sign.n;
+export const CHAR_SHINOBI_SIGN_E = hasuke_sign.e;
+export const CHAR_SHINOBI_SIGN_W = hasuke_sign.w;
+
+const kasura_sign = generateCharacterSprites(ACCENTS_KASURA, SIGNING_BODIES);
+export const CHAR_KUNOICHI_SIGN_S = kasura_sign.s;
+export const CHAR_KUNOICHI_SIGN_N = kasura_sign.n;
+export const CHAR_KUNOICHI_SIGN_E = kasura_sign.e;
+export const CHAR_KUNOICHI_SIGN_W = kasura_sign.w;
 
 // ── CIVILIAN body overrides — no headband, no hand wraps, simpler outfit ──
 // Hair covers where headband would be. No metal plate. No wraps on hands.
@@ -588,3 +747,41 @@ export const CHAR_TAKESHI_N = takeshi.n;
 export const CHAR_TAKESHI_E = takeshi.e;
 export const CHAR_TAKESHI_W = takeshi.w;
 export const CHAR_TAKESHI_PRONE = takeshi.prone;
+
+// ── Pre-built SIGNING sprites for named NPCs ──
+
+const takeshi_sign = generateCharacterSprites(ACCENTS_TAKESHI, SIGNING_BODIES);
+export const CHAR_TAKESHI_SIGN_S = takeshi_sign.s;
+export const CHAR_TAKESHI_SIGN_N = takeshi_sign.n;
+export const CHAR_TAKESHI_SIGN_E = takeshi_sign.e;
+export const CHAR_TAKESHI_SIGN_W = takeshi_sign.w;
+
+const anbu1_sign = generateCharacterSprites(ACCENTS_ANBU, ANBU_SIGNING_BODIES);
+export const CHAR_ANBU_SIGN_S = anbu1_sign.s;
+export const CHAR_ANBU_SIGN_N = anbu1_sign.n;
+export const CHAR_ANBU_SIGN_E = anbu1_sign.e;
+export const CHAR_ANBU_SIGN_W = anbu1_sign.w;
+
+const anbu2_sign = generateCharacterSprites(ACCENTS_ANBU_2, ANBU_SIGNING_BODIES);
+export const CHAR_ANBU2_SIGN_S = anbu2_sign.s;
+export const CHAR_ANBU2_SIGN_N = anbu2_sign.n;
+export const CHAR_ANBU2_SIGN_E = anbu2_sign.e;
+export const CHAR_ANBU2_SIGN_W = anbu2_sign.w;
+
+const anbu3_sign = generateCharacterSprites(ACCENTS_ANBU_3, ANBU_SIGNING_BODIES);
+export const CHAR_ANBU3_SIGN_S = anbu3_sign.s;
+export const CHAR_ANBU3_SIGN_N = anbu3_sign.n;
+export const CHAR_ANBU3_SIGN_E = anbu3_sign.e;
+export const CHAR_ANBU3_SIGN_W = anbu3_sign.w;
+
+const anbu4_sign = generateCharacterSprites(ACCENTS_ANBU_4, ANBU_SIGNING_BODIES);
+export const CHAR_ANBU4_SIGN_S = anbu4_sign.s;
+export const CHAR_ANBU4_SIGN_N = anbu4_sign.n;
+export const CHAR_ANBU4_SIGN_E = anbu4_sign.e;
+export const CHAR_ANBU4_SIGN_W = anbu4_sign.w;
+
+const anbu5_sign = generateCharacterSprites(ACCENTS_ANBU_5, ANBU_SIGNING_BODIES);
+export const CHAR_ANBU5_SIGN_S = anbu5_sign.s;
+export const CHAR_ANBU5_SIGN_N = anbu5_sign.n;
+export const CHAR_ANBU5_SIGN_E = anbu5_sign.e;
+export const CHAR_ANBU5_SIGN_W = anbu5_sign.w;

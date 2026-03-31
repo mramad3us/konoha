@@ -54,6 +54,7 @@ export class World {
   ninpoTimers = new Map<EntityId, NinpoTimerComponent>();
   spriteVibrations = new Map<EntityId, number>();  // entityId → end timestamp (Date.now() ms)
   npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number }>();
+  playerSigningNinpo = false;  // true while player is in hand-sign mode (for sprite swap)
   _pendingShadowStep: { casterId: EntityId; maxRange: number } | null = null;
   _squadNinpoMirror: string | null = null;  // ninpo ID that squad should mirror
 
