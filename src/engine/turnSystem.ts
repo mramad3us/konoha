@@ -602,12 +602,6 @@ export function executeTurn(action: GameAction, world: World): boolean {
     }
 
     case 'interact': {
-      // Interacting dispels player's own invisibility
-      if (world.invisible.has(playerId)) {
-        world.invisible.delete(playerId);
-        world.log('Your invisibility fades as you interact.', 'info');
-      }
-
       // Collect ALL interactable adjacent entities
       const candidates: number[] = [];
       for (let dx = -1; dx <= 1; dx++) {
@@ -675,6 +669,13 @@ export function executeTurn(action: GameAction, world: World): boolean {
  * Exported so the target selector can call this after the player picks a target.
  */
 export function interactWithEntity(world: World, eid: number, _playerId?: number): boolean {
+  // Actually interacting dispels player's own invisibility
+  const playerId = _playerId ?? world.playerEntityId;
+  if (world.invisible.has(playerId)) {
+    world.invisible.delete(playerId);
+    world.log('Your invisibility fades as you interact.', 'info');
+  }
+
   // Doors toggle immediately (but check for locks)
   const door = world.doors.get(eid);
   if (door) {
