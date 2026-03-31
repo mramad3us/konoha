@@ -3,7 +3,8 @@
  * Every magic number, version string, and config value lives here.
  */
 
-export const GAME_VERSION = '0.3.1';
+declare const __GAME_VERSION__: string;
+export const GAME_VERSION: string = __GAME_VERSION__;
 export const GAME_TITLE = 'Konoha';
 export const GAME_SUBTITLE = 'Path of the Shinobi';
 
