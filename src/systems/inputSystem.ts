@@ -471,9 +471,6 @@ export class InputSystem {
     // Audio: wood-chop sound
     sfxHandSign();
 
-    // Sign animation flash — briefly show hands-apart before snapping to hands-joined
-    this.world.spriteVibrations.set(playerId, Date.now() + 100);
-
     // Advance world time per sign — engaged enemies get free hits naturally
     const subticks = getSignSpeedSubticks(ninjutsuLevel);
     advanceNinpoSign(this.world, subticks);
@@ -519,7 +516,9 @@ export class InputSystem {
       return;
     }
 
-    // status === 'partial' — continue signing
+    // Sign animation flash — set AFTER all processing so the next render frame
+    // catches the "apart" state before it expires into "joined".
+    this.world.spriteVibrations.set(playerId, Date.now() + 150);
   }
 
   private exitNinpoMode(): void {
