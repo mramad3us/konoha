@@ -314,6 +314,92 @@ export function sfxSubstitution(): void {
   setTimeout(() => noiseHit(0.06, 2, 80, vol(0.15), 800), 100);
 }
 
+/** Throw release — sharp metallic kling of blade leaving hand */
+export function sfxThrow(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const v = vol(0.25);
+
+  // Sharp metallic ring — high-pitched, short
+  const osc = ac.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(3200 + Math.random() * 400, now);
+  osc.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(v, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+  osc.connect(gain).connect(ac.destination);
+  osc.start(now);
+  osc.stop(now + 0.1);
+
+  // Tiny noise transient for the release snap
+  noiseHit(0.025, 1, 0, v * 0.5, 5000 + Math.random() * 1000);
+}
+
+/** Projectile parried/deflected — metallic clang, resonant */
+export function sfxProjectileParry(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const v = vol(0.3);
+
+  // High metallic ring
+  const ring = ac.createOscillator();
+  ring.type = 'triangle';
+  ring.frequency.setValueAtTime(2400 + Math.random() * 600, now);
+  ring.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+
+  const ringGain = ac.createGain();
+  ringGain.gain.setValueAtTime(v, now);
+  ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+  const filter = ac.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2000;
+  filter.Q.value = 4;
+
+  ring.connect(filter).connect(ringGain).connect(ac.destination);
+  ring.start(now);
+  ring.stop(now + 0.25);
+
+  // Sharp noise impact
+  noiseHit(0.04, 1, 0, v * 0.6, 4500 + Math.random() * 1000);
+}
+
+/** Projectile hits training dummy — blunt wooden thump */
+export function sfxProjectileDummyHit(): void {
+  const variation = 0.9 + Math.random() * 0.2;
+  noiseHit(0.1 * variation, 3, 100 * variation, vol(0.35), 600 + Math.random() * 300);
+}
+
+/** Projectile hits flesh — shorter, wetter thud */
+export function sfxProjectileFleshHit(): void {
+  const ac = getCtx();
+  if (!ac) return;
+  const now = ac.currentTime;
+  const v = vol(0.3);
+
+  // Dull mid-frequency impact
+  noiseHit(0.07, 2, 60, v, 1200 + Math.random() * 400);
+
+  // Brief low thud for weight
+  const sub = ac.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(90, now);
+  sub.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+
+  const subGain = ac.createGain();
+  subGain.gain.setValueAtTime(v * 0.4, now);
+  subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+  sub.connect(subGain).connect(ac.destination);
+  sub.start(now);
+  sub.stop(now + 0.1);
+}
+
 /** Footstep — very quiet, subtle */
 export function sfxStep(): void {
   noiseHit(0.04, 2, 0, vol(0.06), 800 + Math.random() * 400);

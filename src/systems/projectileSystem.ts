@@ -13,6 +13,7 @@ import { hasLethalIntent } from '../engine/combatSystem.ts';
 import { checkEntityState, applyBleeding, killEntity } from '../engine/entityState.ts';
 import { spawnFloatingText } from './floatingTextSystem.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { sfxThrow, sfxProjectileParry, sfxProjectileDummyHit, sfxProjectileFleshHit } from './audioSystem.ts';
 import { getMissionXpMultiplier } from '../engine/missions.ts';
 import { checkSkillUp } from '../engine/skillFeedback.ts';
 
@@ -134,8 +135,9 @@ export function spawnProjectile(
     checkSkillUp(world, 'bukijutsu', oldBuki, sheet.skills.bukijutsu);
   }
 
-  // Floating text at source
+  // Floating text + sound at source
   spawnFloatingText(sourcePos.x, sourcePos.y, pickRandom(THROW_SOUNDS), '#aaddff');
+  sfxThrow();
 
   return projId;
 }
@@ -252,8 +254,9 @@ function resolveProjectileHit(
   const finalDodge = Math.max(0, baseDodge - proj.evasionPenalty);
 
   if (Math.random() * 100 < finalDodge) {
-    // Dodged!
+    // Dodged / parried!
     spawnFloatingText(targetPos.x, targetPos.y, pickRandom(MISS_SOUNDS), '#ffaa44');
+    sfxProjectileParry();
     const targetName = world.names.get(targetId)?.display ?? 'the target';
     const weaponName = proj.weaponType === 'kunai' ? 'kunai' : 'shuriken';
     world.log(`${targetName} dodges the ${weaponName}!`, 'info');
@@ -276,8 +279,13 @@ function resolveProjectileHit(
 
   hp.current = Math.max(0, hp.current - finalDamage);
 
-  // Floating text
+  // Floating text + impact sound
   spawnFloatingText(targetPos.x, targetPos.y, pickRandom(HIT_SOUNDS), '#ff4444');
+  if (world.destructibles.has(targetId)) {
+    sfxProjectileDummyHit();
+  } else {
+    sfxProjectileFleshHit();
+  }
 
   // Log
   const sourceName = world.names.get(proj.sourceId)?.display ?? 'Someone';
