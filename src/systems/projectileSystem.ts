@@ -279,6 +279,17 @@ function resolveProjectileHit(
 
   hp.current = Math.max(0, hp.current - finalDamage);
 
+  // Projectile hit dispels target's invisibility
+  if (world.invisible.has(targetId)) {
+    world.invisible.delete(targetId);
+    const tName = world.names.get(targetId)?.display ?? 'Someone';
+    if (targetId === world.playerEntityId) {
+      world.log('The impact shatters your invisibility.', 'info');
+    } else {
+      world.log(`${tName} flickers into view as the projectile strikes.`, 'info');
+    }
+  }
+
   // Floating text + impact sound
   spawnFloatingText(targetPos.x, targetPos.y, pickRandom(HIT_SOUNDS), '#ff4444');
   if (world.destructibles.has(targetId)) {

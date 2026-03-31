@@ -1086,10 +1086,10 @@ function spawnEnemy(
   });
   world.names.set(id, { display: name, article: '' });
 
-  // All enemies get resources — ninja get chakra, non-ninja don't
-  const maxChakra = isNinja ? (20 + Math.floor(nin * 0.8)) : 0;
-  const maxStam = 30 + Math.floor(phy * 0.5);
-  const maxWill = 20 + Math.floor(men * 0.6);
+  // All enemies get resources derived from stats — ninja get chakra, non-ninja don't
+  const maxChakra = isNinja ? computeMaxChakra(stats) : 0;
+  const maxStam = computeMaxStamina(stats);
+  const maxWill = computeMaxWillpower(stats);
   world.resources.set(id, {
     chakra: maxChakra,
     maxChakra,
@@ -1256,10 +1256,10 @@ function spawnSquadMember(
   });
   world.names.set(id, { display: member.name, article: '' });
 
-  // Resources (chakra, stamina, willpower)
-  const maxChakra = 20 + Math.floor(skills.ninjutsu * 0.8);
-  const maxStam = 30 + Math.floor(stats.phy * 0.5);
-  const maxWill = 20 + Math.floor(stats.men * 0.6);
+  // Resources derived from stats (same formulas as all other entities)
+  const maxChakra = computeMaxChakra(stats);
+  const maxStam = computeMaxStamina(stats);
+  const maxWill = computeMaxWillpower(stats);
   world.resources.set(id, {
     chakra: maxChakra,
     maxChakra,

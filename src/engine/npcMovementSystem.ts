@@ -196,7 +196,20 @@ export function tickNpcMovement(world: World): void {
     }
 
     // ── NPC Ninpo signing ──
-    if (tickNpcNinpo(world, id, pos)) continue;
+    // Loop to allow fast NPCs to complete multiple signs per coarse tick
+    // (coarse tick = 6 subticks; a ninjutsu 50+ NPC signs every 1 subtick)
+    if (world.npcNinpoState.has(id)) {
+      let advanced = true;
+      while (advanced) {
+        const before = world.npcNinpoState.get(id)?.signsCompleted ?? -1;
+        const stillSigning = tickNpcNinpo(world, id, pos);
+        if (!stillSigning) break;
+        if (!world.npcNinpoState.has(id)) break;
+        const after = world.npcNinpoState.get(id)!.signsCompleted;
+        advanced = after > before; // If sign count didn't increase, we're waiting — stop
+      }
+      continue; // NPC is signing — skip normal behavior
+    }
 
     // Vanish signing — only specific NPCs attempt this:
     //   ANBU: always re-cloak when out of combat (it's their duty)

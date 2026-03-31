@@ -103,10 +103,12 @@ export function knockUnconscious(
 
   const name = world.names.get(entityId)?.display ?? 'Someone';
 
-  // Falling unconscious dispels invisibility
+  // Falling unconscious dispels invisibility and interrupts signing
   if (world.invisible.has(entityId)) {
     world.invisible.delete(entityId);
   }
+  world.npcNinpoState.delete(entityId);
+  world.signingJoinedFrames.delete(entityId);
 
   // Set unconscious component with random recovery time (10-600 ticks = ~1min to ~1hr)
   const recoveryDelay = 10 + Math.floor(Math.random() * 590);
@@ -167,6 +169,11 @@ export function killEntity(
 
   // Remove unconscious (they're dead now, not unconscious)
   world.unconscious.delete(entityId);
+
+  // Clean up signing and invisibility
+  world.npcNinpoState.delete(entityId);
+  world.signingJoinedFrames.delete(entityId);
+  world.invisible.delete(entityId);
 
   // Remove combat capability
   world.combatStats.delete(entityId);
