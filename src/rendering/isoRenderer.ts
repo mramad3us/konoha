@@ -137,6 +137,10 @@ export class IsoRenderer {
           const isInvisibleToPlayer = world.isInvisibleToPlayer(eid);
           const isDetected = world.isInvisibleButDetected(eid);
 
+          // Skip non-player entities outside current field of view
+          // (explored tiles show terrain but not NPCs/creatures)
+          if (!isVisible && !isPlayerEntity) continue;
+
           // Skip entities truly invisible to the player (not self, not detected)
           if (isInvisibleToPlayer && !isPlayerEntity) continue;
 
