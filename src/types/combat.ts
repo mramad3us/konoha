@@ -122,6 +122,7 @@ export interface CombatEngagement {
   conditionA: ConditionState;
   conditionB: ConditionState;
   round: number;
+  nextRoundTick: number;
   /** When the player is in melee range, this is the pending NPC move (hidden) */
   pendingNpcMove: CombatMove | null;
 }

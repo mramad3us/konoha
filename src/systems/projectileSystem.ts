@@ -1,7 +1,7 @@
 /**
  * Projectile system — spawns, advances, and resolves thrown weapons (kunai, shuriken).
  *
- * Projectiles travel tile-by-tile along a Bresenham path each subtick (speed-gated).
+ * Projectiles travel tile-by-tile along a Bresenham path each tick (speed-gated).
  * On arrival at the target tile, hit resolution checks evasion and applies damage.
  */
 
@@ -13,6 +13,7 @@ import { hasLethalIntent } from '../engine/combatSystem.ts';
 import { checkEntityState, applyBleeding, killEntity } from '../engine/entityState.ts';
 import { spawnFloatingText } from './floatingTextSystem.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
+import { BLOOD_DECAL_MAX_AGE_TICKS } from '../core/constants.ts';
 import { sfxMenuClick, sfxProjectileParry, sfxProjectileDummyHit, sfxProjectileFleshHit } from './audioSystem.ts';
 import { getMissionXpMultiplier } from '../engine/missions.ts';
 import { checkSkillUp } from '../engine/skillFeedback.ts';
@@ -111,7 +112,7 @@ export function spawnProjectile(
     damage: stats.damage,
     evasionPenalty: stats.evasionPenalty,
     lethal,
-    lastMoveSubtick: world.currentSubtick,
+    lastMoveTick: world.currentTick,
     speed: stats.speed,
   };
   world.projectiles.set(projId, proj);
@@ -121,8 +122,8 @@ export function spawnProjectile(
   const bukijutsu = sheet?.skills.bukijutsu ?? 1;
   const cooldownSubticks = getThrowCooldown(bukijutsu);
   world.throwCooldowns.set(sourceId, {
-    readyAtSubtick: world.currentSubtick + cooldownSubticks,
-    totalSubticks: cooldownSubticks,
+    readyAtTick: world.currentTick + cooldownSubticks,
+    totalTicks: cooldownSubticks,
   });
 
   // ── Bukijutsu skill improvement (10× taijutsu punch rate) ──
@@ -158,18 +159,18 @@ function getSpriteDirection(dx: number, dy: number): string {
 // ── Tick ──
 
 /**
- * Advance all active projectiles. Call every subtick from the turn system.
- * Projectiles move along their path based on speed (subticks per tile).
+ * Advance all active projectiles. Call every tick from the turn system.
+ * Projectiles move along their path based on speed (ticks per tile).
  */
 export function tickProjectiles(world: World): void {
   const toRemove: EntityId[] = [];
 
   for (const [projId, proj] of world.projectiles) {
-    // Speed gate — only move if enough subticks have passed
-    const elapsed = world.currentSubtick - proj.lastMoveSubtick;
+    // Speed gate — only move if enough ticks have passed
+    const elapsed = world.currentTick - proj.lastMoveTick;
     if (elapsed < proj.speed) continue;
 
-    proj.lastMoveSubtick = world.currentSubtick;
+    proj.lastMoveTick = world.currentTick;
 
     // Advance along path
     if (proj.pathIndex >= proj.path.length) {
@@ -400,8 +401,7 @@ export function spawnBloodDecal(world: World, x: number, y: number, dotCount = 0
 
 /** Remove blood decals older than the configured duration */
 export function cleanupBloodDecals(world: World): void {
-  // 1 in-game hour = 3600 seconds. Each coarse tick = 3 seconds.
-  const maxAgeTicks = 3600 / 3; // 1200 coarse ticks
+  const maxAgeTicks = BLOOD_DECAL_MAX_AGE_TICKS;
   const toRemove: string[] = [];
 
   for (const [key, decal] of world.bloodDecals) {
@@ -429,7 +429,7 @@ export function canThrow(world: World, entityId: EntityId, weaponType?: ThrownWe
   }
 
   const cooldown = world.throwCooldowns.get(entityId);
-  if (cooldown && world.currentSubtick < cooldown.readyAtSubtick) return false;
+  if (cooldown && world.currentTick < cooldown.readyAtTick) return false;
 
   return true;
 }

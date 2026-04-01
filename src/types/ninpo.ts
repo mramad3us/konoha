@@ -50,5 +50,5 @@ export interface NinpoDefinition {
 /** Timer for timed ninpo effects (e.g. vanish expiry) */
 export interface NinpoTimerComponent {
   ninpoId: string;
-  expiresAtGameSeconds: number;  // -1 = permanent (until interaction)
+  expiresAtTick: number;  // -1 = permanent (until interaction)
 }

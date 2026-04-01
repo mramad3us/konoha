@@ -12,7 +12,7 @@ const PROXIMITY_RANGE = 2; // tiles (reduced from 3 to prevent spam)
 
 /**
  * Check all NPCs with proximity dialogue and fire lines if player is close.
- * Call once per turn (from advanceTurn).
+ * Call from worldTick slow systems (every 30 ticks = 3s).
  */
 export function tickProximityDialogue(world: World): void {
   const playerPos = world.positions.get(world.playerEntityId);

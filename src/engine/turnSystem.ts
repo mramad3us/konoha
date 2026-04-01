@@ -3,7 +3,7 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, STANCE_SUBTICK_COST, STANCE_STAMINA_COST, TICK_DURATION_SECONDS, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST, PASS_DURATION_SECONDS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS, SUBTICK_DURATION } from '../core/constants.ts';
+import { FOV_RADIUS, TICK_SECONDS, SLOW_SYSTEM_INTERVAL, COMBAT_PASS_TICKS, WAIT_TICKS, DOOR_OPEN_TICKS, SWIM_STEP_TICKS, STANCE_TICK_COST, STANCE_STAMINA_COST, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 import { hasTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
 import { tickUnconsciousRecovery, tickBleeding, checkEntityState } from './entityState.ts';
@@ -22,24 +22,43 @@ import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem
 import { tickNinpoTimers } from './ninpoResolver.ts';
 
 /**
- * Advance game time by subticks and recompute FOV.
- * Slow systems (NPC movement, dialogue, day/night) only fire when a
- * coarse tick boundary (6 subticks = 3s) is crossed.
- * Fast actions (combat, chakra sprint) don't cross boundaries → world stays frozen.
+ * Single universal tick — advances the world by one 0.1s step.
+ * Fast systems run every tick; slow systems run every SLOW_SYSTEM_INTERVAL ticks (3s).
  */
-function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCombatStrikes = false): void {
-  const oldTick = world.currentTick;
-  const startSubtick = world.currentSubtick;
-  world.gameTimeSeconds += gameSeconds;
+function worldTick(world: World): void {
+  world.currentTick++;
+  const t = world.currentTick;
 
-  // ── Engaged NPC free strikes — if player spends time in combat without fighting ──
-  // Number of combat passes elapsed = subticks / COMBAT_PASS_SUBTICKS
-  // skipCombatStrikes is true for move (handles disengagement separately) and combat actions
+  // Every tick: fast systems
+  tickProjectiles(world);
+  tickNpcMovement(world);           // NPCs gate internally on their own nextMoveTick
+  resolveNpcCombatRounds(world);    // Engagements gate on nextRoundTick
+
+  // Every SLOW_SYSTEM_INTERVAL ticks (30 = 3s): slow systems
+  if (t % SLOW_SYSTEM_INTERVAL === 0) {
+    tickBleeding(world);
+    tickUnconsciousRecovery(world);
+    tickProximityDialogue(world);
+    tickDuskTransition(world);
+    tickDawnTransition(world);
+    cleanupBloodDecals(world);
+    tickNinpoTimers(world);
+  }
+}
+
+/**
+ * Advance the world by numTicks universal ticks (0.1s each).
+ * Replaces advanceTurn, advanceCombatPass, advanceThrowSubtick, advanceNinpoSign.
+ * If skipCombatStrikes is false (default), engaged NPCs get free hits proportional
+ * to the number of combat passes elapsed.
+ */
+export function advanceWorld(world: World, numTicks: number, skipCombatStrikes = false): void {
+  // ── Engaged NPC free strikes — if player spends time without fighting ──
   if (!skipCombatStrikes) {
     const playerId = world.playerEntityId;
     const engagedTarget = findEngagedTarget(world, playerId);
     if (engagedTarget !== null) {
-      const passes = Math.floor(subticks / COMBAT_PASS_SUBTICKS);
+      const passes = Math.floor(numTicks / COMBAT_PASS_TICKS);
       if (passes > 0) {
         const targetName = world.names.get(engagedTarget)?.display ?? 'your opponent';
         for (let i = 0; i < passes; i++) {
@@ -52,138 +71,19 @@ function advanceTurn(world: World, subticks: number, gameSeconds: number, skipCo
     }
   }
 
-  // ── Projectiles advance every subtick (fast system) ──
-  // Increment currentSubtick one at a time so speed-gating works correctly
-  for (let s = 0; s < subticks; s++) {
-    world.currentSubtick = startSubtick + s + 1;
-    tickProjectiles(world);
+  // Run worldTick for each tick
+  for (let i = 0; i < numTicks; i++) {
+    worldTick(world);
   }
-  world.currentSubtick = startSubtick + subticks;
-  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
 
-  // Always recompute FOV
+  // FOV recomputation once after all ticks
   const playerPos = world.positions.get(world.playerEntityId);
   if (playerPos) {
     const nightReduction = getNightFovReduction(world.gameTimeSeconds);
     const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
     computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
   }
-
-  // Slow systems — only when coarse ticks actually advance
-  const ticksElapsed = world.currentTick - oldTick;
-  for (let t = 0; t < ticksElapsed; t++) {
-    tickUnconsciousRecovery(world);
-    tickBleeding(world);
-    tickProximityDialogue(world);
-    tickNpcMovement(world);
-    resolveNpcCombatRounds(world);
-    tickDuskTransition(world);
-    tickDawnTransition(world);
-    cleanupBloodDecals(world);
-    tickNinpoTimers(world);
-  }
 }
-
-/**
- * Advance world by one combat pass (4 subticks / 2s).
- * Unlike a full turn, this always ticks world systems so NPC movement
- * and NPC-vs-NPC fights progress during player combat.
- * Called by inputSystem after processCombatMove resolves.
- */
-export function advanceCombatPass(world: World): void {
-  const oldTick = world.currentTick;
-  const startSubtick = world.currentSubtick;
-  world.gameTimeSeconds += PASS_DURATION_SECONDS;
-
-  // Always recompute FOV
-  const playerPos = world.positions.get(world.playerEntityId);
-  if (playerPos) {
-    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
-    const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
-    computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
-  }
-
-  // Projectiles advance every subtick during combat too
-  // Increment currentSubtick one at a time so speed-gating works correctly
-  for (let s = 0; s < COMBAT_PASS_SUBTICKS; s++) {
-    world.currentSubtick = startSubtick + s + 1;
-    tickProjectiles(world);
-  }
-  world.currentSubtick = startSubtick + COMBAT_PASS_SUBTICKS;
-  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
-
-  // Always tick world systems during combat (not gated by coarse tick boundary)
-  // This ensures NPCs move and NPC-vs-NPC fights progress while player fights
-  tickBleeding(world);
-  resolveNpcCombatRounds(world);
-
-  // Coarse tick systems — NPC movement, dialogue, etc.
-  const ticksElapsed = world.currentTick - oldTick;
-  for (let t = 0; t < ticksElapsed; t++) {
-    tickUnconsciousRecovery(world);
-    tickProximityDialogue(world);
-    tickNpcMovement(world);
-    tickDuskTransition(world);
-    tickDawnTransition(world);
-    cleanupBloodDecals(world);
-    tickNinpoTimers(world);
-  }
-}
-
-/**
- * Advance world by exactly 1 subtick (0.5s).
- * Used for throwing — the throw action itself is fast; cooldown handles pacing.
- */
-export function advanceThrowSubtick(world: World): void {
-  const oldTick = world.currentTick;
-  world.gameTimeSeconds += SUBTICK_DURATION;
-  world.currentSubtick += 1;
-  world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
-
-  tickProjectiles(world);
-
-  // Recompute FOV
-  const playerPos = world.positions.get(world.playerEntityId);
-  if (playerPos) {
-    const nightReduction = getNightFovReduction(world.gameTimeSeconds);
-    const effectiveFov = Math.max(3, FOV_RADIUS - nightReduction);
-    computeFOV(world, playerPos.x, playerPos.y, effectiveFov);
-  }
-
-  // Coarse tick systems if we crossed a tick boundary
-  if (world.currentTick > oldTick) {
-    tickBleeding(world);
-    resolveNpcCombatRounds(world);
-    tickUnconsciousRecovery(world);
-    tickProximityDialogue(world);
-    tickNpcMovement(world);
-    tickDuskTransition(world);
-    tickDawnTransition(world);
-    cleanupBloodDecals(world);
-    tickNinpoTimers(world);
-  }
-}
-
-/**
- * Advance world by N subticks for a ninpo hand sign.
- * Uses skipCombatStrikes=false so engaged enemies get free hits.
- */
-export function advanceNinpoSign(world: World, subticks: number): void {
-  const gameSeconds = subticks * SUBTICK_DURATION;
-  advanceTurn(world, subticks, gameSeconds, false);
-}
-
-/** Stance to game seconds per step (chakra_sprint is dynamic, handled separately) */
-const STANCE_SECONDS: Record<string, number> = {
-  sprint: 3,
-  walk: 6,
-  creep: 9,
-  crawl: 12,
-  chakra_sprint: 2, // fallback; actual value computed from ninjutsu tier
-};
-
-/** Swimming speed (no water walk) — very slow */
-const SWIM_SECONDS = 24;
 
 /** Map dx,dy to a facing direction */
 function vectorToDirection(dx: number, dy: number): Direction {
@@ -253,7 +153,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
           sfxStep();
           clearStaleEngagements(world);
           world.log('You step away from the training dummy.', 'info');
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
+          advanceWorld(world, COMBAT_PASS_TICKS, true);
           return true;
         }
 
@@ -261,7 +161,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
         const res = world.resources.get(playerId);
         if (!res || res.stamina < DISENGAGE_STAMINA_COST) {
           world.log('Too exhausted to disengage — you can\'t pull away.', 'info');
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
+          advanceWorld(world, COMBAT_PASS_TICKS, true);
           return true;
         }
 
@@ -295,7 +195,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
             world.log('You collapse before you can get away.', 'hit_incoming');
           }
 
-          advanceTurn(world, COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS, true);
+          advanceWorld(world, COMBAT_PASS_TICKS, true);
         } else {
           // ── Slow disengage (low ninjutsu or no chakra) — stamina-only, 3 passes (6s), 3 free hits ──
           if (playerNin < 10) {
@@ -324,8 +224,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
             world.log('You collapse before you can get away.', 'hit_incoming');
           }
 
-          // 3 passes = 3 × 4 subticks = 12 subticks (6s)
-          advanceTurn(world, COMBAT_PASS_SUBTICKS * 3, PASS_DURATION_SECONDS * 3, true);
+          // 3 passes = 3 × 20 ticks = 60 ticks (6s)
+          advanceWorld(world, COMBAT_PASS_TICKS * 3, true);
         }
 
         return true;
@@ -468,17 +368,15 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       }
 
-      // Advance time — subtick cost + game seconds
-      let subtickCost: number;
-      let moveGameSeconds: number;
+      // Advance time — tick cost based on stance
+      let tickCost: number;
 
-      // Swimming overrides stance speed (24s/step) when on water without water walk
+      // Swimming overrides stance speed (240 ticks = 24s) when on water without water walk
       const isSwimming = world.tileMap.isWater(playerPos.x, playerPos.y)
         && !canWaterWalk(world, playerId, playerPos.x, playerPos.y);
 
       if (isSwimming) {
-        moveGameSeconds = SWIM_SECONDS;
-        subtickCost = Math.max(1, Math.round(SWIM_SECONDS / 0.5));
+        tickCost = SWIM_STEP_TICKS;
         // Swimming costs 2 stamina per step
         const swimRes = world.resources.get(playerId);
         if (swimRes) {
@@ -495,16 +393,14 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       } else if (playerCtrl.movementStance === 'chakra_sprint') {
         const nin = world.characterSheets.get(playerId)?.skills.ninjutsu ?? 10;
-        moveGameSeconds = getChakraSprintSpeed(nin);
-        subtickCost = Math.max(1, Math.round(moveGameSeconds / 0.5)); // 0.5s per subtick
+        const sprintSeconds = getChakraSprintSpeed(nin);
+        tickCost = Math.max(1, Math.round(sprintSeconds / TICK_SECONDS));
       } else {
-        subtickCost = STANCE_SUBTICK_COST[playerCtrl.movementStance] ?? 12;
-        moveGameSeconds = STANCE_SECONDS[playerCtrl.movementStance] ?? TICK_DURATION_SECONDS;
+        tickCost = STANCE_TICK_COST[playerCtrl.movementStance] ?? 60;
       }
       // Carrying a body doubles movement time
       if (world.carrying.has(playerId)) {
-        subtickCost *= 2;
-        moveGameSeconds *= 2;
+        tickCost *= 2;
         // Carrying trains PHY
         const carrySheet = world.characterSheets.get(playerId);
         if (carrySheet) {
@@ -514,7 +410,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
           checkSkillUp(world, 'phy', oldPhy, carrySheet.stats.phy);
         }
       }
-      advanceTurn(world, subtickCost, moveGameSeconds);
+      advanceWorld(world, tickCost);
 
       // Check patrol mission waypoints after move
       const patrolMsg = checkPatrolProgress(world.missionLog, playerPos.x, playerPos.y);
@@ -547,8 +443,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       }
 
-      // Wait passes 1 subtick (0.5s)
-      advanceTurn(world, 1, SUBTICK_DURATION);
+      // Wait passes WAIT_TICKS (5 ticks = 0.5s)
+      advanceWorld(world, WAIT_TICKS);
       return true;
     }
 
@@ -700,7 +596,7 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
     const interactable = world.interactables.get(eid);
     if (interactable) interactable.label = door.isOpen ? 'Close' : 'Open';
     world.log(door.isOpen ? 'You open the door.' : 'You close the door.', 'info');
-    advanceTurn(world, COMBAT_PASS_SUBTICKS, 2); // ~2 seconds to open a door
+    advanceWorld(world, DOOR_OPEN_TICKS); // 20 ticks = 2 seconds to open a door
     return true;
   }
 

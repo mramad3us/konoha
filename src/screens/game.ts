@@ -31,7 +31,7 @@ import { computeFOV } from '../engine/fov.ts';
 import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
-import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TURNS, SUBTICKS_PER_TICK, COMBAT_PASS_SUBTICKS, MAX_THROWN_AMMO } from '../core/constants.ts';
+import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TICKS, COMBAT_PASS_TICKS, MAX_THROWN_AMMO, TICK_SECONDS, SLOW_SYSTEM_INTERVAL } from '../core/constants.ts';
 import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
@@ -82,8 +82,8 @@ function applyMedicHealing(world: World, medicId: EntityId): void {
   world.log(msg, 'info');
   world.log(`(+${healAmount} HP)`, 'system');
 
-  // Takes time — 6 seconds
-  world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+  // Takes time — 6 seconds (60 ticks)
+  world.currentTick += Math.round(6 / TICK_SECONDS);
 }
 
 export async function renderGame(container: HTMLElement): Promise<void> {
@@ -533,7 +533,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       const travelHours = totalKm / OVERMAP_WALK_SPEED_KMH;
       // Add camping time estimate
       const campHours = (travelHours / 14) * 10;
-      world.gameTimeSeconds += (travelHours + campHours) * 3600;
+      world.currentTick += Math.round((travelHours + campHours) * 3600 / TICK_SECONDS);
     }
 
     // Clear away state
@@ -615,8 +615,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   const doSleep = async () => {
     canvasContainer.classList.add('game-canvas-container--blackout');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
-    // 8 hours of sleep
-    world.gameTimeSeconds += 8 * 3600;
+    // 8 hours of sleep (advance tick directly — worldTick loop not needed during sleep)
+    world.currentTick += Math.round(8 * 3600 / TICK_SECONDS);
     const res = world.resources.get(world.playerEntityId);
     if (res) {
       res.staminaCeiling = res.maxStamina;
@@ -680,7 +680,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }
 
     // Advance time (always passes 4 hours regardless)
-    world.gameTimeSeconds += MEDITATION_HOURS * 3600;
+    world.currentTick += Math.round(MEDITATION_HOURS * 3600 / TICK_SECONDS);
 
     // Flavor text
     const sessionSeed = cellHash(world.currentTick, currentDay);
@@ -727,8 +727,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       world.log(MEDITATION_DIMINISHED_MESSAGES[sessionSeed % MEDITATION_DIMINISHED_MESSAGES.length], 'info');
     }
 
-    world.currentSubtick += SUBTICKS_PER_TICK;
-    world.currentTick = Math.floor(world.currentSubtick / SUBTICKS_PER_TICK);
+    world.currentTick += SLOW_SYSTEM_INTERVAL;  // advance 1 slow-system interval (3s)
     // Process day/night transitions that may have occurred during meditation
     tickDuskTransition(world);
     tickDawnTransition(world);
@@ -761,7 +760,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     } else if (choice === 'search') {
       const targetName = world.names.get(entityId)?.display ?? 'the body';
       world.log(`You search ${targetName}...`, 'info');
-      world.advanceTime(SUBTICKS_PER_TICK, 3);
+      world.currentTick += Math.round(3 / TICK_SECONDS);  // 3 seconds to search
 
       // Check for mission trophy (C-rank away missions)
       if (world.awayMissionState && world.missionLog.active) {
@@ -792,13 +791,13 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       applyMedicHealing(world, entityId);
     } else if (choice === 'revive') {
       reviveEntity(world, entityId, 0.3);
-      world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+      world.currentTick += Math.round(6 / TICK_SECONDS);  // 6 seconds to revive
     } else if (choice === 'kill' || choice === 'execute') {
       killEntity(world, entityId, world.playerEntityId, true);
-      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+      world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds
     } else if (choice === 'assassinate') {
       killEntity(world, entityId, world.playerEntityId, true);
-      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+      world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds
     } else if (choice === 'surprise_subdue') {
       executeSurpriseAttack(world, world.playerEntityId, entityId, false);
     } else if (choice === 'surprise_assassinate') {
@@ -825,7 +824,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       stopCarrying(world, world.playerEntityId);
     } else if (choice === 'patch_up') {
       stopBleeding(world, entityId);
-      world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+      world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds to patch up
       const playerSheet = world.characterSheets.get(world.playerEntityId);
       if (playerSheet) {
         const oldMed = playerSheet.skills.med;
@@ -845,7 +844,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         playerSheet.skills.med = computeImprovement(oldMed2, SKILL_IMPROVEMENT_RATES.med);
         checkSkillUp(world, 'med', oldMed2, playerSheet.skills.med);
       }
-      world.advanceTime(SUBTICKS_PER_TICK * 2, 6);
+      world.currentTick += Math.round(6 / TICK_SECONDS);  // 6 seconds for first aid
     } else if (choice === 'restock_weapons') {
       // Restock thrown weapons from weapons rack
       const playerId = world.playerEntityId;
@@ -1044,7 +1043,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         const isNight = hour >= 20 || hour < 6;
 
         const { result, gameSecondsElapsed } = tickTravel(travelState, world.gameTimeSeconds);
-        world.gameTimeSeconds += gameSecondsElapsed;
+        world.currentTick += Math.round(gameSecondsElapsed / TICK_SECONDS);
         timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
 
         overmapRenderer.draw(travelState, dt, isNight);
@@ -1080,12 +1079,12 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   // ── Auto-save check (runs on HUD updates via interval) ──
   const autoSaveInterval = setInterval(async () => {
-    if (saveId && world.currentTick - lastSaveTick >= AUTO_SAVE_INTERVAL_TURNS) {
+    if (saveId && world.currentTick - lastSaveTick >= AUTO_SAVE_INTERVAL_TICKS) {
       lastSaveTick = world.currentTick;
       const save = await saveSystem.load(saveId!);
       if (save) {
         save.data = world.serialize();
-        save.playtime += AUTO_SAVE_INTERVAL_TURNS;
+        save.playtime += AUTO_SAVE_INTERVAL_TICKS;
         await saveSystem.save(save);
       }
     }

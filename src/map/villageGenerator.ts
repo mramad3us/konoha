@@ -412,7 +412,7 @@ export function generateVillage(playerName: string, playerGender: 'shinobi' | 'k
   // ║  CREATE WORLD + PLAYER               ║
   // ╚══════════════════════════════════════╝
   const world = new World(tileMap);
-  world.gameTimeSeconds = GAME_START_HOUR * 3600;
+  world.currentTick = Math.round(GAME_START_HOUR * 3600 / 0.1);  // 8 AM in ticks
 
   const playerId = world.createEntity();
   world.playerEntityId = playerId;

@@ -4,7 +4,7 @@ import type { SquadRoster } from '../types/squad.ts';
 import { createSquadRoster } from './squadSystem.ts';
 import type { GameLogEntry } from '../types/actions.ts';
 import { TileMap } from '../map/tileMap.ts';
-import { MAX_LOG_ENTRIES, SUBTICKS_PER_TICK } from '../core/constants.ts';
+import { MAX_LOG_ENTRIES, TICK_SECONDS } from '../core/constants.ts';
 import type { MissionBoard, MissionLog } from './missions.ts';
 import { createMissionBoard, createMissionLog } from './missions.ts';
 
@@ -54,7 +54,7 @@ export class World {
   ninpoTimers = new Map<EntityId, NinpoTimerComponent>();
   /** Signing animation: frames remaining in "joined" pose. 0 = show "raised". */
   signingJoinedFrames = new Map<EntityId, number>();
-  npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number; nextSignSubtick: number }>();
+  npcNinpoState = new Map<EntityId, { ninpoId: string; signsCompleted: number; totalSigns: number; nextSignTick: number }>();
   playerSigningNinpo = false;  // true while player is in hand-sign mode (for sprite swap)
   _pendingShadowStep: { casterId: EntityId; maxRange: number } | null = null;
   _squadNinpoMirror: string | null = null;  // ninpo ID that squad should mirror
@@ -91,10 +91,12 @@ export class World {
 
   // World systems data
   tileMap: TileMap;
-  currentSubtick = 0;   // fine-grained counter (0.5s per subtick)
-  currentTick = 0;      // coarse counter, derived: floor(currentSubtick / SUBTICKS_PER_TICK)
-  gameTimeSeconds = 0;  // elapsed in-game time in seconds
+  currentTick = 0;      // universal tick counter (0.1s per tick)
   playerEntityId: EntityId = 0;
+
+  /** Derived: elapsed in-game time in seconds */
+  get gameTimeSeconds(): number { return this.currentTick * TICK_SECONDS; }
+  set gameTimeSeconds(seconds: number) { this.currentTick = Math.round(seconds / TICK_SECONDS); }
 
   // FOV data
   fovVisible = new Set<string>();
@@ -147,16 +149,6 @@ export class World {
     if (old) this.removeFromGrid(id, old.x, old.y);
     this.positions.set(id, pos);
     this.registerInGrid(id, pos.x, pos.y);
-  }
-
-  /**
-   * Advance world time by the given number of subticks and seconds.
-   * Automatically derives currentTick from currentSubtick.
-   */
-  advanceTime(subticks: number, seconds: number): void {
-    this.currentSubtick += subticks;
-    this.gameTimeSeconds += seconds;
-    this.currentTick = Math.floor(this.currentSubtick / SUBTICKS_PER_TICK);
   }
 
   /** Rebuild spatial grid from all positions (for deserialization) */
@@ -327,11 +319,10 @@ export class World {
     };
 
     return {
+      _saveVersion: 2,
       nextId: this.nextId,
       entities: Array.from(this.entities),
-      currentSubtick: this.currentSubtick,
       currentTick: this.currentTick,
-      gameTimeSeconds: this.gameTimeSeconds,
       playerEntityId: this.playerEntityId,
       tileMap: this.tileMap.serialize(),
       fovExplored: Array.from(this.fovExplored),
@@ -390,9 +381,14 @@ export class World {
     const world = new World(TileMap.deserialize(tileMapData));
 
     world.nextId = data['nextId'] as number;
-    world.currentSubtick = (data['currentSubtick'] as number) ?? ((data['currentTick'] as number) * 6); // migrate old saves
-    world.currentTick = (data['currentTick'] as number);
-    world.gameTimeSeconds = (data['gameTimeSeconds'] as number) ?? 0;
+    const saveVersion = (data['_saveVersion'] as number) ?? 0;
+    if (saveVersion >= 2) {
+      // New format: currentTick is the universal 0.1s counter
+      world.currentTick = data['currentTick'] as number;
+    } else {
+      // Migrate old saves: convert old subtick (0.5s) to new tick (0.1s)
+      world.currentTick = ((data['currentSubtick'] as number) ?? ((data['currentTick'] as number) * 6)) * 5;
+    }
     world.playerEntityId = data['playerEntityId'] as number;
     world.fovExplored = new Set(data['fovExplored'] as string[]);
     world.gameLog = data['gameLog'] as GameLogEntry[];

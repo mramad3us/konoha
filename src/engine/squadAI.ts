@@ -161,7 +161,7 @@ export function tickSquadMember(
             ninpoId: mirrorId,
             signsCompleted: 0,
             totalSigns: ninpo.sequence.length,
-            nextSignSubtick: world.currentSubtick,
+            nextSignTick: world.currentTick,
           });
         }
         return; // Signing takes over behavior

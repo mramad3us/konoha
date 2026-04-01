@@ -1,7 +1,7 @@
 /**
  * NPC Movement System — handles idle wandering, despawning walk-off, and return-to-anchor.
  *
- * Runs once per advanceTurn() call. Each NPC with 'wander' behavior takes a random
+ * Runs once per worldTick() call. Each NPC with 'wander' behavior takes a random
  * step every few ticks, staying within their anchor radius. NPCs in 'despawning'
  * state walk away from the player until out of sight, then are destroyed.
  * NPCs in 'return_to_anchor' state step toward their anchor point.
@@ -17,7 +17,8 @@ import { getCurrentROE } from './squadSystem.ts';
 import { isInCombat } from './combatSystem.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
 import { hasTechnique } from '../data/techniques.ts';
-import { NINPO_REGISTRY, getSignSpeedSubticks } from '../data/ninpo.ts';
+import { NINPO_REGISTRY, getSignSpeedTicks } from '../data/ninpo.ts';
+import { NPC_CHASE_STEP_TICKS, NPC_RETURN_STEP_TICKS } from '../core/constants.ts';
 import { HAND_SIGNS } from '../types/ninpo.ts';
 import type { HandSignKey } from '../types/ninpo.ts';
 import { resolveNinpo } from './ninpoResolver.ts';
@@ -196,19 +197,8 @@ export function tickNpcMovement(world: World): void {
     }
 
     // ── NPC Ninpo signing ──
-    // Loop to allow fast NPCs to complete multiple signs per coarse tick
-    // (coarse tick = 6 subticks; a ninjutsu 50+ NPC signs every 1 subtick)
     if (world.npcNinpoState.has(id)) {
-      let advanced = true;
-      while (advanced) {
-        const before = world.npcNinpoState.get(id)?.signsCompleted ?? -1;
-        const stillSigning = tickNpcNinpo(world, id, pos);
-        if (!stillSigning) break;
-        if (!world.npcNinpoState.has(id)) break;
-        const after = world.npcNinpoState.get(id)!.signsCompleted;
-        advanced = after > before; // If sign count didn't increase, we're waiting — stop
-      }
-      continue; // NPC is signing — skip normal behavior
+      if (tickNpcNinpo(world, id, pos)) continue;
     }
 
     // Vanish signing — only specific NPCs attempt this:
@@ -229,7 +219,7 @@ export function tickNpcMovement(world: World): void {
               ninpoId: 'vanish',
               signsCompleted: 0,
               totalSigns: vanish.sequence.length,
-              nextSignSubtick: world.currentSubtick,
+              nextSignTick: world.currentTick,
             });
           }
         }
@@ -350,7 +340,7 @@ function tickReturnToAnchor(
   anchor: { anchorX: number; anchorY: number; lastMoveTick: number; moveIntervalTicks: number },
   ai: { behavior: string },
 ): void {
-  if (world.currentTick - anchor.lastMoveTick < 2) return; // move every 2 ticks (brisk walk)
+  if (world.currentTick - anchor.lastMoveTick < NPC_RETURN_STEP_TICKS) return;
   anchor.lastMoveTick = world.currentTick;
 
   const dist = chebyshev(pos.x, pos.y, anchor.anchorX, anchor.anchorY);
@@ -553,7 +543,7 @@ function tickAggro(
   }
 }
 
-/** Chase behavior: step toward the target each tick, engage when adjacent */
+/** Chase behavior: step toward the target, engage when adjacent */
 function tickChase(
   world: World,
   id: EntityId,
@@ -573,6 +563,11 @@ function tickChase(
   }
 
   const dist = chebyshev(pos.x, pos.y, targetPos.x, targetPos.y);
+
+  // Tick gate: only move once per NPC_CHASE_STEP_TICKS
+  const anchor = world.anchors.get(id);
+  if (anchor && world.currentTick - anchor.lastMoveTick < NPC_CHASE_STEP_TICKS) return;
+  if (anchor) anchor.lastMoveTick = world.currentTick;
 
   // Adjacent to target — initiate real combat engagement
   if (dist <= 1) {
@@ -611,12 +606,17 @@ function tickChase(
   tryStepToward(world, id, pos, dx, dy);
 }
 
-/** Flee behavior: step away from the player each tick */
+/** Flee behavior: step away from the player */
 function tickFlee(
   world: World,
   id: EntityId,
   pos: { x: number; y: number },
 ): void {
+  // Tick gate: only move once per NPC_CHASE_STEP_TICKS
+  const anchor = world.anchors.get(id);
+  if (anchor && world.currentTick - anchor.lastMoveTick < NPC_CHASE_STEP_TICKS) return;
+  if (anchor) anchor.lastMoveTick = world.currentTick;
+
   const playerPos = world.positions.get(world.playerEntityId);
   if (!playerPos) return;
 
@@ -656,7 +656,7 @@ function tickNpcNinpo(
   }
 
   // Sign speed scales with NPC's ninjutsu level (same brackets as player)
-  if (world.currentSubtick < state.nextSignSubtick) {
+  if (world.currentTick < state.nextSignTick) {
     return true; // Still waiting for next sign — skip normal behavior but don't advance
   }
 
@@ -676,8 +676,8 @@ function tickNpcNinpo(
   // Schedule next sign based on NPC's ninjutsu level
   const npcSheet = world.characterSheets.get(id);
   const ninjutsuLevel = npcSheet?.skills.ninjutsu ?? 0;
-  const subticks = getSignSpeedSubticks(ninjutsuLevel);
-  state.nextSignSubtick = world.currentSubtick + subticks;
+  const ticks = getSignSpeedTicks(ninjutsuLevel);
+  state.nextSignTick = world.currentTick + ticks;
 
   // Sequence complete — cast the ninpo
   if (state.signsCompleted >= state.totalSigns) {

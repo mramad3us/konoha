@@ -137,9 +137,9 @@ export class GameHud {
     const ammo = world.thrownAmmo.get(playerId);
     let cooldownProgress = 1;
     const cd = world.throwCooldowns.get(playerId);
-    if (cd && cd.totalSubticks > 0 && world.currentSubtick < cd.readyAtSubtick) {
-      const remaining = cd.readyAtSubtick - world.currentSubtick;
-      cooldownProgress = Math.max(0, 1 - remaining / cd.totalSubticks);
+    if (cd && cd.totalTicks > 0 && world.currentTick < cd.readyAtTick) {
+      const remaining = cd.readyAtTick - world.currentTick;
+      cooldownProgress = Math.max(0, 1 - remaining / cd.totalTicks);
     }
     this.ammoDisplay.update(ammo, selectedWeapon, throwingMode, cooldownProgress);
 

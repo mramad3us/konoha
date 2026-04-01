@@ -8,7 +8,7 @@ import type { JutsuDefinition, JutsuCooldowns } from '../types/jutsu.ts';
 import { JUTSU_REGISTRY, getJutsuByCombatKey } from '../data/jutsus.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkSkillUp } from './skillFeedback.ts';
-import { COMBAT_PASS_SUBTICKS, FOV_RADIUS, PASS_DURATION_SECONDS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR } from '../core/constants.ts';
+import { COMBAT_PASS_TICKS, FOV_RADIUS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR } from '../core/constants.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -103,8 +103,8 @@ export function tryCastJutsu(
     checkSkillUp(world, 'cha', oldCha, sheet.stats.cha);
   }
 
-  // Advance time — jutsu cast = 1 combat pass (4 subticks, 2s)
-  world.advanceTime(COMBAT_PASS_SUBTICKS, PASS_DURATION_SECONDS);
+  // Advance time — jutsu cast = 1 combat pass (20 ticks, 2s)
+  world.currentTick += COMBAT_PASS_TICKS;
 
   // Pick a random cast message
   const casterName = world.names.get(casterId)?.display ?? 'Unknown';

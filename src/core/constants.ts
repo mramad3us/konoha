@@ -80,25 +80,29 @@ export const DUSK_HOUR = 18;
 export const NIGHT_MAX_DIM = 0.72;        // max darkness alpha at midnight
 export const NIGHT_FOV_REDUCTION = 6;     // tiles of FOV lost at deepest night
 
-// ── Subtick System ──
-// The world ticks at 0.5s granularity. Coarse "ticks" = 6 subticks = 3 seconds.
-// Slow systems (NPC movement, dialogue, day/night) only fire when a coarse tick boundary is crossed.
-// Fast actions (combat, chakra sprint) don't cross boundaries → world doesn't react.
-export const SUBTICK_DURATION = 0.5;      // seconds per subtick
-export const SUBTICKS_PER_TICK = 6;       // 6 subticks = 3 seconds = 1 coarse tick
-export const COMBAT_PASS_SUBTICKS = 4;    // 2 seconds = 4 subticks (1 combat exchange)
+// ── Unified Tick System ──
+// The world ticks at 0.1s granularity. One universal tick, no subticks or coarse ticks.
+// All systems fire at their own cadence within worldTick().
+export const TICK_SECONDS = 0.1;              // seconds per tick (the single time unit)
+export const SLOW_SYSTEM_INTERVAL = 30;       // ticks between slow system updates (3s)
+export const COMBAT_PASS_TICKS = 20;          // 2 seconds = 20 ticks (1 combat exchange)
+export const WAIT_TICKS = 5;                  // 0.5 seconds
+export const THROW_ACTION_TICKS = 5;          // 0.5 seconds
+export const DOOR_OPEN_TICKS = 20;            // 2 seconds
+export const SURPRISE_ATTACK_TICKS = 40;      // 4 seconds
+export const SWIM_STEP_TICKS = 240;           // 24 seconds
 
 // ── Stamina Rework ──
 export const STAMINA_ATTACK_COST = 1;     // per combat key press (attack only)
 export const STAMINA_SPRINT_COST = 1;     // per sprint step
 export const STAMINA_RESTORE_RATE = 0.02; // fraction of max per tick when resting
-export const STAMINA_REST_TICKS = 3;      // coarse ticks of rest before regen starts
+export const STAMINA_REST_TICKS = 90;     // ticks of rest before regen starts (9s)
 export const STAMINA_FATIGUE_DRAIN = 0.1; // ceiling drop per exertion
 export const STAMINA_FATIGUE_FLOOR = 0.3; // min ceiling as fraction of max
 
 // ── Chakra Regen (mirrors stamina, uses CHA stat) ──
 export const CHAKRA_RESTORE_RATE = 0.02;  // fraction of max per tick when resting
-export const CHAKRA_REST_TICKS = 3;       // coarse ticks of rest before regen starts
+export const CHAKRA_REST_TICKS = 90;      // ticks of rest before regen starts (9s)
 export const CHAKRA_FATIGUE_DRAIN = 0.1;  // ceiling drop per exertion
 export const CHAKRA_FATIGUE_FLOOR = 0.3;  // min ceiling as fraction of max
 // STAMINA_PHY_SCALING defined above in base stats section
@@ -123,7 +127,7 @@ export const SCREEN_SHAKE_INTENSITY = 4;  // pixels
 export const CAMERA_LERP_FACTOR = 0.15;
 
 // ── Saves ──
-export const AUTO_SAVE_INTERVAL_TURNS = 20;
+export const AUTO_SAVE_INTERVAL_TICKS = 600;  // 60 seconds
 
 // ── Game Log ──
 export const MAX_LOG_ENTRIES = 50;
@@ -135,8 +139,10 @@ export const GAME_HUD_WIDTH_PERCENT = 25;
 
 // ── NPC Movement ──
 export const NPC_WANDER_RADIUS = 4;
-export const NPC_WANDER_INTERVAL_MIN = 3;  // min ticks between idle steps
-export const NPC_WANDER_INTERVAL_MAX = 5;  // max ticks between idle steps
+export const NPC_WANDER_INTERVAL_MIN = 90;   // min ticks between idle steps (9s)
+export const NPC_WANDER_INTERVAL_MAX = 150;  // max ticks between idle steps (15s)
+export const NPC_CHASE_STEP_TICKS = 30;      // ticks between chase/flee steps (3s)
+export const NPC_RETURN_STEP_TICKS = 60;     // ticks between return-to-anchor steps (6s)
 export const NPC_DESPAWN_MAX_WALK = 30;    // max tiles a civilian walks before forced despawn
 
 // ── Combat Disengagement ──
@@ -151,23 +157,14 @@ export const NPC_FLEE_HP_THRESHOLD = 0.25;
 // ── Input ──
 export const INPUT_DEBOUNCE_MS = 50;
 
-// ── Stance Subtick Costs ──
-// How many subticks each step costs. 6 subticks = 1 coarse tick = 3 seconds.
-export const STANCE_SUBTICK_COST: Record<string, number> = {
-  sprint: 6,          // 3s — NPCs act once per step
-  walk: 12,           // 6s — NPCs act twice per step
-  creep: 18,          // 9s — NPCs act 3 times
-  crawl: 24,          // 12s — NPCs act 4 times
-  chakra_sprint: 4,   // 2s base (dynamic: 4/2/1 subticks at nin 10/30/50)
-};
-
-/** @deprecated — use STANCE_SUBTICK_COST. Kept for HUD display (coarse ticks per move). */
+// ── Stance Tick Costs ──
+// How many ticks (0.1s each) each step costs.
 export const STANCE_TICK_COST: Record<string, number> = {
-  sprint: 1,
-  walk: 2,
-  creep: 3,
-  crawl: 4,
-  chakra_sprint: 0,   // sub-tick (shows special display in HUD)
+  sprint: 30,           // 3s
+  walk: 60,             // 6s
+  creep: 90,            // 9s
+  crawl: 120,           // 12s
+  chakra_sprint: 20,    // 2s base (dynamic: 20/10/5 ticks at nin 10/30/50)
 };
 
 export const STANCE_STAMINA_COST: Record<string, number> = {
@@ -186,29 +183,33 @@ export const WATER_WALK_CHAKRA_COST = 2;  // chakra per step on water
 
 // ── Thrown Weapons ──
 export const KUNAI_BASE_DAMAGE = 8;
-export const KUNAI_SPEED = 1;             // subticks per tile
+export const KUNAI_SPEED = 5;             // ticks per tile (0.5s)
 export const KUNAI_EVASION_PENALTY = 0;   // % penalty to dodge
 export const KUNAI_MAX_RANGE = 10;
 
 export const SHURIKEN_BASE_DAMAGE = 5;
-export const SHURIKEN_SPEED = 2;          // subticks per tile
+export const SHURIKEN_SPEED = 10;         // ticks per tile (1s)
 export const SHURIKEN_EVASION_PENALTY = 20;
 export const SHURIKEN_MAX_RANGE = 10;
 
 export const MAX_THROWN_AMMO = 10;        // per weapon type on restock
 export const BLOOD_DECAL_DURATION_HOURS = 1;
 
-// Throw cooldown tiers (subticks) by bukijutsu skill
-export const THROW_COOLDOWN_TIER1 = 6;   // buki 1-15:  3s
-export const THROW_COOLDOWN_TIER2 = 4;   // buki 16-30: 2s
-export const THROW_COOLDOWN_TIER3 = 2;   // buki 31-45: 1s
-export const THROW_COOLDOWN_TIER4 = 1;   // buki 46+:   0.5s
+// Throw cooldown tiers (ticks) by bukijutsu skill
+export const THROW_COOLDOWN_TIER1 = 30;  // buki 1-15:  3s
+export const THROW_COOLDOWN_TIER2 = 20;  // buki 16-30: 2s
+export const THROW_COOLDOWN_TIER3 = 10;  // buki 31-45: 1s
+export const THROW_COOLDOWN_TIER4 = 5;   // buki 46+:   0.5s
 
 // ── Ninpo (hand-sign jutsu) ──
 export const NINPO_SIGN_SPEED_THRESHOLDS = [10, 30, 50] as const;
-export const NINPO_SIGN_SPEED_SUBTICKS = { tier1: 4, tier2: 3, tier3: 2, tier4: 1 } as const;
-// Vanish duration brackets (game-seconds): <30 → 60s, 30-49 → 3600s, 50+ → permanent (-1)
+// Sign speed in ticks per hand sign (0.1s each)
+export const NINPO_SIGN_SPEED_TICKS = { tier1: 20, tier2: 15, tier3: 10, tier4: 5 } as const;
+// Vanish duration brackets: <30 → 60s, 30-49 → 3600s, 50+ → permanent (-1)
 // Shadow Step range: level 10 → 3 tiles, level 50+ → 10 tiles (linear fill)
+
+// ── Blood Decals ──
+export const BLOOD_DECAL_MAX_AGE_TICKS = 36000;  // 1 hour at 0.1s/tick
 
 // ── Away Missions ──
 export const MISSION_MAP_WIDTH = 160;

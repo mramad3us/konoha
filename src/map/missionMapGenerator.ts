@@ -264,7 +264,7 @@ export function generateMissionMap(
 
   // Create world
   const world = new World(tileMap);
-  world.gameTimeSeconds = gameTimeSeconds;
+  world.currentTick = Math.round(gameTimeSeconds / 0.1);  // Convert seconds to ticks
 
   // ── Layer 4: Scatter terrain objects (biome-aware) ──
   scatterTerrainObjects(world, W, H, rng, clearings, config.terrainType);

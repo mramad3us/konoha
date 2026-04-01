@@ -110,8 +110,8 @@ export function knockUnconscious(
   world.npcNinpoState.delete(entityId);
   world.signingJoinedFrames.delete(entityId);
 
-  // Set unconscious component with random recovery time (10-600 ticks = ~1min to ~1hr)
-  const recoveryDelay = 10 + Math.floor(Math.random() * 590);
+  // Set unconscious component with random recovery time (300-18000 ticks = ~30s to ~30min)
+  const recoveryDelay = 300 + Math.floor(Math.random() * 17700);
   world.unconscious.set(entityId, { reason, tickFallen: world.currentTick, recoveryTick: world.currentTick + recoveryDelay });
 
   // Switch sprite to prone

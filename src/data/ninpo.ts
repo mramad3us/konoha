@@ -98,12 +98,12 @@ export function getNextNinpo(ninjutsuLevel: number): NinpoDefinition | null {
 
 // ── Sign Speed ──
 
-/** Returns subticks per hand sign based on ninjutsu level */
-export function getSignSpeedSubticks(ninjutsuLevel: number): number {
-  if (ninjutsuLevel >= 50) return 1;   // 0.5s
-  if (ninjutsuLevel >= 30) return 2;   // 1.0s
-  if (ninjutsuLevel >= 10) return 3;   // 1.5s
-  return 4;                             // 2.0s
+/** Returns ticks per hand sign based on ninjutsu level */
+export function getSignSpeedTicks(ninjutsuLevel: number): number {
+  if (ninjutsuLevel >= 50) return 5;   // 0.5s
+  if (ninjutsuLevel >= 30) return 10;  // 1.0s
+  if (ninjutsuLevel >= 10) return 15;  // 1.5s
+  return 20;                            // 2.0s
 }
 
 // ── Shadow Step Range ──

@@ -7,6 +7,7 @@ import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
 import type { NinpoDefinition } from '../types/ninpo.ts';
 import { getVanishDuration, getShadowStepRange } from '../data/ninpo.ts';
+import { TICK_SECONDS } from '../core/constants.ts';
 import { spawnSmokePuff } from '../systems/particleSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 
@@ -68,7 +69,7 @@ function applyVanish(world: World, casterId: EntityId, ninjutsuLevel: number): v
   if (duration > 0) {
     world.ninpoTimers.set(casterId, {
       ninpoId: 'vanish',
-      expiresAtGameSeconds: world.gameTimeSeconds + duration,
+      expiresAtTick: world.currentTick + Math.round(duration / TICK_SECONDS),
     });
   }
   // duration === -1 means permanent (until interaction breaks it)
@@ -111,12 +112,12 @@ export function applyShadowStep(world: World, casterId: EntityId, targetX: numbe
 
 // ── Timer Tick ──
 
-/** Expire timed ninpo effects. Called from advanceTurn slow-systems loop. */
+/** Expire timed ninpo effects. Called from worldTick slow-systems loop. */
 export function tickNinpoTimers(world: World): void {
   const expired: EntityId[] = [];
 
   for (const [entityId, timer] of world.ninpoTimers) {
-    if (timer.expiresAtGameSeconds >= 0 && world.gameTimeSeconds >= timer.expiresAtGameSeconds) {
+    if (timer.expiresAtTick >= 0 && world.currentTick >= timer.expiresAtTick) {
       expired.push(entityId);
     }
   }

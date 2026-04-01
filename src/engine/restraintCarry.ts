@@ -10,7 +10,7 @@
 
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
-import { COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
+import { COMBAT_PASS_TICKS } from '../core/constants.ts';
 
 // ── RESTRAINT ──
 
@@ -52,7 +52,7 @@ export function restrainEntity(world: World, targetId: EntityId, restrainerId: E
   world.log(msg, 'info');
 
   // Takes 2s
-  world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+  world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds
 
   return true;
 }
@@ -86,7 +86,7 @@ export function releaseEntity(world: World, targetId: EntityId): boolean {
     .replace(/\{target\}/g, targetName);
   world.log(msg, 'info');
 
-  world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+  world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds
 
   return true;
 }
@@ -185,7 +185,7 @@ export function startCarrying(world: World, carrierId: EntityId, targetId: Entit
     .replace(/\{target\}/g, targetName);
   world.log(msg, 'info');
 
-  world.advanceTime(COMBAT_PASS_SUBTICKS, 2);
+  world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds
 
   return true;
 }

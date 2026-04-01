@@ -24,22 +24,22 @@ export interface ProjectileComponent {
   damage: number;
   evasionPenalty: number;
   lethal: boolean;
-  /** Subtick when this projectile last moved (for speed gating) */
-  lastMoveSubtick: number;
-  /** Subticks per tile of travel */
+  /** Tick when this projectile last moved (for speed gating) */
+  lastMoveTick: number;
+  /** Ticks per tile of travel */
   speed: number;
 }
 
 /** Throw cooldown — tracks when entity can throw again */
 export interface ThrowCooldownComponent {
-  readyAtSubtick: number;
-  totalSubticks: number;   // total cooldown duration for progress bar
+  readyAtTick: number;
+  totalTicks: number;   // total cooldown duration for progress bar
 }
 
 /** Static data for each thrown weapon type */
 export interface ThrownWeaponStats {
   damage: number;
-  speed: number;          // subticks per tile (lower = faster)
+  speed: number;          // ticks per tile (lower = faster)
   evasionPenalty: number; // % penalty to target's dodge chance
   maxRange: number;       // max tiles
 }
@@ -47,22 +47,22 @@ export interface ThrownWeaponStats {
 export const THROWN_WEAPON_DATA: Record<ThrownWeaponType, ThrownWeaponStats> = {
   kunai: {
     damage: 8,
-    speed: 1,       // 1 subtick per tile — fast
+    speed: 1,       // 1 tick per tile — fast
     evasionPenalty: 0,
     maxRange: 10,
   },
   shuriken: {
     damage: 5,
-    speed: 2,       // 2 subticks per tile — slower but harder to dodge
+    speed: 2,       // 2 ticks per tile — slower but harder to dodge
     evasionPenalty: 20,
     maxRange: 10,
   },
 };
 
-/** Get throw cooldown in subticks based on bukijutsu skill level */
+/** Get throw cooldown in ticks based on bukijutsu skill level */
 export function getThrowCooldown(bukijutsu: number): number {
-  if (bukijutsu >= 46) return 1;   // 0.5s
-  if (bukijutsu >= 31) return 2;   // 1s
-  if (bukijutsu >= 16) return 4;   // 2s
-  return 6;                         // 3s
+  if (bukijutsu >= 46) return 5;    // 0.5s
+  if (bukijutsu >= 31) return 10;   // 1s
+  if (bukijutsu >= 16) return 20;   // 2s
+  return 30;                         // 3s
 }

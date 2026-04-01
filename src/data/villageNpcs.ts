@@ -360,7 +360,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 85, bukijutsu: 80, ninjutsu: 95, genjutsu: 70, med: 40 },
     stats: { phy: 55, cha: 90, men: 85 },
     description: 'The Third Hokage, Lord Hirotaka. His kind eyes belie decades of combat experience.',
-    dialogue: HOKAGE_DIALOGUE, cooldownTicks: 25,
+    dialogue: HOKAGE_DIALOGUE, cooldownTicks: 750,
     category: 'fixed',
   });
 
@@ -371,7 +371,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 35, bukijutsu: 30, ninjutsu: 25, genjutsu: 15, med: 10 },
     stats: { phy: 25, cha: 20, men: 20},
     description: 'A chunin staffing the mission desk. They process assignments for all ranks.',
-    dialogue: MISSION_DESK_DIALOGUE, cooldownTicks: 15,
+    dialogue: MISSION_DESK_DIALOGUE, cooldownTicks: 450,
     category: 'fixed',
   });
 
@@ -382,7 +382,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 40, bukijutsu: 35, ninjutsu: 20, genjutsu: 10, med: 5 },
     stats: { phy: 35, cha: 18, men: 15},
     description: 'One of the village gate guards. Perpetually bored but always vigilant.',
-    dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
+    dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 540,
     category: 'fixed',
   });
 
@@ -392,7 +392,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 38, bukijutsu: 32, ninjutsu: 22, genjutsu: 12, med: 5 },
     stats: { phy: 32, cha: 20, men: 18},
     description: 'The other gate guard. More talkative than his partner.',
-    dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 18,
+    dialogue: GATE_GUARD_DIALOGUE, cooldownTicks: 540,
     category: 'fixed',
   });
 
@@ -403,7 +403,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 50, bukijutsu: 45, ninjutsu: 55, genjutsu: 30, med: 15 },
     stats: { phy: 35, cha: 40, men: 35},
     description: 'The academy instructor. A scar runs across his nose — proof of real combat experience.',
-    dialogue: ACADEMY_INSTRUCTOR_DIALOGUE, cooldownTicks: 20,
+    dialogue: ACADEMY_INSTRUCTOR_DIALOGUE, cooldownTicks: 600,
     category: 'fixed',
   });
 
@@ -422,7 +422,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       skills: { taijutsu: 5 + i, bukijutsu: 3, ninjutsu: 2, genjutsu: 1, med: 1 },
       stats: { phy: 8 + i, cha: 5, men: 4},
       description: 'A young academy student, eager to learn the ways of the shinobi.',
-      dialogue: STUDENT_DIALOGUE, cooldownTicks: 12,
+      dialogue: STUDENT_DIALOGUE, cooldownTicks: 360,
       category: 'wandering',
     });
   }
@@ -435,7 +435,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 50, cha: 55, men: 45},
     description: 'A silver-haired jonin with a calm demeanor. Rumored to know over a thousand jutsu.',
     dialogue: { idle: ['Hmm? Oh, don\'t mind me. Just thinking.', 'The village is quiet today. That\'s usually when things happen.', 'You\'ve got potential. Keep training.'] },
-    cooldownTicks: 25,
+    cooldownTicks: 750,
     category: 'wandering',
   });
 
@@ -446,7 +446,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     stats: { phy: 40, cha: 50, men: 55},
     description: 'A jonin specializing in genjutsu. Her red eyes are said to see through any illusion.',
     dialogue: { idle: ['Reality is more fragile than you think.', 'Genjutsu is the art of truth and lies.', 'Don\'t trust everything you see.'] },
-    cooldownTicks: 25,
+    cooldownTicks: 750,
     category: 'wandering',
   });
 
@@ -465,7 +465,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       skills: { taijutsu: 10, bukijutsu: 15, ninjutsu: 5, genjutsu: 2, med: 3 },
       stats: { phy: 12, cha: 8, men: 10},
       description: shopDefs[i].desc,
-      dialogue: SHOPKEEPER_DIALOGUE, cooldownTicks: 15,
+      dialogue: SHOPKEEPER_DIALOGUE, cooldownTicks: 450,
       category: 'fixed',
     });
   }
@@ -477,7 +477,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 20, bukijutsu: 10, ninjutsu: 40, genjutsu: 15, med: 75 },
     stats: { phy: 20, cha: 50, men: 45},
     description: 'The head medic of Konoha Hospital. Stern but caring.',
-    dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
+    dialogue: MEDIC_DIALOGUE, cooldownTicks: 540,
     category: 'fixed',
   });
 
@@ -487,7 +487,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 15, bukijutsu: 8, ninjutsu: 30, genjutsu: 10, med: 55 },
     stats: { phy: 18, cha: 35, men: 30},
     description: 'A medical ninja assisting at the hospital. Quick hands, steady nerves.',
-    dialogue: MEDIC_DIALOGUE, cooldownTicks: 18,
+    dialogue: MEDIC_DIALOGUE, cooldownTicks: 540,
     category: 'fixed',
   });
 
@@ -498,7 +498,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 5, bukijutsu: 30, ninjutsu: 0, genjutsu: 0, med: 5 },
     stats: { phy: 20, cha: 5, men: 15},
     description: 'The legendary ramen chef of Konoha Kitchen. His noodles are the stuff of myth.',
-    dialogue: CHEF_DIALOGUE, cooldownTicks: 12,
+    dialogue: CHEF_DIALOGUE, cooldownTicks: 360,
     category: 'fixed',
   });
 
@@ -509,7 +509,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 3, bukijutsu: 5, ninjutsu: 0, genjutsu: 0, med: 8 },
     stats: { phy: 15, cha: 3, men: 12},
     description: 'The innkeeper of Konoha\'s only inn. A quiet man who keeps clean rooms and asks no questions.',
-    dialogue: INNKEEPER_DIALOGUE, cooldownTicks: 15,
+    dialogue: INNKEEPER_DIALOGUE, cooldownTicks: 450,
     category: 'fixed',
   });
 
@@ -579,7 +579,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
         men: 1 + ((rng >> 8) % 8),
       },
       description: d.desc,
-      dialogue: VILLAGER_DIALOGUE, cooldownTicks: 25,
+      dialogue: VILLAGER_DIALOGUE, cooldownTicks: 750,
       female: d.female,
       category: 'wandering',
     });
@@ -605,7 +605,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
         'Train hard. The Hyuga name demands excellence.',
         'Fate is absolute. But effort shapes its edges.',
       ], night: ['Even at night, these eyes see clearly.'] },
-      cooldownTicks: 30,
+      cooldownTicks: 900,
       category: 'wandering',
     });
   }
@@ -631,7 +631,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
         'Strength comes from bonds. And from vengeance.',
         'Our police force keeps this village safe.',
       ], night: ['The Uchiha never sleep soundly. We\'re always watching.'] },
-      cooldownTicks: 30,
+      cooldownTicks: 900,
       category: 'wandering',
     });
   }
@@ -643,7 +643,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
     skills: { taijutsu: 25, bukijutsu: 10, ninjutsu: 5, genjutsu: 2, med: 3 },
     stats: { phy: 20, cha: 10, men: 8},
     description: 'A fellow genin from the academy. He trains here daily, always looking for a match.',
-    dialogue: TAKESHI_DIALOGUE, cooldownTicks: 15,
+    dialogue: TAKESHI_DIALOGUE, cooldownTicks: 450,
     category: 'fixed',
   }, 'char_takeshi');
 
@@ -655,7 +655,7 @@ export function spawnVillageNpcs(world: World, devMode: boolean): void {
       skills: { taijutsu: 65, bukijutsu: 60, ninjutsu: 55, genjutsu: 40, med: 20 },
       stats: { phy: 60, cha: 55, men: 50},
       description: 'A masked ANBU operative. Their presence is unsettling.',
-      dialogue: ANBU_DIALOGUE, cooldownTicks: 20,
+      dialogue: ANBU_DIALOGUE, cooldownTicks: 600,
       category: 'fixed',
     }, registerNpcAccentSprites(ACCENTS_ANBU, ANBU_BODIES));
   }
@@ -724,7 +724,7 @@ function spawnAnbuOperatives(world: World): void {
       },
       description: 'A masked ANBU operative standing perfectly still. Their presence is barely perceptible.',
       dialogue: ANBU_ELITE_DIALOGUE,
-      cooldownTicks: 40,
+      cooldownTicks: 1200,
       category: 'fixed',
     };
 
@@ -773,7 +773,7 @@ function spawnAnbuOperatives(world: World): void {
       },
       description: 'A masked ANBU operative watching from the shadows. You can barely make out their form.',
       dialogue: ANBU_ELITE_DIALOGUE,
-      cooldownTicks: 50,
+      cooldownTicks: 1500,
       category: 'fixed',
       despawnAtNight: false,
     };

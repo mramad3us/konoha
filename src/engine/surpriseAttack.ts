@@ -20,7 +20,7 @@ import type { Direction } from '../types/ecs.ts';
 import { calculateDamage, startingTempo } from '../types/combat.ts';
 import { checkEntityState, killEntity } from './entityState.ts';
 import { applyBleeding } from './entityState.ts';
-import { COMBAT_PASS_SUBTICKS } from '../core/constants.ts';
+import { SURPRISE_ATTACK_TICKS } from '../core/constants.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { sfxPunchHit, sfxKickHit, sfxCritical } from '../systems/audioSystem.ts';
 
@@ -208,8 +208,8 @@ export function executeSurpriseAttack(
     world.log(assessFlavor, targetDead ? 'hit_outgoing' : 'combat_neutral');
   }
 
-  // Time cost: 2 combat passes (4s)
-  world.advanceTime(COMBAT_PASS_SUBTICKS * 2, 4);
+  // Time cost: 4 seconds (surprise attack)
+  world.currentTick += SURPRISE_ATTACK_TICKS;  // 4 seconds
 
   // Sound
   if (totalDamage > 0 && tempoAbsorbed < 2) {

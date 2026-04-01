@@ -14,7 +14,7 @@ import { generateCombatFlavor, generateCritFlavor, generateConditionFlavor, gene
 import { pickNpcMove } from './combatAI.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkEntityState, applyBleeding, killEntity as killEntityDirect } from './entityState.ts';
-import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RESTORE_RATE } from '../core/constants.ts';
+import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RESTORE_RATE, COMBAT_PASS_TICKS } from '../core/constants.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
@@ -68,6 +68,7 @@ function getOrCreateEngagement(world: World, entityA: EntityId, entityB: EntityI
     conditionB: { ...NO_CONDITION },
     round: 0,
     pendingNpcMove: null,
+    nextRoundTick: world.currentTick,
   };
 
   engagements.set(key, eng);
@@ -487,7 +488,7 @@ export function processCombatMove(world: World, playerMove: CombatMove): boolean
   }
 
   // Time advancement and world ticking is handled by the caller (inputSystem)
-  // via advanceCombatPass() so that NPC movement, other fights, etc. progress.
+  // via advanceWorld() so that NPC movement, other fights, etc. progress.
 
   return true;
 }
@@ -558,7 +559,7 @@ export function clearEntityEngagements(entityId: EntityId): void {
 
 /**
  * Resolve one round of combat for all NPC-vs-NPC engagements (no player involved).
- * Called each tick from advanceTurn so that NPC fights actually progress.
+ * Called each tick from worldTick so that NPC fights actually progress.
  */
 export function resolveNpcCombatRounds(world: World): void {
   const playerId = world.playerEntityId;
@@ -566,6 +567,9 @@ export function resolveNpcCombatRounds(world: World): void {
   for (const [key, eng] of engagements) {
     // Skip player-involved engagements — those are resolved by processCombatMove
     if (eng.entityA === playerId || eng.entityB === playerId) continue;
+
+    // Tick gate: only resolve one round per COMBAT_PASS_TICKS
+    if (world.currentTick < (eng as CombatEngagement & { nextRoundTick?: number }).nextRoundTick!) continue;
 
     // Skip if either combatant is dead/unconscious
     if (world.unconscious.has(eng.entityA) || world.dead.has(eng.entityA) ||
@@ -689,5 +693,8 @@ export function resolveNpcCombatRounds(world: World): void {
     checkEntityState(world, eng.entityB);
 
     eng.round++;
+
+    // Schedule next round
+    (eng as CombatEngagement & { nextRoundTick?: number }).nextRoundTick = world.currentTick + COMBAT_PASS_TICKS;
   }
 }

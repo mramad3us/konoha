@@ -2,7 +2,7 @@ import { resolveAction, GAME_KEYS, JUTSU_COMBAT_KEYS } from '../engine/actionRes
 import { tryCastJutsuByKey, getJutsuFailMessage } from '../engine/jutsuResolver.ts';
 import { getJutsuByCombatKey } from '../data/jutsus.ts';
 import { findAdjacentTarget as findTarget } from '../engine/combatSystem.ts';
-import { executeTurn, advanceCombatPass, advanceThrowSubtick, advanceNinpoSign } from '../engine/turnSystem.ts';
+import { executeTurn, advanceWorld } from '../engine/turnSystem.ts';
 import { processCombatMove, getPlayerTempo, getPlayerCondition, clearStaleEngagements } from '../engine/combatSystem.ts';
 import { isCombatKey } from '../types/combat.ts';
 import { isAttack } from '../types/combat.ts';
@@ -15,14 +15,14 @@ import type { CharacterSheetUI } from '../ui/characterSheet.ts';
 import type { MissionLogUI } from '../ui/missionLogUI.ts';
 import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import type { ConditionIndicator } from '../ui/conditionIndicator.ts';
-import { INPUT_DEBOUNCE_MS } from '../core/constants.ts';
+import { INPUT_DEBOUNCE_MS, COMBAT_PASS_TICKS, THROW_ACTION_TICKS } from '../core/constants.ts';
 import type { ThrownWeaponType } from '../types/throwing.ts';
 import { spawnProjectile, canThrow, getThrowableTargets } from '../systems/projectileSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import type { EntityId } from '../types/ecs.ts';
 import type { HandSignKey } from '../types/ninpo.ts';
 import { HAND_SIGNS } from '../types/ninpo.ts';
-import { isHandSignKey, matchNinpoSequence, getSignSpeedSubticks } from '../data/ninpo.ts';
+import { isHandSignKey, matchNinpoSequence, getSignSpeedTicks } from '../data/ninpo.ts';
 import { resolveNinpo, applyShadowStep } from '../engine/ninpoResolver.ts';
 import { sfxHandSign } from '../systems/audioSystem.ts';
 
@@ -143,7 +143,7 @@ export class InputSystem {
       if (result.success) {
         this.world.log(result.message, 'combat_tempo');
         // Advance world by one combat pass
-        advanceCombatPass(this.world);
+        advanceWorld(this.world, COMBAT_PASS_TICKS);
         // Update camera to follow teleport
         const pp = this.world.positions.get(this.world.playerEntityId);
         if (pp) this.camera.snapTo(pp.x, pp.y);
@@ -183,7 +183,7 @@ export class InputSystem {
       const turnConsumed = processCombatMove(this.world, key);
       if (turnConsumed) {
         // Advance world by one combat pass — ticks NPC movement and NPC-vs-NPC fights
-        advanceCombatPass(this.world);
+        advanceWorld(this.world, COMBAT_PASS_TICKS);
 
         this.hud.update(this.world, this._throwingMode, this._throwWeapon);
         this.tempoBeads.update(getPlayerTempo(this.world));
@@ -418,8 +418,8 @@ export class InputSystem {
 
       spawnProjectile(this.world, playerId, this._throwWeapon, targetPos.x, targetPos.y);
 
-      // Advance time by 1 subtick (0.5s) — throwing is fast, cooldown handles pacing
-      advanceThrowSubtick(this.world);
+      // Advance time by throw action ticks (0.5s) — throwing is fast, cooldown handles pacing
+      advanceWorld(this.world, THROW_ACTION_TICKS);
 
       // Exit throwing mode immediately — player can re-enter with 't' when ready
       this.exitThrowingMode();
@@ -480,8 +480,8 @@ export class InputSystem {
     sfxHandSign();
 
     // Advance world time per sign — engaged enemies get free hits naturally
-    const subticks = getSignSpeedSubticks(ninjutsuLevel);
-    advanceNinpoSign(this.world, subticks);
+    const signTicks = getSignSpeedTicks(ninjutsuLevel);
+    advanceWorld(this.world, signTicks);
 
     // Update HUD
     this.hud.update(this.world, this._throwingMode, this._throwWeapon);

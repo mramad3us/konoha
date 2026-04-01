@@ -47,7 +47,7 @@ export interface DespawnedNpcSnapshot {
 
 /**
  * Check and process dusk transitions.
- * Call every advanceTurn — internally gates on hour and day tracking.
+ * Call from worldTick slow systems — internally gates on hour and day tracking.
  */
 export function tickDuskTransition(world: World): void {
   const hour = getHour(world.gameTimeSeconds);
