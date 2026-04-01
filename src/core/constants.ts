@@ -222,6 +222,15 @@ export const THROW_REENTRY_TICKS: number[] = [20, 15, 10, 7, 5];       // 2s →
 // Indexed by taijutsu bracket: [<10, 10-19, 20-39, 40-59, 60+]
 export const SUBDUE_ASSASSINATE_TICKS: number[] = [20, 15, 10, 6, 3];  // 2s → 0.3s
 
+// ── Interaction Timing ──
+export const EXAMINE_TICKS = 5;                  // 0.5 seconds
+export const RESTRAIN_TICKS = 100;               // 10 seconds (tying someone up properly)
+
+// ── Medical Timing (ticks, med-skill-scaled) ──
+// Indexed by med bracket: [<10, 10-19, 20-39, 40-59, 60+]
+export const PATCH_UP_TICKS: number[] = [600, 400, 200, 150, 100];   // 60s → 10s
+export const FIRST_AID_TICKS: number[] = [120, 90, 60, 40, 20];      // 12s → 2s
+
 // ── Substitution ──
 export const SUBSTITUTION_COOLDOWN_TICKS = 20;  // 2 seconds = 1 combat pass
 

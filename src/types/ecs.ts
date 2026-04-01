@@ -142,7 +142,7 @@ export interface DeadComponent {
 }
 
 export interface InteractableComponent {
-  interactionType: 'sleep' | 'examine' | 'talk' | 'door' | 'mission_board' | 'meditate' | 'village_gate' | 'weapons_rack';
+  interactionType: 'sleep' | 'examine' | 'door' | 'mission_board' | 'meditate' | 'village_gate' | 'weapons_rack';
   label: string;
 }
 

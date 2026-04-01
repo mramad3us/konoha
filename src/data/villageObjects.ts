@@ -17,7 +17,7 @@ interface ObjSpawn {
   blocksMove: boolean; blocksSight: boolean;
   name: string; article: 'a' | 'an' | 'the' | '';
   description: string; category: ObjectCategory;
-  interactType?: 'sleep' | 'examine' | 'talk' | 'mission_board' | 'meditate' | 'weapons_rack';
+  interactType?: 'sleep' | 'examine' | 'mission_board' | 'meditate' | 'weapons_rack';
   interactLabel?: string; lightRadius?: number;
 }
 

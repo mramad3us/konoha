@@ -31,7 +31,8 @@ import { computeFOV } from '../engine/fov.ts';
 import { generateVillage } from '../map/villageGenerator.ts';
 import { World } from '../engine/world.ts';
 import { activeSaveId } from '../engine/session.ts';
-import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TICKS, COMBAT_PASS_TICKS, MAX_THROWN_AMMO, TICK_SECONDS, SLOW_SYSTEM_INTERVAL } from '../core/constants.ts';
+import { FOV_RADIUS, AUTO_SAVE_INTERVAL_TICKS, COMBAT_PASS_TICKS, MAX_THROWN_AMMO, TICK_SECONDS, SLOW_SYSTEM_INTERVAL, EXAMINE_TICKS } from '../core/constants.ts';
+import { getPatchUpTime, getFirstAidTime } from '../engine/reactionSystem.ts';
 import { computeMaxChakra } from '../engine/derivedStats.ts';
 import { formatGameTime, getNightFovReduction } from '../engine/gameTime.ts';
 import { getZoneName } from '../engine/zones.ts';
@@ -752,6 +753,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       for (const line of lines) {
         world.log(line, 'info');
       }
+      world.currentTick += EXAMINE_TICKS;  // 0.5 seconds to look
       // Check if this is a search mission collect (D-rank)
       if (world.missionLog.active && !world.missionLog.active.objectiveComplete) {
         const msg = processMissionEvent(world.missionLog, { type: 'collect_entity', entityId }, world);
@@ -781,7 +783,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         world.log('Nothing useful.', 'info');
       }
     } else if (choice === 'talk') {
-      // Check if this NPC is a delivery target
+      // Delivery mission interaction
       const npcName = world.names.get(entityId)?.display;
       if (npcName && world.missionLog.active && !world.missionLog.active.objectiveComplete) {
         const msg = processMissionEvent(world.missionLog, { type: 'interact_npc', npcName });
@@ -824,7 +826,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       stopCarrying(world, world.playerEntityId);
     } else if (choice === 'patch_up') {
       stopBleeding(world, entityId);
-      world.currentTick += COMBAT_PASS_TICKS;  // 2 seconds to patch up
+      world.currentTick += getPatchUpTime(world, world.playerEntityId);  // med-skill-scaled (60s→10s)
       const playerSheet = world.characterSheets.get(world.playerEntityId);
       if (playerSheet) {
         const oldMed = playerSheet.skills.med;
@@ -844,7 +846,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         playerSheet.skills.med = computeImprovement(oldMed2, SKILL_IMPROVEMENT_RATES.med);
         checkSkillUp(world, 'med', oldMed2, playerSheet.skills.med);
       }
-      world.currentTick += Math.round(6 / TICK_SECONDS);  // 6 seconds for first aid
+      world.currentTick += getFirstAidTime(world, world.playerEntityId);  // med-skill-scaled (12s→2s)
     } else if (choice === 'restock_weapons') {
       // Restock thrown weapons from weapons rack
       const playerId = world.playerEntityId;

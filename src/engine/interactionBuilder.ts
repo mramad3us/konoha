@@ -61,8 +61,6 @@ export function buildContextOptions(
       options.push({ id: 'use_sleep', label: 'Sleep', accent: true });
     } else if (interactable.interactionType === 'meditate') {
       options.push({ id: 'use_meditate', label: 'Meditate', accent: true });
-    } else if (interactable.interactionType === 'talk') {
-      options.push({ id: 'talk', label: 'Talk' });
     } else if (interactable.interactionType === 'mission_board') {
       options.push({ id: 'use_mission_board', label: 'Pick Mission', accent: true });
     } else if (interactable.interactionType === 'weapons_rack') {

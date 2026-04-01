@@ -27,6 +27,8 @@ import {
   THROW_ENTRY_TICKS,
   THROW_REENTRY_TICKS,
   SUBDUE_ASSASSINATE_TICKS,
+  PATCH_UP_TICKS,
+  FIRST_AID_TICKS,
 } from '../core/constants.ts';
 
 // ── Bracket Lookups ──
@@ -37,6 +39,15 @@ function getTaijutsuBracket(taijutsu: number): number {
   if (taijutsu >= 40) return 3;
   if (taijutsu >= 20) return 2;
   if (taijutsu >= 10) return 1;
+  return 0;
+}
+
+/** Med bracket: 0=<10, 1=10-19, 2=20-39, 3=40-59, 4=60+ (same as taijutsu) */
+function getMedBracket(med: number): number {
+  if (med >= 60) return 4;
+  if (med >= 40) return 3;
+  if (med >= 20) return 2;
+  if (med >= 10) return 1;
   return 0;
 }
 
@@ -84,6 +95,20 @@ export function getThrowReentryDelay(world: World, entityId: EntityId): number {
   const sheet = world.characterSheets.get(entityId);
   const buki = sheet?.skills.bukijutsu ?? 5;
   return THROW_REENTRY_TICKS[getBukijutsuBracket(buki)];
+}
+
+/** Get patch-up (stop bleeding) time in ticks, med-skill-scaled */
+export function getPatchUpTime(world: World, entityId: EntityId): number {
+  const sheet = world.characterSheets.get(entityId);
+  const med = sheet?.skills.med ?? 5;
+  return PATCH_UP_TICKS[getMedBracket(med)];
+}
+
+/** Get first aid time in ticks, med-skill-scaled */
+export function getFirstAidTime(world: World, entityId: EntityId): number {
+  const sheet = world.characterSheets.get(entityId);
+  const med = sheet?.skills.med ?? 5;
+  return FIRST_AID_TICKS[getMedBracket(med)];
 }
 
 // ── Reaction Delay Management ──
