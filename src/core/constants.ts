@@ -229,7 +229,7 @@ export const RESTRAIN_TICKS = 100;               // 10 seconds (tying someone up
 // ── Medical Timing (ticks, med-skill-scaled) ──
 // Indexed by med bracket: [<10, 10-19, 20-39, 40-59, 60+]
 export const PATCH_UP_TICKS: number[] = [600, 400, 200, 150, 100];   // 60s → 10s
-export const FIRST_AID_TICKS: number[] = [120, 90, 60, 40, 20];      // 12s → 2s
+export const FIRST_AID_TICKS: number[] = [1200, 800, 400, 300, 200];  // 120s → 20s (2x patch up)
 
 // ── Substitution ──
 export const SUBSTITUTION_COOLDOWN_TICKS = 20;  // 2 seconds = 1 combat pass
