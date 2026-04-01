@@ -3,7 +3,7 @@ import type { Direction } from '../types/ecs.ts';
 import type { World } from './world.ts';
 import { computeFOV } from './fov.ts';
 
-import { FOV_RADIUS, TICK_SECONDS, SLOW_SYSTEM_INTERVAL, COMBAT_PASS_TICKS, WAIT_TICKS, DOOR_OPEN_TICKS, SWIM_STEP_TICKS, STANCE_TICK_COST, STANCE_STAMINA_COST, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST } from '../core/constants.ts';
+import { FOV_RADIUS, TICK_SECONDS, SLOW_SYSTEM_INTERVAL, COMBAT_PASS_TICKS, DOOR_OPEN_TICKS, SWIM_STEP_TICKS, STANCE_TICK_COST, STANCE_STAMINA_COST, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 import { hasTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
 import { tickUnconsciousRecovery, tickBleeding, checkEntityState } from './entityState.ts';
@@ -20,6 +20,7 @@ import type { EntityId } from '../types/ecs.ts';
 import { updateCarriedPosition } from './restraintCarry.ts';
 import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem.ts';
 import { tickNinpoTimers } from './ninpoResolver.ts';
+import { tickReactionDelays, isInReactionDelay, getWaitDuration } from './reactionSystem.ts';
 
 /**
  * Single universal tick — advances the world by one 0.1s step.
@@ -33,6 +34,7 @@ function worldTick(world: World): void {
   tickProjectiles(world);
   tickNpcMovement(world);           // NPCs gate internally on their own nextMoveTick
   resolveNpcCombatRounds(world);    // Engagements gate on nextRoundTick
+  tickReactionDelays(world);        // Clean up expired reaction delays
 
   // Every SLOW_SYSTEM_INTERVAL ticks (30 = 3s): slow systems
   if (t % SLOW_SYSTEM_INTERVAL === 0) {
@@ -443,8 +445,8 @@ export function executeTurn(action: GameAction, world: World): boolean {
         }
       }
 
-      // Wait passes WAIT_TICKS (5 ticks = 0.5s)
-      advanceWorld(world, WAIT_TICKS);
+      // Wait passes time scaled by taijutsu (fast fighters wait in brief intervals)
+      advanceWorld(world, getWaitDuration(world, playerId));
       return true;
     }
 
@@ -623,6 +625,9 @@ export function interactWithEntity(world: World, eid: number, _playerId?: number
 
 /** Apply a single free hit from attacker to target during disengagement */
 function applyFreeHit(world: World, attackerId: EntityId, targetId: EntityId, attackerName: string): void {
+  // Attacker in reaction delay can't strike (just teleported nearby, hasn't reacted yet)
+  if (isInReactionDelay(world, attackerId)) return;
+
   // Check if target has tempo to dodge
   const engagements = getActiveEngagements();
   const key = attackerId < targetId ? `${attackerId}:${targetId}` : `${targetId}:${attackerId}`;

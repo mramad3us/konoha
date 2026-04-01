@@ -202,6 +202,15 @@ export interface SquadMemberComponent {
   personality: import('./squad.ts').SquadPersonality;
 }
 
+// ── Reaction Delays ──
+
+export interface ReactionDelayComponent {
+  /** Tick at which this entity can act again */
+  canActAtTick: number;
+  /** Source of the delay */
+  source: 'fresh_aggro' | 'reposition' | 'teleport_recovery';
+}
+
 // Re-export CharacterSheet as a component type
 export type { CharacterSheet } from './character.ts';
 

@@ -13,6 +13,7 @@ import { npcFaceTowardPlayer } from './surpriseAttack.ts';
 import { initiateNpcEngagement } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
+import { applyReactionDelay, isInReactionDelay, getFreshReactionDelay } from './reactionSystem.ts';
 import { getCurrentROE } from './squadSystem.ts';
 import { isInCombat } from './combatSystem.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
@@ -180,7 +181,10 @@ export function tickNpcMovement(world: World): void {
 
     // NPCs turn to face the player when they perceive them within 2 tiles
     // This happens before movement so the NPC reacts to player proximity
-    npcFaceTowardPlayer(world, id);
+    // NPCs in reaction delay can't turn (they haven't processed the threat yet)
+    if (!isInReactionDelay(world, id)) {
+      npcFaceTowardPlayer(world, id);
+    }
 
     // ── Squad member AI (separate from enemy AI) ──
     if (world.squadMembers.has(id)) {
@@ -478,6 +482,8 @@ function tickAggro(
         npcSetSprintOnAggro(world, id);
         const health = world.healths.get(id);
         if (health) aggro.lastKnownHp = health.current;
+        // Fresh detection reaction delay — NPC can't attack until they've processed the threat
+        applyReactionDelay(world, id, getFreshReactionDelay(world, id), 'fresh_aggro');
         world.log(`${npcName} spots you!`, 'hit_incoming');
         spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
       } else {
@@ -494,6 +500,8 @@ function tickAggro(
             npcSetSprintOnAggro(world, id);
             const health = world.healths.get(id);
             if (health) aggro.lastKnownHp = health.current;
+            // Fresh detection reaction delay
+            applyReactionDelay(world, id, getFreshReactionDelay(world, id), 'fresh_aggro');
             world.log(`${npcName} spots your squad!`, 'hit_incoming');
             spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
             break;
@@ -569,8 +577,11 @@ function tickChase(
   if (anchor && world.currentTick - anchor.lastMoveTick < NPC_CHASE_STEP_TICKS) return;
   if (anchor) anchor.lastMoveTick = world.currentTick;
 
-  // Adjacent to target — initiate real combat engagement
+  // Adjacent to target — initiate real combat engagement (unless still reacting)
   if (dist <= 1) {
+    // NPC in reaction delay can't initiate combat — just stand adjacent
+    if (isInReactionDelay(world, id)) return;
+
     const npcName = world.names.get(id)?.display ?? 'An enemy';
     // Engaging in combat dispels invisibility
     if (world.invisible.has(id)) {
@@ -588,8 +599,8 @@ function tickChase(
     return;
   }
 
-  // Throw-move pattern: if at range and has ammo, throw first then step
-  if (dist > 2 && dist <= 10 && canThrow(world, id)) {
+  // Throw-move pattern: if at range and has ammo, throw first then step (not while reacting)
+  if (dist > 2 && dist <= 10 && canThrow(world, id) && !isInReactionDelay(world, id)) {
     // Check line of sight to target
     if (hasLineOfSight(world, pos.x, pos.y, targetPos.x, targetPos.y)) {
       // Pick weapon: prefer kunai (faster), fallback to shuriken

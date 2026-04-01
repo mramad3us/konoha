@@ -208,6 +208,22 @@ export const NINPO_SIGN_SPEED_TICKS = { tier1: 20, tier2: 15, tier3: 10, tier4: 
 // Vanish duration brackets: <30 → 60s, 30-49 → 3600s, 50+ → permanent (-1)
 // Shadow Step range: level 10 → 3 tiles, level 50+ → 10 tiles (linear fill)
 
+// ── Reaction Delay (ticks, 0.1s each) ──
+// Indexed by taijutsu bracket: [<10, 10-19, 20-39, 40-59, 60+]
+export const REACTION_DELAY_FRESH: number[] = [40, 25, 15, 8, 3];       // 4s → 0.3s
+export const REACTION_DELAY_REPOSITION: number[] = [20, 12, 8, 4, 2];   // 2s → 0.2s (mid-combat halved)
+
+// ── Throw Mode Timing (ticks) ──
+// Indexed by bukijutsu bracket: [<10, 10-15, 16-30, 31-45, 46+]
+export const THROW_ENTRY_TICKS: number[] = [10, 8, 5, 3, 2];           // 1s → 0.2s to draw weapon
+export const THROW_REENTRY_TICKS: number[] = [20, 15, 10, 7, 5];       // 2s → 0.5s between throws
+
+// ── Subdue/Assassinate ──
+export const SUBDUE_ASSASSINATE_TICKS = 20;  // 2 seconds = 1 combat pass
+
+// ── Substitution ──
+export const SUBSTITUTION_COOLDOWN_TICKS = 20;  // 2 seconds = 1 combat pass
+
 // ── Blood Decals ──
 export const BLOOD_DECAL_MAX_AGE_TICKS = 36000;  // 1 hour at 0.1s/tick
 

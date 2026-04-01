@@ -18,6 +18,7 @@ import { STAMINA_REST_TICKS, STAMINA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_RES
 import { getMissionXpMultiplier } from './missions.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { sfxPunchHit, sfxKickHit, sfxBlock, sfxWhiff, sfxCritical, sfxTempoGain, sfxTempoSpend, sfxClash } from '../systems/audioSystem.ts';
+import { isInReactionDelay } from './reactionSystem.ts';
 import { spawnBloodDecal } from '../systems/projectileSystem.ts';
 import { STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import type { World } from './world.ts';
@@ -575,6 +576,12 @@ export function resolveNpcCombatRounds(world: World): void {
     if (world.unconscious.has(eng.entityA) || world.dead.has(eng.entityA) ||
         world.unconscious.has(eng.entityB) || world.dead.has(eng.entityB)) {
       engagements.delete(key);
+      continue;
+    }
+
+    // Skip if either combatant is in reaction delay (just repositioned, can't fight yet)
+    if (isInReactionDelay(world, eng.entityA) || isInReactionDelay(world, eng.entityB)) {
+      (eng as CombatEngagement & { nextRoundTick?: number }).nextRoundTick = world.currentTick + COMBAT_PASS_TICKS;
       continue;
     }
 

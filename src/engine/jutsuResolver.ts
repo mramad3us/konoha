@@ -8,7 +8,8 @@ import type { JutsuDefinition, JutsuCooldowns } from '../types/jutsu.ts';
 import { JUTSU_REGISTRY, getJutsuByCombatKey } from '../data/jutsus.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkSkillUp } from './skillFeedback.ts';
-import { COMBAT_PASS_TICKS, FOV_RADIUS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR } from '../core/constants.ts';
+import { FOV_RADIUS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, SUBSTITUTION_COOLDOWN_TICKS } from '../core/constants.ts';
+import { applyReactionDelay, applyRepositionDelaysNearby, getFreshReactionDelay } from './reactionSystem.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -89,8 +90,12 @@ export function tryCastJutsu(
   resources.chakraCeiling = Math.max(resources.maxChakra * CHAKRA_FATIGUE_FLOOR, resources.chakraCeiling - CHAKRA_FATIGUE_DRAIN);
   resources.lastChakraExertionTick = world.currentTick;
 
-  // Set cooldown
-  cd[jutsuId] = world.currentTick + jutsu.cooldownPasses;
+  // Set cooldown (substitution uses its own constant; other jutsu use their defined passes)
+  if (jutsuId === 'substitution') {
+    cd[jutsuId] = world.currentTick + SUBSTITUTION_COOLDOWN_TICKS;
+  } else {
+    cd[jutsuId] = world.currentTick + jutsu.cooldownPasses;
+  }
 
   // Improve ninjutsu + CHA
   if (sheet) {
@@ -103,8 +108,8 @@ export function tryCastJutsu(
     checkSkillUp(world, 'cha', oldCha, sheet.stats.cha);
   }
 
-  // Advance time — jutsu cast = 1 combat pass (20 ticks, 2s)
-  world.currentTick += COMBAT_PASS_TICKS;
+  // Time advancement handled by caller (inputSystem calls advanceWorld)
+  // No direct tick manipulation here — prevents double-advancing.
 
   // Pick a random cast message
   const casterName = world.names.get(casterId)?.display ?? 'Unknown';
@@ -231,6 +236,12 @@ function executeSubstitution(
 
   // Clear combat engagement
   clearStaleEngagements(world);
+
+  // Post-teleport recovery: caster needs time to reorient (taijutsu-scaled)
+  applyReactionDelay(world, casterId, getFreshReactionDelay(world, casterId), 'teleport_recovery');
+
+  // Reposition reaction delay for enemies near the destination
+  applyRepositionDelaysNearby(world, casterId, newX, newY);
 
   // Recompute FOV
   const nightReduction = getNightFovReduction(world.gameTimeSeconds);

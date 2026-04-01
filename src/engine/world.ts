@@ -1,4 +1,4 @@
-import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent, ThrownAmmoComponent, ProjectileComponent, ThrowCooldownComponent } from '../types/ecs.ts';
+import type { EntityId, PositionComponent, RenderableComponent, BlockingComponent, HealthComponent, CombatStatsComponent, PlayerControlledComponent, ResourcesComponent, AIControlledComponent, NameComponent, DestructibleComponent, CharacterSheet, UnconsciousComponent, DeadComponent, InteractableComponent, LightSourceComponent, ObjectSheetComponent, BleedingComponent, ProximityDialogueComponent, DoorComponent, AnchorComponent, NpcLifecycleComponent, AggroComponent, InvisibleComponent, RestrainedComponent, CarryingComponent, CarriedComponent, SquadMemberComponent, ThrownAmmoComponent, ProjectileComponent, ThrowCooldownComponent, ReactionDelayComponent } from '../types/ecs.ts';
 import type { NinpoTimerComponent } from '../types/ninpo.ts';
 import type { SquadRoster } from '../types/squad.ts';
 import { createSquadRoster } from './squadSystem.ts';
@@ -48,6 +48,7 @@ export class World {
   thrownAmmo = new Map<EntityId, ThrownAmmoComponent>();
   projectiles = new Map<EntityId, ProjectileComponent>();
   throwCooldowns = new Map<EntityId, ThrowCooldownComponent>();
+  reactionDelays = new Map<EntityId, ReactionDelayComponent>();
   hiddenUntilAdjacent = new Set<EntityId>();
 
   // Ninpo system
@@ -208,6 +209,7 @@ export class World {
     this.thrownAmmo.delete(id);
     this.projectiles.delete(id);
     this.throwCooldowns.delete(id);
+    this.reactionDelays.delete(id);
     this.hiddenUntilAdjacent.delete(id);
     this.ninpoTimers.delete(id);
     this.signingJoinedFrames.delete(id);
