@@ -16,7 +16,7 @@ import type { MissionLogUI } from '../ui/missionLogUI.ts';
 import type { TempoBeadsUI } from '../ui/tempoBeads.ts';
 import type { ConditionIndicator } from '../ui/conditionIndicator.ts';
 import { INPUT_DEBOUNCE_MS, COMBAT_PASS_TICKS, THROW_ACTION_TICKS } from '../core/constants.ts';
-import { isInReactionDelay, getThrowEntryDelay } from '../engine/reactionSystem.ts';
+import { getThrowEntryDelay, getFreshReactionDelay } from '../engine/reactionSystem.ts';
 import type { ThrownWeaponType } from '../types/throwing.ts';
 import { spawnProjectile, canThrow, getThrowableTargets } from '../systems/projectileSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
@@ -138,11 +138,6 @@ export class InputSystem {
 
     // ── Jutsu combat keys (@ etc.) ──
     if (JUTSU_COMBAT_KEYS.has(key)) {
-      // Can't cast during reaction delay
-      if (isInReactionDelay(this.world, this.world.playerEntityId)) {
-        this.world.log('Still recovering — can\'t act yet.', 'info');
-        return;
-      }
       const targetId = findTarget(this.world);
       const result = tryCastJutsuByKey(this.world, this.world.playerEntityId, key, targetId);
 
@@ -150,6 +145,11 @@ export class InputSystem {
         this.world.log(result.message, 'combat_tempo');
         // Advance world by one combat pass — skip free strikes (jutsu IS the combat action)
         advanceWorld(this.world, COMBAT_PASS_TICKS, true);
+        // Post-teleport recovery: time advances by taijutsu-scaled ticks.
+        // During this window, worldTick runs — NPCs with expired reaction delays can act,
+        // but enemies near the destination are still in their reposition delay.
+        const recoveryTicks = getFreshReactionDelay(this.world, this.world.playerEntityId);
+        advanceWorld(this.world, recoveryTicks, true);
         // Update camera to follow teleport
         const pp = this.world.positions.get(this.world.playerEntityId);
         if (pp) this.camera.snapTo(pp.x, pp.y);
@@ -170,11 +170,6 @@ export class InputSystem {
 
     // ── Combat keys (a/z/e/q/s/d) ──
     if (isCombatKey(key)) {
-      // Can't fight during reaction delay (post-teleport recovery, etc.)
-      if (isInReactionDelay(this.world, this.world.playerEntityId)) {
-        this.world.log('Still recovering — can\'t act yet.', 'info');
-        return;
-      }
       // Check stamina for attacks
       if (isAttack(key)) {
         const res = this.world.resources.get(this.world.playerEntityId);
@@ -328,12 +323,6 @@ export class InputSystem {
   /** Attempt to enter throwing mode */
   private tryEnterThrowingMode(): void {
     const playerId = this.world.playerEntityId;
-
-    // Can't enter throw mode during reaction delay (just teleported, etc.)
-    if (isInReactionDelay(this.world, playerId)) {
-      this.world.log('Not ready — still recovering.', 'info');
-      return;
-    }
 
     // Can't re-enter throw mode during throw cooldown
     const cd = this.world.throwCooldowns.get(playerId);
@@ -637,6 +626,10 @@ export class InputSystem {
       applyShadowStep(this.world, pending.casterId, tx, ty);
       this.camera.snapTo(tx, ty);
       this.exitShadowStepMode();
+
+      // Post-teleport recovery: advance time by taijutsu-scaled ticks
+      const recoveryTicks = getFreshReactionDelay(this.world, pending.casterId);
+      advanceWorld(this.world, recoveryTicks, true);
 
       this.hud.update(this.world, this._throwingMode, this._throwWeapon);
       this.tempoBeads.update(getPlayerTempo(this.world));

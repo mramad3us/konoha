@@ -26,6 +26,7 @@ import {
   REACTION_DELAY_REPOSITION,
   THROW_ENTRY_TICKS,
   THROW_REENTRY_TICKS,
+  SUBDUE_ASSASSINATE_TICKS,
 } from '../core/constants.ts';
 
 // ── Bracket Lookups ──
@@ -69,6 +70,13 @@ export function getThrowEntryDelay(world: World, entityId: EntityId): number {
   const sheet = world.characterSheets.get(entityId);
   const buki = sheet?.skills.bukijutsu ?? 5;
   return THROW_ENTRY_TICKS[getBukijutsuBracket(buki)];
+}
+
+/** Get subdue/assassinate execution time in ticks (taijutsu-scaled) */
+export function getSubdueTime(world: World, entityId: EntityId): number {
+  const sheet = world.characterSheets.get(entityId);
+  const taijutsu = sheet?.skills.taijutsu ?? 5;
+  return SUBDUE_ASSASSINATE_TICKS[getTaijutsuBracket(taijutsu)];
 }
 
 /** Get throw-to-throw reentry delay in ticks */

@@ -20,7 +20,7 @@ import type { Direction } from '../types/ecs.ts';
 import { calculateDamage, startingTempo } from '../types/combat.ts';
 import { checkEntityState, killEntity } from './entityState.ts';
 import { applyBleeding } from './entityState.ts';
-import { SUBDUE_ASSASSINATE_TICKS } from '../core/constants.ts';
+import { getSubdueTime } from './reactionSystem.ts';
 import { cellHash } from '../sprites/pixelPatterns.ts';
 import { sfxPunchHit, sfxKickHit, sfxCritical } from '../systems/audioSystem.ts';
 
@@ -208,8 +208,8 @@ export function executeSurpriseAttack(
     world.log(assessFlavor, targetDead ? 'hit_outgoing' : 'combat_neutral');
   }
 
-  // Time cost: 2 seconds (1 combat pass — counts as a free combat move)
-  world.currentTick += SUBDUE_ASSASSINATE_TICKS;
+  // Time cost: taijutsu-scaled (counts as a free combat move)
+  world.currentTick += getSubdueTime(world, attackerId);
 
   // Sound
   if (totalDamage > 0 && tempoAbsorbed < 2) {

@@ -10,7 +10,7 @@ import { getVanishDuration, getShadowStepRange } from '../data/ninpo.ts';
 import { TICK_SECONDS } from '../core/constants.ts';
 import { spawnSmokePuff } from '../systems/particleSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
-import { applyReactionDelay, applyRepositionDelaysNearby, getFreshReactionDelay } from './reactionSystem.ts';
+import { applyRepositionDelaysNearby } from './reactionSystem.ts';
 
 /**
  * Resolve a completed ninpo — deduct chakra and apply the effect.
@@ -110,11 +110,12 @@ export function applyShadowStep(world: World, casterId: EntityId, targetX: numbe
   spawnSmokePuff(targetX, targetY, 8);
   spawnFloatingText(targetX, targetY, 'Shadow Step!', '#ccaaff', 1.5, 13);
 
-  // Post-teleport recovery: caster needs time to reorient (taijutsu-scaled)
-  applyReactionDelay(world, casterId, getFreshReactionDelay(world, casterId), 'teleport_recovery');
-
   // Reposition reaction delay for enemies near the destination
   applyRepositionDelaysNearby(world, casterId, targetX, targetY);
+
+  // Post-teleport recovery for the caster is handled by the caller:
+  // - For the player: inputSystem advances time by the recovery ticks
+  // - For NPCs: a reaction delay component is set
 }
 
 // ── Timer Tick ──

@@ -9,7 +9,7 @@ import { JUTSU_REGISTRY, getJutsuByCombatKey } from '../data/jutsus.ts';
 import { computeImprovement, SKILL_IMPROVEMENT_RATES, STAT_IMPROVEMENT_RATES } from '../types/character.ts';
 import { checkSkillUp } from './skillFeedback.ts';
 import { FOV_RADIUS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, SUBSTITUTION_COOLDOWN_TICKS } from '../core/constants.ts';
-import { applyReactionDelay, applyRepositionDelaysNearby, getFreshReactionDelay } from './reactionSystem.ts';
+import { applyRepositionDelaysNearby } from './reactionSystem.ts';
 import { getMissionXpMultiplier } from './missions.ts';
 import type { World } from './world.ts';
 import type { EntityId } from '../types/ecs.ts';
@@ -237,11 +237,12 @@ function executeSubstitution(
   // Clear combat engagement
   clearStaleEngagements(world);
 
-  // Post-teleport recovery: caster needs time to reorient (taijutsu-scaled)
-  applyReactionDelay(world, casterId, getFreshReactionDelay(world, casterId), 'teleport_recovery');
-
   // Reposition reaction delay for enemies near the destination
   applyRepositionDelaysNearby(world, casterId, newX, newY);
+
+  // Post-teleport recovery for the caster is handled by the caller:
+  // - For the player: inputSystem advances time by the recovery ticks (worldTick runs, NPCs act)
+  // - For NPCs: a reaction delay component is set so they can't act during recovery
 
   // Recompute FOV
   const nightReduction = getNightFovReduction(world.gameTimeSeconds);

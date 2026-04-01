@@ -218,8 +218,9 @@ export const REACTION_DELAY_REPOSITION: number[] = [20, 12, 8, 4, 2];   // 2s �
 export const THROW_ENTRY_TICKS: number[] = [10, 8, 5, 3, 2];           // 1s → 0.2s to draw weapon
 export const THROW_REENTRY_TICKS: number[] = [20, 15, 10, 7, 5];       // 2s → 0.5s between throws
 
-// ── Subdue/Assassinate ──
-export const SUBDUE_ASSASSINATE_TICKS = 20;  // 2 seconds = 1 combat pass
+// ── Subdue/Assassinate (ticks, taijutsu-scaled) ──
+// Indexed by taijutsu bracket: [<10, 10-19, 20-39, 40-59, 60+]
+export const SUBDUE_ASSASSINATE_TICKS: number[] = [20, 15, 10, 6, 3];  // 2s → 0.3s
 
 // ── Substitution ──
 export const SUBSTITUTION_COOLDOWN_TICKS = 20;  // 2 seconds = 1 combat pass
