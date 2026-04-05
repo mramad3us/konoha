@@ -604,8 +604,41 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
   const inputSystem = new InputSystem(world, camera, hud, keybindingsPanel, characterSheet, missionLogUI, tempoBeads, conditionIndicator);
 
-  // Respawn flow (fade to black → restore → fade back)
+  // Respawn flow — village: fade to hospital.  Mission map: fail + auto-extract.
   const doRespawn = async () => {
+    if (gamePhase === 'mission') {
+      // On mission map: mark mission failed, then auto-extract back to village hospital
+      const active = world.missionLog.active;
+      if (active && !active.objectiveComplete) {
+        active.failed = true;
+      }
+      world.log('You black out...', 'hit_incoming');
+
+      // Revive just enough to extract (the village respawn will fully heal)
+      reviveEntity(world, world.playerEntityId, 0.1);
+
+      if (!autoExtractPending) {
+        autoExtractPending = true;
+        setTimeout(async () => {
+          await extractFromMission(false);
+          // Now we're back in the village — do a full hospital respawn
+          canvasContainer.classList.add('game-canvas-container--blackout');
+          await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+          executeRespawn(world, TRAINING_GROUNDS_RESPAWN);
+          const pp = world.positions.get(world.playerEntityId);
+          if (pp) camera.snapTo(pp.x, pp.y);
+          hud.fullRender(world);
+          timeLabel.textContent = formatGameTime(world.gameTimeSeconds);
+          canvasContainer.classList.remove('game-canvas-container--blackout');
+          canvasContainer.classList.add('game-canvas-container--fadein');
+          await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
+          canvasContainer.classList.remove('game-canvas-container--fadein');
+        }, 1500);
+      }
+      return;
+    }
+
+    // Village: standard hospital respawn
     canvasContainer.classList.add('game-canvas-container--blackout');
     await new Promise(r => setTimeout(r, RESPAWN_FADE_MS));
     executeRespawn(world, TRAINING_GROUNDS_RESPAWN);

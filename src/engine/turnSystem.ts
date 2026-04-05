@@ -6,7 +6,7 @@ import { computeFOV } from './fov.ts';
 import { FOV_RADIUS, TICK_SECONDS, SLOW_SYSTEM_INTERVAL, COMBAT_PASS_TICKS, DOOR_OPEN_TICKS, SWIM_STEP_TICKS, STANCE_TICK_COST, STANCE_STAMINA_COST, STAMINA_RESTORE_RATE, STAMINA_REST_TICKS, CHAKRA_RESTORE_RATE, CHAKRA_REST_TICKS, CHAKRA_FATIGUE_DRAIN, CHAKRA_FATIGUE_FLOOR, CHAKRA_SPRINT_COST, WATER_WALK_CHAKRA_COST, DISENGAGE_STAMINA_COST, DISENGAGE_CHAKRA_COST } from '../core/constants.ts';
 import { getNightFovReduction } from './gameTime.ts';
 import { hasTechnique, getChakraSprintSpeed, getChakraSprintTier } from '../data/techniques.ts';
-import { tickUnconsciousRecovery, tickBleeding, checkEntityState } from './entityState.ts';
+import { tickUnconsciousRecovery, tickBleeding, checkEntityState, isAlive } from './entityState.ts';
 import { tickProximityDialogue } from './proximityDialogue.ts';
 import { sfxStep } from '../systems/audioSystem.ts';
 import { checkPatrolProgress, getMissionXpMultiplier } from './missions.ts';
@@ -123,6 +123,10 @@ function directionToCardinal(dir: Direction): 'n' | 's' | 'e' | 'w' {
  */
 export function executeTurn(action: GameAction, world: World): boolean {
   const playerId = world.playerEntityId;
+
+  // Guard: player must be alive and conscious to act
+  if (!isAlive(world, playerId)) return false;
+
   const playerPos = world.positions.get(playerId);
   const playerCtrl = world.playerControlled.get(playerId);
 
