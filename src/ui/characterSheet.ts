@@ -174,16 +174,22 @@ export class CharacterSheetUI {
     }
     this.content.appendChild(ninpoGrid);
 
-    // ── Squad Roster ──
-    if (squad && squad.members.length > 0) {
-      this.content.appendChild(
-        createElement('div', { className: 'charsheet-section-title', text: '// Squad Roster' })
-      );
-      const squadWrap = createElement('div', { className: 'charsheet-squad' });
-      for (const member of squad.members) {
-        squadWrap.appendChild(this.renderSquadMember(member, squad));
+    // ── Deployed Squad (only show members currently on mission with the player) ──
+    if (squad?.activeSquad) {
+      const deployed = squad.activeSquad.memberIds
+        .map(id => squad.members.find(m => m.id === id))
+        .filter((m): m is import('../types/squad.ts').SquadMember => !!m);
+
+      if (deployed.length > 0) {
+        this.content.appendChild(
+          createElement('div', { className: 'charsheet-section-title', text: '// Deployed Squad' })
+        );
+        const squadWrap = createElement('div', { className: 'charsheet-squad' });
+        for (const member of deployed) {
+          squadWrap.appendChild(this.renderSquadMember(member, squad));
+        }
+        this.content.appendChild(squadWrap);
       }
-      this.content.appendChild(squadWrap);
     }
   }
 

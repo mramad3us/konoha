@@ -421,7 +421,7 @@ export function executeTurn(action: GameAction, world: World): boolean {
       advanceWorld(world, tickCost);
 
       // Check patrol mission waypoints after move
-      const patrolMsg = checkPatrolProgress(world.missionLog, playerPos.x, playerPos.y);
+      const patrolMsg = checkPatrolProgress(world.missionLog, playerPos.x, playerPos.y, world);
       if (patrolMsg) world.log(patrolMsg, 'system');
 
       return true;

@@ -41,8 +41,8 @@ const TITLES_BY_RANK: Record<ShinobiRank, string[]> = {
   academy_student: ['Student'],
   genin: ['Genin', 'Konoha Genin', 'Leaf Genin'],
   chuunin: ['Chunin', 'Konoha Chunin', 'Field Chunin'],
-  special_jounin: ['Special Jonin', 'Specialist'],
-  jounin: ['Jonin', 'Konoha Jonin', 'Elite Jonin'],
+  special_jounin: ['Elite Jonin', 'Veteran Jonin', 'Senior Jonin'],
+  jounin: ['Jonin', 'Konoha Jonin', 'Field Jonin'],
   anbu: ['ANBU Operative'],
   kage: ['Kage'],
 };
@@ -104,13 +104,20 @@ function generateSkills(rank: ShinobiRank): CharacterSkills {
         med: rosterRandInt(3, 12),
       };
     case 'jounin':
-    case 'special_jounin':
       return {
         taijutsu: rosterRandInt(40, 58),
         bukijutsu: rosterRandInt(30, 45),
         ninjutsu: rosterRandInt(35, 52),
         genjutsu: rosterRandInt(12, 28),
         med: rosterRandInt(8, 20),
+      };
+    case 'special_jounin': // elite jonin — top tier
+      return {
+        taijutsu: rosterRandInt(55, 72),
+        bukijutsu: rosterRandInt(40, 55),
+        ninjutsu: rosterRandInt(50, 68),
+        genjutsu: rosterRandInt(20, 38),
+        med: rosterRandInt(15, 30),
       };
     default:
       return { taijutsu: 5, bukijutsu: 3, ninjutsu: 2, genjutsu: 1, med: 1 };
@@ -124,8 +131,9 @@ function generateStats(rank: ShinobiRank): CharacterStats {
     case 'chuunin':
       return { phy: rosterRandInt(16, 26), cha: rosterRandInt(14, 22), men: rosterRandInt(12, 20) };
     case 'jounin':
-    case 'special_jounin':
       return { phy: rosterRandInt(24, 36), cha: rosterRandInt(22, 34), men: rosterRandInt(20, 30) };
+    case 'special_jounin': // elite jonin
+      return { phy: rosterRandInt(30, 42), cha: rosterRandInt(28, 40), men: rosterRandInt(26, 36) };
     default:
       return { phy: 8, cha: 4, men: 4 };
   }
@@ -159,7 +167,7 @@ export function generateSquadMember(roster: SquadRoster, rank: ShinobiRank): Squ
 
 // ── ROSTER MANAGEMENT ──
 
-/** Create an initial roster with starter squad members */
+/** Create the full Konoha shinobi roster — persistent pool the player draws from */
 export function createSquadRoster(salt: number): SquadRoster {
   seedRosterRng(salt);
 
@@ -169,11 +177,11 @@ export function createSquadRoster(salt: number): SquadRoster {
     nextMemberId: 1,
   };
 
-  // Start with 4 members: 2 genin, 2 chuunin
-  roster.members.push(generateSquadMember(roster, 'genin'));
-  roster.members.push(generateSquadMember(roster, 'genin'));
-  roster.members.push(generateSquadMember(roster, 'chuunin'));
-  roster.members.push(generateSquadMember(roster, 'chuunin'));
+  // 10 genin, 10 chuunin, 10 jonin, 5 elite jonin = 35 total
+  for (let i = 0; i < 10; i++) roster.members.push(generateSquadMember(roster, 'genin'));
+  for (let i = 0; i < 10; i++) roster.members.push(generateSquadMember(roster, 'chuunin'));
+  for (let i = 0; i < 10; i++) roster.members.push(generateSquadMember(roster, 'jounin'));
+  for (let i = 0; i < 5; i++) roster.members.push(generateSquadMember(roster, 'special_jounin'));
 
   return roster;
 }
@@ -200,17 +208,17 @@ export function getRecommendedSquadSize(rank: MissionRank): number {
   }
 }
 
-/** Get recommended ranks for squad members based on mission rank */
-export function getRecommendedRanks(missionRank: MissionRank): ShinobiRank[] {
+/** Ranks eligible for deployment by mission rank */
+function getEligibleRanks(missionRank: MissionRank): ShinobiRank[] {
   switch (missionRank) {
-    case 'C': return ['genin', 'genin'];
-    case 'B': return ['chuunin', 'chuunin', 'genin'];
-    case 'A': return ['jounin', 'chuunin', 'chuunin'];
+    case 'C': return ['genin', 'chuunin'];
+    case 'B': return ['chuunin', 'jounin'];
+    case 'A': return ['jounin', 'special_jounin'];
     default: return [];
   }
 }
 
-/** Auto-assign best available members for a mission */
+/** Auto-assign best available members of appropriate rank for a mission */
 export function autoAssignSquad(
   roster: SquadRoster,
   missionRank: MissionRank,
@@ -219,7 +227,9 @@ export function autoAssignSquad(
   const size = getRecommendedSquadSize(missionRank);
   if (size === 0) return null;
 
-  const available = getAvailableMembers(roster, gameTimeSeconds);
+  const eligible = getEligibleRanks(missionRank);
+  const available = getAvailableMembers(roster, gameTimeSeconds)
+    .filter(m => eligible.includes(m.rank));
   if (available.length === 0) return null;
 
   // Sort by combat strength (taijutsu + ninjutsu) descending
@@ -273,13 +283,12 @@ export function returnSquadFromMission(
 
   roster.activeSquad = null;
 
-  // Replace dead members with new recruits (keep roster at minimum 4)
-  const alive = roster.members.filter(m => m.status !== 'dead');
-  while (alive.length < 4) {
-    const rank: ShinobiRank = Math.random() < 0.5 ? 'genin' : 'chuunin';
-    const newMember = generateSquadMember(roster, rank);
-    roster.members.push(newMember);
-    alive.push(newMember);
+  // Replace dead members with recruits of the same rank
+  for (const m of roster.members) {
+    if (m.status === 'dead') {
+      const replacement = generateSquadMember(roster, m.rank);
+      roster.members.push(replacement);
+    }
   }
 }
 
