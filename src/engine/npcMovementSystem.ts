@@ -9,7 +9,7 @@
 
 import type { World } from './world.ts';
 import type { Direction, EntityId, AggroComponent } from '../types/ecs.ts';
-import { npcFaceTowardPlayer } from './surpriseAttack.ts';
+import { npcFaceTowardPlayer, canNpcPerceivePlayer } from './surpriseAttack.ts';
 import { initiateNpcEngagement } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { tickSquadMember, findClosestPartyMember } from './squadAI.ts';
@@ -186,6 +186,11 @@ export function tickNpcMovement(world: World): void {
       npcFaceTowardPlayer(world, id);
     }
 
+    // ── NPC Ninpo signing (before squad/aggro so it applies to all NPCs) ──
+    if (world.npcNinpoState.has(id)) {
+      if (tickNpcNinpo(world, id, pos)) continue;
+    }
+
     // ── Squad member AI (separate from enemy AI) ──
     if (world.squadMembers.has(id)) {
       tickSquadMember(world, id, getCurrentROE(world.squadRoster));
@@ -198,11 +203,6 @@ export function tickNpcMovement(world: World): void {
       if (aggro) {
         tickAggro(world, id, pos, aggro, ai);
       }
-    }
-
-    // ── NPC Ninpo signing ──
-    if (world.npcNinpoState.has(id)) {
-      if (tickNpcNinpo(world, id, pos)) continue;
     }
 
     // Vanish signing — only specific NPCs attempt this:
@@ -473,25 +473,33 @@ function tickAggro(
 
   switch (aggro.state) {
     case 'idle': {
-      // Check if NPC can see the player (or any squad member) within detection range
-      if (dist <= AGGRO_DETECTION_RANGE && hasLineOfSight(world, pos.x, pos.y, playerPos.x, playerPos.y)) {
+      // Check if NPC can see the player within detection range
+      // Invisible entities can only be detected if NPC's ninjutsu >= caster's ninjutsu + 5
+      const canSeePlayer = dist <= AGGRO_DETECTION_RANGE
+        && canNpcPerceivePlayer(world, id)
+        && hasLineOfSight(world, pos.x, pos.y, playerPos.x, playerPos.y);
+
+      if (canSeePlayer) {
         aggro.state = 'aggro';
-        // Target closest party member (player or squad)
         aggro.targetId = findClosestPartyMember(world, pos.x, pos.y);
         ai.behavior = 'chase';
         npcSetSprintOnAggro(world, id);
         const health = world.healths.get(id);
         if (health) aggro.lastKnownHp = health.current;
-        // Fresh detection reaction delay — NPC can't attack until they've processed the threat
         applyReactionDelay(world, id, getFreshReactionDelay(world, id), 'fresh_aggro');
         world.log(`${npcName} spots you!`, 'hit_incoming');
         spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
       } else {
-        // Also check if any squad member is in range
+        // Check if any visible squad member is in range
+        const npcSheet = world.characterSheets.get(id);
+        const npcNinjutsu = npcSheet?.skills.ninjutsu ?? 0;
         for (const [sqId] of world.squadMembers) {
           const sqPos = world.positions.get(sqId);
           if (!sqPos) continue;
           if (world.unconscious.has(sqId) || world.dead.has(sqId)) continue;
+          // Check if squad member is invisible and NPC can't see through it
+          const sqInvis = world.invisible.get(sqId);
+          if (sqInvis && npcNinjutsu < sqInvis.casterNinjutsu + 5) continue;
           const sqDist = chebyshev(pos.x, pos.y, sqPos.x, sqPos.y);
           if (sqDist <= AGGRO_DETECTION_RANGE && hasLineOfSight(world, pos.x, pos.y, sqPos.x, sqPos.y)) {
             aggro.state = 'aggro';
@@ -500,7 +508,6 @@ function tickAggro(
             npcSetSprintOnAggro(world, id);
             const health = world.healths.get(id);
             if (health) aggro.lastKnownHp = health.current;
-            // Fresh detection reaction delay
             applyReactionDelay(world, id, getFreshReactionDelay(world, id), 'fresh_aggro');
             world.log(`${npcName} spots your squad!`, 'hit_incoming');
             spawnFloatingText(pos.x, pos.y, '!', '#ff4444', 1.5, 16);
