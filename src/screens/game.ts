@@ -548,7 +548,9 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     if (active && objectiveComplete) {
       const playerSheet = world.characterSheets.get(world.playerEntityId);
       if (playerSheet) {
-        const rewards = computeCRankRewards(playerSheet, active.mission.rank, (active.mission.templateData as any).missionType ?? 'gang_elimination');
+        const missionType = (active.mission.templateData as any).missionType ?? 'gang_elimination';
+        const encounterCount = awayState.encounterCount ?? 0;
+        const rewards = computeCRankRewards(playerSheet, active.mission.rank, missionType, encounterCount);
         const changes = applyMissionRewards(playerSheet, rewards);
         // Log reward summary
         for (const [stat, delta] of Object.entries(changes)) {
@@ -1004,6 +1006,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
     const active = world.missionLog.active;
     if (!active) return;
+
+    // Escort missions complete automatically when reaching the extraction zone
+    const data = active.mission.templateData as Record<string, unknown>;
+    if (data.missionType === 'escort' && !active.objectiveComplete) {
+      active.objectiveComplete = true;
+      const encounters = world.awayMissionState?.encounterCount ?? 0;
+      world.log(`Extraction point reached! The client is safe. (${encounters} ambush${encounters !== 1 ? 'es' : ''} survived)`, 'system');
+    }
 
     const objectiveComplete = active.objectiveComplete;
     const options: { id: string; label: string }[] = [];

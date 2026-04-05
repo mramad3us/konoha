@@ -83,19 +83,24 @@ function getRewardTables(missionRank: string): { base: Record<string, number>; t
 
 /**
  * Compute the full reward package for a completed away mission.
+ * For escort missions, encounterCount scales the bonus rewards —
+ * each encounter adds +15% to the type bonus (capped at +200%).
  */
 export function computeCRankRewards(
   sheet: CharacterSheet,
   missionRank: string,
   missionType: string,
+  encounterCount: number = 0,
 ): MissionRewards {
   // Build base rewards + type bonus
   const tables = getRewardTables(missionRank);
   const baseRewards = { ...tables.base };
   const typeBonus = tables.typeBonus[missionType];
   if (typeBonus) {
+    // Encounter bonus: each encounter adds +15% to type bonus, capped at +200%
+    const encounterMultiplier = Math.min(3.0, 1.0 + encounterCount * 0.15);
     for (const [key, bonus] of Object.entries(typeBonus)) {
-      baseRewards[key] = (baseRewards[key] ?? 0) + bonus;
+      baseRewards[key] = (baseRewards[key] ?? 0) + bonus * encounterMultiplier;
     }
   }
 

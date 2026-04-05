@@ -65,6 +65,9 @@ export function beginAwayMission(
     targetEntityId: null,
     banditEntityIds: [],
     squadEntityIds: [],
+    encounterCount: 0,
+    encounterSeed: data.mapSeed + 9999,
+    lastEncounterTick: 0,
   };
 }
 

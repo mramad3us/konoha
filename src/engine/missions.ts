@@ -399,25 +399,23 @@ const C_RANK_ESCORT: MissionTemplate = {
   generateData: (seed) => {
     const destinations = getCRankDestinations();
     const dest = destinations[seed % destinations.length];
-    const leaderName = BANDIT_LEADER_NAMES[(seed + 7) % BANDIT_LEADER_NAMES.length];
-    const banditCount = 3 + (seed % 3); // 3-5 bandits (ambush party)
 
     const data: CRankMissionData = {
       missionType: 'escort',
-      targetName: leaderName,
+      targetName: '',             // no specific target — rolling encounters
       targetLocation: dest.id,
       targetLocationName: dest.name,
       clientName: C_RANK_CLIENTS[(seed >> 8) % C_RANK_CLIENTS.length],
       trophyItem: 'n/a',
-      banditCount,
-      banditLeaderName: leaderName,
+      banditCount: 0,             // no pre-spawned enemies — encounters roll dynamically
+      banditLeaderName: '',
       mapSeed: cellHash(seed, seed * 17),
       terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
-      hasCamp: false, // ambush, no camp
+      hasCamp: false,
     };
 
     return {
-      objective: `Escort the client safely to ${dest.name}. Expect bandit ambushes. Eliminate threats and ensure safe arrival.`,
+      objective: `Escort the client safely to ${dest.name}. Bandits may ambush along the route — clear threats and reach the extraction point.`,
       templateData: data as unknown as Record<string, unknown>,
     };
   },
@@ -1011,19 +1009,12 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
       break;
     }
 
-    // C-rank: escort
+    // C-rank: escort — rolling encounters, objective auto-completes at extraction
     case 'c_escort': {
-      // For escort missions, objective completes when all bandits are dealt with
-      // (simplified — the escort NPC is implied, not physically present)
       if (event.type === 'target_killed' || event.type === 'target_captured') {
         const banditsDown = ((active.progress.banditsDown as number) ?? 0) + 1;
         active.progress.banditsDown = banditsDown;
-        const total = (mission.templateData as unknown as CRankMissionData).banditCount;
-        if (banditsDown >= total) {
-          active.objectiveComplete = true;
-          return `All threats neutralized! The route is secure. Extract and return to Konoha.`;
-        }
-        return `Threat neutralized (${banditsDown}/${total}). Keep clearing the area.`;
+        return `Threat neutralized (${banditsDown} total). Keep moving toward the extraction point.`;
       }
       break;
     }

@@ -21,6 +21,7 @@ import { updateCarriedPosition } from './restraintCarry.ts';
 import { tickProjectiles, cleanupBloodDecals } from '../systems/projectileSystem.ts';
 import { tickNinpoTimers } from './ninpoResolver.ts';
 import { tickReactionDelays, isInReactionDelay, getWaitDuration } from './reactionSystem.ts';
+import { tickEncounters } from './encounterSystem.ts';
 
 /**
  * Single universal tick — advances the world by one 0.1s step.
@@ -35,6 +36,11 @@ function worldTick(world: World): void {
   tickNpcMovement(world);           // NPCs gate internally on their own nextMoveTick
   resolveNpcCombatRounds(world);    // Engagements gate on nextRoundTick
   tickReactionDelays(world);        // Clean up expired reaction delays
+
+  // Rolling encounters (escort missions — checked every tick, internally rate-limited)
+  if (world.awayMissionState) {
+    tickEncounters(world);
+  }
 
   // Every SLOW_SYSTEM_INTERVAL ticks (30 = 3s): slow systems
   if (t % SLOW_SYSTEM_INTERVAL === 0) {

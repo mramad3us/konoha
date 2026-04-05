@@ -76,6 +76,12 @@ export interface AwayMissionState {
   banditEntityIds: EntityId[];
   /** IDs of squad member entities on the mission map */
   squadEntityIds: EntityId[];
+  /** Rolling encounter state (escort missions) */
+  encounterCount: number;
+  /** Seed that advances with each encounter for deterministic spawning */
+  encounterSeed: number;
+  /** Tick of the last encounter spawn (cooldown) */
+  lastEncounterTick: number;
 }
 
 /** Configuration for procedural mission map generation */

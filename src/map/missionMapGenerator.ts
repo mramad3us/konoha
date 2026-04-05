@@ -29,7 +29,7 @@ import { spriteCache } from '../rendering/spriteCache.ts';
 import type { SquadMember } from '../types/squad.ts';
 
 /** Seeded pseudo-random number generator */
-class SeededRng {
+export class SeededRng {
   private state: number;
   constructor(seed: number) {
     this.state = seed;
@@ -278,13 +278,16 @@ export function generateMissionMap(
   const { spawnX, spawnY } = getPlayerSpawn(world, W, H, config.playerSpawnEdge, rng);
   const playerId = spawnPlayer(world, spawnX, spawnY, playerName, playerGender, playerSheet);
 
-  // ── Layer 7: Enemy NPCs ──
-  const targetX = config.hasCamp ? campCx : rng.nextInt(W * 0.3, W * 0.7);
-  const targetY = config.hasCamp ? campCy : rng.nextInt(H * 0.3, H * 0.7);
-  const { targetId, banditIds } = spawnBandits(
-    world, rng, config, missionData,
-    targetX, targetY,
-  );
+  // ── Layer 7: Enemy NPCs (skip for escort missions — encounters spawn dynamically) ──
+  let targetId: EntityId = 0 as EntityId;
+  let banditIds: EntityId[] = [];
+  if (config.banditCount > 0) {
+    const targetX = config.hasCamp ? campCx : rng.nextInt(W * 0.3, W * 0.7);
+    const targetY = config.hasCamp ? campCy : rng.nextInt(H * 0.3, H * 0.7);
+    const spawned = spawnBandits(world, rng, config, missionData, targetX, targetY);
+    targetId = spawned.targetId;
+    banditIds = spawned.banditIds;
+  }
 
   // ── Layer 8: Squad members (allied NPCs near player) ──
   const squadEntityIds: EntityId[] = [];
@@ -1326,4 +1329,69 @@ function spawnSquadMember(
   });
 
   return id;
+}
+
+// ── ENCOUNTER SPAWNING (for rolling encounter system) ──
+
+/**
+ * Spawn a small encounter group near a position on an active mission map.
+ * Used by the encounter system for escort missions.
+ * Returns the IDs of spawned enemies.
+ */
+export function spawnEncounterGroup(
+  world: World,
+  seed: number,
+  nearX: number,
+  nearY: number,
+  enemyType: 'bandit' | 'rogue_nin' | 'missing_nin' = 'bandit',
+  groupSize: number = 2,
+): EntityId[] {
+  const rng = new SeededRng(seed);
+  const ids: EntityId[] = [];
+
+  // Determine underling rank based on enemy type
+  let getUnderlingRank: (i: number) => EnemyRank;
+  switch (enemyType) {
+    case 'rogue_nin':
+      getUnderlingRank = (i) => (i % 3 === 0) ? 'rogue_chuunin' : 'rogue_genin';
+      break;
+    case 'missing_nin':
+      getUnderlingRank = (i) => (i % 2 === 0) ? 'missing_elite' : 'missing_operative';
+      break;
+    default:
+      getUnderlingRank = (i) => (i % 3 === 0) ? 'enforcer' : 'thug';
+      break;
+  }
+
+  const makeSprite = (enemyType === 'rogue_nin' || enemyType === 'missing_nin')
+    ? () => registerNinjaEnemySprites(rng, enemyType)
+    : () => registerBanditSprites(rng);
+
+  for (let i = 0; i < groupSize; i++) {
+    // Spawn at ~8-12 tiles from the given position in a random direction
+    const angle = rng.next() * Math.PI * 2;
+    const dist = rng.nextInt(8, 12);
+    let bx = Math.floor(nearX + Math.cos(angle) * dist);
+    let by = Math.floor(nearY + Math.sin(angle) * dist);
+
+    // Clamp to map bounds
+    bx = Math.max(5, Math.min(world.tileMap.width - 5, bx));
+    by = Math.max(5, Math.min(world.tileMap.height - 5, by));
+
+    // Find walkable tile near target
+    for (let attempt = 0; attempt < 15; attempt++) {
+      if (world.tileMap.isWalkable(bx, by) && !world.isBlockedByEntity(bx, by)) break;
+      bx += rng.nextInt(-2, 2);
+      by += rng.nextInt(-2, 2);
+      bx = Math.max(5, Math.min(world.tileMap.width - 5, bx));
+      by = Math.max(5, Math.min(world.tileMap.height - 5, by));
+    }
+
+    const rank = getUnderlingRank(i);
+    const prefix = makeSprite();
+    const eid = spawnEnemy(world, rng, randomBanditName(rng), bx, by, prefix, rank, false);
+    ids.push(eid);
+  }
+
+  return ids;
 }
