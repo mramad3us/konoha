@@ -83,7 +83,7 @@ function getRewardTables(missionRank: string): { base: Record<string, number>; t
 
 /**
  * Compute the full reward package for a completed away mission.
- * For escort missions, encounterCount scales the bonus rewards —
+ * For escort/patrol missions, encounterCount scales the bonus rewards —
  * each encounter adds +15% to the type bonus (capped at +200%).
  */
 export function computeCRankRewards(

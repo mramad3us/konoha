@@ -9,7 +9,7 @@ import type { OvermapTravelState } from './overmap.ts';
 export type SkillRankTier = 'genin' | 'chuunin' | 'jonin' | 'elite';
 
 /** C-rank mission subtypes */
-export type CRankMissionType = 'bandit_capture' | 'gang_elimination' | 'escort';
+export type CRankMissionType = 'bandit_capture' | 'gang_elimination' | 'escort' | 'patrol';
 
 /** B-rank mission subtypes */
 export type BRankMissionType = 'encampment_assault' | 'asset_recovery' | 'infiltration';

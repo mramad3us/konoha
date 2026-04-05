@@ -1,5 +1,5 @@
 /**
- * Encounter System — rolling random encounters for escort missions.
+ * Encounter System — rolling random encounters for escort and patrol missions.
  *
  * Every tick, there's a small chance of spawning an ambush group near the player.
  * Encounter probability, group size, and enemy type depend on the mission rank.
@@ -32,11 +32,11 @@ export function tickEncounters(world: World): boolean {
   const away = world.awayMissionState;
   if (!away || away.phase !== 'on_mission') return false;
 
-  // Only escort missions use rolling encounters
+  // Rolling encounters for escort and patrol missions
   const missionLog = world.missionLog?.active;
   if (!missionLog) return false;
   const data = missionLog.mission.templateData as unknown as CRankMissionData;
-  if (data.missionType !== 'escort') return false;
+  if (data.missionType !== 'escort' && data.missionType !== 'patrol') return false;
 
   // Cooldown check
   if (world.currentTick - away.lastEncounterTick < ENCOUNTER_COOLDOWN_TICKS) return false;

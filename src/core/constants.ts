@@ -278,6 +278,7 @@ export const C_RANK_TYPE_BONUS: Record<string, Record<string, number>> = {
   bandit_capture: { taijutsu: 0.4, phy: 0.3 },
   gang_elimination: { taijutsu: 0.6, phy: 0.4, men: 0.2 },
   escort: { men: 0.3, cha: 0.2 },
+  patrol: { taijutsu: 0.3, phy: 0.3, men: 0.2 },
 };
 
 // B-rank mission bulk rewards (base values before scaling)

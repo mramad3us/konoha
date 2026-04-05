@@ -174,39 +174,42 @@ const PATROL_ROUTES: Array<{ name: string; waypoints: Array<{ x: number; y: numb
   },
 ];
 
-/** C-rank patrol routes — wider perimeter outside the village core, expect encounters */
+/**
+ * C-rank patrol route templates — waypoints on the 160×160 mission map.
+ * Player spawns south, visits checkpoints across the map, then extracts.
+ * Encounters roll per-tick (same system as escort).
+ */
 const C_PATROL_ROUTES: Array<{ name: string; waypoints: Array<{ x: number; y: number; label: string }> }> = [
   {
-    name: 'Outer Perimeter Patrol',
+    name: 'Full Perimeter Sweep',
     waypoints: [
-      { x: 77, y: 150, label: 'South gate approach' },
-      { x: 20, y: 130, label: 'Southwest treeline' },
-      { x: 15, y: 80, label: 'Western forest edge' },
-      { x: 20, y: 30, label: 'Northwest clearing' },
-      { x: 77, y: 15, label: 'North wall' },
-      { x: 140, y: 30, label: 'Northeast ridge' },
-      { x: 145, y: 80, label: 'Eastern forest edge' },
-      { x: 140, y: 130, label: 'Southeast treeline' },
+      { x: 40, y: 130, label: 'Southwest clearing' },
+      { x: 30, y: 80, label: 'Western ridge' },
+      { x: 40, y: 30, label: 'Northwest treeline' },
+      { x: 80, y: 20, label: 'Northern pass' },
+      { x: 120, y: 30, label: 'Northeast overlook' },
+      { x: 130, y: 80, label: 'Eastern trail' },
+      { x: 120, y: 130, label: 'Southeast crossing' },
     ],
   },
   {
-    name: 'Southern Perimeter Sweep',
+    name: 'Western Patrol Route',
     waypoints: [
-      { x: 77, y: 150, label: 'Main gate' },
-      { x: 40, y: 148, label: 'Southwest approach' },
-      { x: 15, y: 130, label: 'West perimeter' },
-      { x: 15, y: 100, label: 'West midpoint' },
-      { x: 40, y: 80, label: 'West village edge' },
+      { x: 60, y: 130, label: 'South trail fork' },
+      { x: 30, y: 110, label: 'Southwest approach' },
+      { x: 20, y: 70, label: 'Western river bank' },
+      { x: 30, y: 30, label: 'Northwest outpost' },
+      { x: 80, y: 20, label: 'North clearing' },
     ],
   },
   {
-    name: 'Northern Perimeter Sweep',
+    name: 'Eastern Patrol Route',
     waypoints: [
-      { x: 77, y: 15, label: 'North wall' },
-      { x: 120, y: 20, label: 'Northeast approach' },
-      { x: 145, y: 50, label: 'East high ground' },
-      { x: 145, y: 100, label: 'East midpoint' },
-      { x: 120, y: 140, label: 'Southeast approach' },
+      { x: 100, y: 130, label: 'South trail fork' },
+      { x: 130, y: 110, label: 'Southeast approach' },
+      { x: 140, y: 70, label: 'Eastern ridge path' },
+      { x: 130, y: 30, label: 'Northeast outpost' },
+      { x: 80, y: 20, label: 'North clearing' },
     ],
   },
 ];
@@ -320,8 +323,6 @@ const D_RANK_PATROL: MissionTemplate = {
 import { getCRankDestinations, getBRankDestinations, getARankDestinations, getNodeBiome } from '../overmap/overmapData.ts';
 import type { CRankMissionData } from '../types/awayMission.ts';
 import type { EnemyType } from '../types/awayMission.ts';
-import { spawnEncounterGroup } from '../map/missionMapGenerator.ts';
-import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 
 /** Bandit leader names for procedural generation */
 const BANDIT_LEADER_NAMES = [
@@ -465,24 +466,45 @@ const C_RANK_PATROL: MissionTemplate = {
   titles: ['Perimeter Patrol', 'Outer Wall Watch', 'Border Sweep', 'Village Perimeter Duty', 'Outskirts Security'],
   clients: ['Konoha Gate Command', 'Village Security Division', 'Hokage Tower standing order', 'ANBU Barrier Team liaison'],
   descriptions: [
-    'Recent sightings of suspicious individuals near the village perimeter. A patrol team is needed to sweep the outer wall and deal with any threats.',
-    'Intelligence suggests bandits have been scouting the village outskirts. Patrol the perimeter and engage any hostiles on sight.',
-    'Standard perimeter security has been increased. Sweep the outer perimeter checkpoints and neutralize any threats encountered.',
+    'Recent sightings of suspicious individuals near the village perimeter. A patrol team is needed to sweep the area and deal with any threats.',
+    'Intelligence suggests bandits have been scouting near the village. Patrol the perimeter and engage any hostiles on sight.',
+    'Standard perimeter security has been increased. Sweep the assigned checkpoints and neutralize any threats encountered.',
   ],
   templateKey: 'c_patrol',
   generateData: (seed) => {
+    // Pick a close destination (near Konoha)
+    const destinations = getCRankDestinations();
+    // Sort by distance to prefer closer destinations for patrols
+    const sorted = [...destinations].sort((a, b) => a.distanceFromKonoha - b.distanceFromKonoha);
+    // Pick from the closest half
+    const closeOnes = sorted.slice(0, Math.max(2, Math.ceil(sorted.length / 2)));
+    const dest = closeOnes[seed % closeOnes.length];
+
     const route = C_PATROL_ROUTES[seed % C_PATROL_ROUTES.length];
     const waypointLabels = route.waypoints.map(w => w.label).join(' → ');
+
+    const data: CRankMissionData & { patrolWaypoints: Array<{ x: number; y: number; label: string }>; patrolVisited: boolean[]; patrolRouteName: string } = {
+      missionType: 'patrol',
+      targetName: '',
+      targetLocation: dest.id,
+      targetLocationName: dest.name,
+      clientName: 'Konoha Gate Command',
+      trophyItem: 'n/a',
+      banditCount: 0,             // no pre-spawned enemies — encounters roll dynamically
+      banditLeaderName: '',
+      mapSeed: cellHash(seed, seed * 53),
+      terrainType: getNodeBiome(dest.id) as CRankMissionData['terrainType'],
+      hasCamp: false,
+      enemyType: 'bandit',
+      // Patrol-specific data
+      patrolWaypoints: route.waypoints,
+      patrolVisited: route.waypoints.map(() => false),
+      patrolRouteName: route.name,
+    };
+
     return {
-      objective: `Patrol the ${route.name}: visit all checkpoints (${waypointLabels}). Neutralize any threats encountered along the way, then report back.`,
-      templateData: {
-        routeName: route.name,
-        waypoints: route.waypoints,
-        visited: route.waypoints.map(() => false),
-        encounterChance: 0.6,  // 60% chance of encounter at each waypoint
-        maxEnemiesPerEncounter: 2,
-        enemyType: 'bandit',
-      },
+      objective: `Travel near ${dest.name} and patrol the ${route.name}: visit all checkpoints (${waypointLabels}). Neutralize any threats, then extract.`,
+      templateData: data as unknown as Record<string, unknown>,
     };
   },
 };
@@ -928,16 +950,21 @@ export function acceptMission(log: MissionLog, board: MissionBoard, missionId: s
     progress.searchEntityId = eid;
   }
 
-  // Patrol missions: initialize visited array
-  if (mission.templateKey === 'patrol' || mission.templateKey === 'c_patrol') {
+  // D-rank patrol: initialize visited array
+  if (mission.templateKey === 'patrol') {
     const waypoints = mission.templateData.waypoints as Array<{ x: number; y: number; label: string }>;
     progress.visited = waypoints.map(() => false);
     progress.visitedCount = 0;
     progress.totalWaypoints = waypoints.length;
-    if (mission.templateKey === 'c_patrol') {
-      progress.encountersSpawned = 0;
-      progress.enemiesDefeated = 0;
-    }
+  }
+
+  // C-rank patrol (away mission): initialize waypoint tracking
+  if (mission.templateKey === 'c_patrol') {
+    const data = mission.templateData as unknown as { patrolWaypoints: Array<{ x: number; y: number; label: string }> };
+    progress.visited = data.patrolWaypoints.map(() => false);
+    progress.visitedCount = 0;
+    progress.totalWaypoints = data.patrolWaypoints.length;
+    progress.banditsDown = 0;
   }
 
   log.active = {
@@ -1043,10 +1070,10 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
       break;
     }
 
-    // C-rank: perimeter patrol with encounters
+    // C-rank: perimeter patrol — waypoint tracking + rolling encounters (via encounterSystem)
     case 'c_patrol': {
       if (event.type === 'reach_area') {
-        const waypoints = mission.templateData.waypoints as Array<{ x: number; y: number; label: string }>;
+        const waypoints = (mission.templateData as unknown as { patrolWaypoints: Array<{ x: number; y: number; label: string }> }).patrolWaypoints;
         const visited = active.progress.visited as boolean[];
 
         for (let i = 0; i < waypoints.length; i++) {
@@ -1058,38 +1085,19 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
             visited[i] = true;
             active.progress.visitedCount = (active.progress.visitedCount as number) + 1;
 
-            // Roll for encounter at this waypoint
-            const encounterChance = (mission.templateData.encounterChance as number) ?? 0.6;
-            const maxEnemies = (mission.templateData.maxEnemiesPerEncounter as number) ?? 2;
-            const rollSeed = cellHash(i * 1000, (active.progress.encountersSpawned as number) + event.x * 31 + event.y);
-            const roll = (rollSeed & 0xFFFF) / 0xFFFF;
-
-            let encounterMsg = '';
-            if (roll < encounterChance && world) {
-              const groupSize = 1 + (rollSeed % maxEnemies);
-              const spawnSeed = cellHash(rollSeed, i + (active.progress.encountersSpawned as number));
-              const newIds = spawnEncounterGroup(world, spawnSeed, wp.x, wp.y, 'bandit', groupSize);
-              active.progress.encountersSpawned = (active.progress.encountersSpawned as number) + 1;
-              encounterMsg = ` — ${groupSize === 1 ? 'A bandit appears' : `${groupSize} bandits appear`} nearby!`;
-              spawnFloatingText(wp.x, wp.y - 2, 'Hostiles!', '#ff4444', 2.0, 14);
-              if (world.missionLog?.active) {
-                // Track spawned enemy IDs for mission progress
-                if (!active.progress.spawnedEnemyIds) active.progress.spawnedEnemyIds = [];
-                (active.progress.spawnedEnemyIds as number[]).push(...newIds);
-              }
-            }
-
             if (active.progress.visitedCount === waypoints.length) {
               active.objectiveComplete = true;
-              return `All checkpoints visited!${encounterMsg} Clear any remaining threats, then return to the Mission Desk.`;
+              const encounters = world?.awayMissionState?.encounterCount ?? 0;
+              return `All checkpoints visited! (${encounters} ambush${encounters !== 1 ? 'es' : ''} survived) Head to the map edge to extract.`;
             }
-            return `Checkpoint: ${wp.label} (${active.progress.visitedCount}/${waypoints.length})${encounterMsg}`;
+            return `Checkpoint: ${wp.label} (${active.progress.visitedCount}/${waypoints.length})`;
           }
         }
       }
       if (event.type === 'target_killed' || event.type === 'target_captured') {
-        active.progress.enemiesDefeated = ((active.progress.enemiesDefeated as number) ?? 0) + 1;
-        return null; // Silent tracking — the combat log already shows the kill
+        const banditsDown = ((active.progress.banditsDown as number) ?? 0) + 1;
+        active.progress.banditsDown = banditsDown;
+        return null; // Silent — combat log already shows it
       }
       break;
     }
@@ -1285,12 +1293,8 @@ export function getActiveMissionStatus(log: MissionLog): string | null {
 
 // ── RANK DISPLAY ──
 
-/** Village-local patrol templates (not away missions despite C-rank) */
-const VILLAGE_LOCAL_TEMPLATES = new Set(['patrol', 'c_patrol']);
-
 /** Check if a mission template requires away travel */
 export function isAwayMission(templateKey: string): boolean {
-  if (VILLAGE_LOCAL_TEMPLATES.has(templateKey)) return false;
   return templateKey.startsWith('c_') ||
          templateKey.startsWith('b_') ||
          templateKey.startsWith('a_');
