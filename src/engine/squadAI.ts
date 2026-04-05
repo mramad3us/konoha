@@ -17,10 +17,13 @@ import { initiateNpcEngagement, isInCombat } from './combatSystem.ts';
 import { spawnFloatingText } from '../systems/floatingTextSystem.ts';
 import { SQUAD_COMBAT_LINES } from './squadSystem.ts';
 import { hasTechnique } from '../data/techniques.ts';
-import { WATER_WALK_CHAKRA_COST } from '../core/constants.ts';
+import { WATER_WALK_CHAKRA_COST, NPC_CHASE_STEP_TICKS } from '../core/constants.ts';
 import { canThrow, spawnProjectile } from '../systems/projectileSystem.ts';
 import { hasLineOfSight } from './npcMovementSystem.ts';
 import { NINPO_REGISTRY } from '../data/ninpo.ts';
+
+/** Squad members move at NPC chase speed — one step per NPC_CHASE_STEP_TICKS */
+const SQUAD_STEP_TICKS = NPC_CHASE_STEP_TICKS;
 
 /** Tag component — marks an entity as a squad member on the mission map */
 export interface SquadMemberTag {
@@ -113,9 +116,10 @@ function stepToward(
       // Otherwise they swim — no chakra cost, just allowed through
     }
 
-    // Update sprite
+    // Update sprite + lastMoveTick for tick gating
     const anchor = world.anchors.get(entityId);
     if (anchor) {
+      anchor.lastMoveTick = world.currentTick;
       const renderable = world.renderables.get(entityId);
       if (renderable) {
         renderable.spriteId = `${anchor.spritePrefix}_${cardinalFacing}`;
@@ -126,6 +130,16 @@ function stepToward(
   }
 
   return false;
+}
+
+/** Break invisibility when a squad member attacks (melee or thrown) */
+function breakSquadInvisibility(world: World, entityId: EntityId): void {
+  if (world.invisible.has(entityId)) {
+    world.invisible.delete(entityId);
+    world.ninpoTimers.delete(entityId);
+    const name = world.names.get(entityId)?.display ?? 'Your ally';
+    world.log(`${name} shimmers into view as they engage!`, 'info');
+  }
 }
 
 /** Main squad AI tick — called once per turn for each squad member entity */
@@ -181,6 +195,10 @@ export function tickSquadMember(
     return;
   }
 
+  // ── Tick gating — squad members move at NPC chase speed ──
+  const anchor = world.anchors.get(entityId);
+  if (anchor && world.currentTick - anchor.lastMoveTick < SQUAD_STEP_TICKS) return;
+
   // Swimming penalty: 24s/step same as player (NPCs tick every 3s, so move once per 8 ticks)
   if (world.tileMap.isWater(pos.x, pos.y)) {
     const sheet = world.characterSheets.get(entityId);
@@ -206,6 +224,7 @@ export function tickSquadMember(
 
         // Adjacent — engage
         if (distToEnemy <= 1) {
+          breakSquadInvisibility(world, entityId);
           const isNew = initiateNpcEngagement(world, entityId, nearestEnemy);
           if (isNew) {
             const name = world.names.get(entityId)?.display ?? 'Your ally';
@@ -227,6 +246,7 @@ export function tickSquadMember(
             if (hasLineOfSight(world, pos.x, pos.y, enemyPos.x, enemyPos.y)) {
               const ammo = world.thrownAmmo.get(entityId);
               if (ammo) {
+                breakSquadInvisibility(world, entityId);
                 const weapon = ammo.kunai > 0 ? 'kunai' as const : 'shuriken' as const;
                 spawnProjectile(world, entityId, weapon, enemyPos.x, enemyPos.y);
               }
@@ -255,6 +275,7 @@ export function tickSquadMember(
           // Enemy is adjacent — defend!
           const aggro = world.aggros.get(eid);
           if (aggro && (aggro.state === 'aggro' || aggro.state === 'fleeing')) {
+            breakSquadInvisibility(world, entityId);
             const isNew = initiateNpcEngagement(world, entityId, eid);
             if (isNew) {
               const name = world.names.get(entityId)?.display ?? 'Your ally';
