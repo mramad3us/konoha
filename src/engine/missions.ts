@@ -46,6 +46,8 @@ export interface ActiveMission {
   progress: Record<string, unknown>;
   /** Objective completed (still need to report back) */
   objectiveComplete: boolean;
+  /** Mission failed — objective can no longer be completed (e.g. killed a capture target) */
+  failed: boolean;
   /** Fully reported and done */
   reported: boolean;
 }
@@ -972,22 +974,28 @@ export function acceptMission(log: MissionLog, board: MissionBoard, missionId: s
     acceptedDay: mission.postedDay,
     progress,
     objectiveComplete: false,
+    failed: false,
     reported: false,
   };
 
   return mission;
 }
 
-/** Report mission completion at the mission desk */
-export function reportMission(log: MissionLog): Mission | null {
-  if (!log.active || !log.active.objectiveComplete) return null;
+/** Report mission completion at the mission desk. Failed missions clear without counting. */
+export function reportMission(log: MissionLog): { mission: Mission; failed: boolean } | null {
+  if (!log.active) return null;
+  if (!log.active.objectiveComplete && !log.active.failed) return null;
 
   const mission = log.active.mission;
-  log.completed[mission.rank]++;
-  log.totalCompleted++;
-  log.active = null;
+  const failed = log.active.failed;
 
-  return mission;
+  if (!failed) {
+    log.completed[mission.rank]++;
+    log.totalCompleted++;
+  }
+
+  log.active = null;
+  return { mission, failed };
 }
 
 /** Abandon the active mission */
@@ -1013,7 +1021,7 @@ const WAYPOINT_RADIUS = 3;
  * Call this from interaction handlers and the turn system.
  */
 export function processMissionEvent(log: MissionLog, event: MissionEvent, world?: World): string | null {
-  if (!log.active || log.active.objectiveComplete) return null;
+  if (!log.active || log.active.objectiveComplete || log.active.failed) return null;
 
   const active = log.active;
   const mission = active.mission;
@@ -1102,8 +1110,13 @@ export function processMissionEvent(log: MissionLog, event: MissionEvent, world?
       break;
     }
 
-    // C-rank: bandit capture
+    // C-rank: bandit capture — target MUST be captured alive
     case 'c_bandit_capture': {
+      if (event.type === 'target_killed') {
+        active.failed = true;
+        const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
+        return `MISSION FAILED — ${targetName} is dead. The client wanted them alive. Extract and return to report the failure.`;
+      }
       if (event.type === 'target_captured') {
         active.progress.targetCaptured = true;
         const targetName = (mission.templateData as unknown as CRankMissionData).targetName;
@@ -1276,6 +1289,10 @@ export function getMissionXpMultiplier(log: MissionLog): number {
 export function getActiveMissionStatus(log: MissionLog): string | null {
   if (!log.active) return null;
   const m = log.active.mission;
+
+  if (log.active.failed) {
+    return `${m.title} — FAILED — Report to Mission Desk`;
+  }
 
   if (log.active.objectiveComplete) {
     return `${m.title} — COMPLETE — Report to Mission Desk`;

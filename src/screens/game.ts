@@ -285,6 +285,7 @@ export async function renderGame(container: HTMLElement): Promise<void> {
   type GamePhase = 'village' | 'overmap_out' | 'mission' | 'overmap_back';
   let gamePhase: GamePhase = 'village';
   let villageWorld: World | null = null;      // cached village world during away missions
+  let autoExtractPending = false;             // prevents re-entry for failed-mission auto-extract
 
   // Restore gamePhase if loading a save taken during an away mission
   if (world.awayMissionState) {
@@ -541,10 +542,11 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     world.awayMissionState = null;
     roeIndicator.hide();
 
-    // Apply mission rewards if objective was completed
+    // Apply mission rewards if objective was completed (not on failure)
     const active = world.missionLog.active;
+    const missionFailed = active?.failed ?? false;
     // Sync: objective completion is tracked on the mission log, not awayState
-    const objectiveComplete = active?.objectiveComplete || awayState.objectiveComplete;
+    const objectiveComplete = !missionFailed && (active?.objectiveComplete || awayState.objectiveComplete);
     if (active && objectiveComplete) {
       const playerSheet = world.characterSheets.get(world.playerEntityId);
       if (playerSheet) {
@@ -558,9 +560,14 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         }
       }
       world.log('Mission objective complete! Report to the Mission Desk for final confirmation.', 'system');
+    } else if (missionFailed) {
+      world.log('Mission failed. Report to the Mission Desk.', 'hit_incoming');
     } else {
       world.log('You return to the village.', 'system');
     }
+
+    // Reset auto-extract flag
+    autoExtractPending = false;
 
     // Reset camera and rendering for village world
     const pp = world.positions.get(world.playerEntityId);
@@ -909,6 +916,8 @@ export async function renderGame(container: HTMLElement): Promise<void> {
 
       if (active.objectiveComplete) {
         missionOptions.push({ id: 'report', label: 'Report Mission', accent: true });
+      } else if (active.failed) {
+        missionOptions.push({ id: 'report', label: 'Report Failure', danger: true });
       }
       missionOptions.push({ id: 'abandon', label: 'Abandon Mission', danger: true });
       missionOptions.push({ id: 'browse', label: 'Browse Board' });
@@ -916,11 +925,16 @@ export async function renderGame(container: HTMLElement): Promise<void> {
       const choice = await missionContextMenu.show('Active Mission', missionOptions);
 
       if (choice === 'report') {
-        const completed = reportMission(world.missionLog);
-        if (completed) {
-          world.log(`Mission complete: ${completed.title} (${completed.rank}-Rank)`, 'system');
-          world.log(`${completed.rank}-Rank missions completed: ${world.missionLog.completed[completed.rank]}`, 'info');
-          world.log(`Total missions completed: ${world.missionLog.totalCompleted}`, 'info');
+        const result = reportMission(world.missionLog);
+        if (result) {
+          if (result.failed) {
+            world.log(`Mission failed: ${result.mission.title} (${result.mission.rank}-Rank)`, 'hit_incoming');
+            world.log('The client will not be pleased. No credit awarded.', 'system');
+          } else {
+            world.log(`Mission complete: ${result.mission.title} (${result.mission.rank}-Rank)`, 'system');
+            world.log(`${result.mission.rank}-Rank missions completed: ${world.missionLog.completed[result.mission.rank]}`, 'info');
+            world.log(`Total missions completed: ${world.missionLog.totalCompleted}`, 'info');
+          }
         }
         hud.update(world);
         return;
@@ -1016,18 +1030,23 @@ export async function renderGame(container: HTMLElement): Promise<void> {
     }
 
     const objectiveComplete = active.objectiveComplete;
+    const missionFailed = active.failed;
     const options: { id: string; label: string }[] = [];
 
-    if (objectiveComplete) {
+    if (missionFailed) {
+      options.push({ id: 'extract_failed', label: 'Extract — Mission Failed' });
+    } else if (objectiveComplete) {
       options.push({ id: 'extract_complete', label: 'Extract — Mission Complete' });
     }
-    options.push({ id: 'extract_abandon', label: objectiveComplete ? 'Extract — Skip Reward' : 'Abandon Mission' });
+    if (!missionFailed) {
+      options.push({ id: 'extract_abandon', label: objectiveComplete ? 'Extract — Skip Reward' : 'Abandon Mission' });
+    }
     options.push({ id: 'retreat', label: 'Retreat (Come back later)' });
 
     const choice = await extractionMenu.show('Map Edge', options);
     if (!choice) return;
 
-    if (choice === 'extract_complete' || choice === 'extract_abandon') {
+    if (choice === 'extract_complete' || choice === 'extract_abandon' || choice === 'extract_failed') {
       await extractFromMission(choice === 'extract_abandon');
     } else if (choice === 'retreat') {
       // Retreat: leave map but don't fail mission — can return if not expired
@@ -1078,6 +1097,19 @@ export async function renderGame(container: HTMLElement): Promise<void> {
         ? { x: inputSystem.shadowStepCursor.x, y: inputSystem.shadowStepCursor.y, range: inputSystem.shadowStepRange }
         : undefined;
       renderer.draw(world, throwTarget, shadowCursor);
+
+      // Auto-extract on mission failure (away missions only)
+      if (gamePhase === 'mission' && !autoExtractPending) {
+        const activeMission = world.missionLog.active;
+        if (activeMission?.failed && world.awayMissionState) {
+          autoExtractPending = true;
+          // Brief delay so the player sees the failure message
+          setTimeout(() => {
+            world.log('Mission failed. Returning to Konoha...', 'system');
+            extractFromMission(false);
+          }, 1500);
+        }
+      }
     }
 
     rafId = requestAnimationFrame(renderLoop);
