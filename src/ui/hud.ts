@@ -422,7 +422,7 @@ export class Hud {
     switch (this.panelKind) {
       case 'profile': {
         p.appendChild(el('h2', 'panel__title', g.player.name.name));
-        p.appendChild(el('div', 'panel__sub', `${cap(g.player.sheet.rank)} of the Hidden Leaf · ${g.player.inventory.ryo} ryo`));
+        p.appendChild(el('div', 'panel__sub', `${cap(g.player.sheet.rank)} of the Hidden Leaf, carrying ${g.player.inventory.ryo} ryo`));
         const sec = (t: string) => { p.appendChild(el('h3', 'panel__h', t)); };
         const row = (k: Skill | Attr, v: number) => {
           const r = el('div', 'stat');
