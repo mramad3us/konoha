@@ -16,6 +16,7 @@ import { commitIntent, openHit, combatOf, engagedWith } from './combat.ts';
 import { visibility } from './stealth.ts';
 import { EXCHANGE_TICKS, THROWN, SECONDS } from '../core/config.ts';
 import { BARKS } from '../content/flavor.ts';
+import { scheduleSlot, goInside, comeOutside } from './village.ts';
 import { TECHNIQUES } from '../content/techniques.ts';
 
 export interface SquadOrders { follow: boolean; engage: boolean }
@@ -380,19 +381,37 @@ function clientTurn(g: Game, lv: Level, id: EntityId): number {
 function villagerTurn(g: Game, lv: Level, id: EntityId): number {
   const brain = lv.c.brain.get(id)!;
   const p = lv.c.pos.get(id)!;
-  // Daily schedule: go where you should be at this hour.
-  if (brain.schedule?.length) {
-    const h = g.hour;
-    const slot = brain.schedule.find(s => (s.from <= s.to ? h >= s.from && h < s.to : h >= s.from || h < s.to));
-    if (slot) {
-      if (chebyshev(p, slot.at) > 2) {
-        setStance(lv, id, 'walk');
-        const t = stepTo(g, lv, id, slot.at, 1);
-        if (t !== null) return t;
-      } else {
-        brain.home = slot.at;
-      }
+  const slot = scheduleSlot(brain, g.hour);
+  if (slot) {
+    if (slot.activity === 'sleep') {
+      if (brain.mode === 'inside') return SECONDS(60);
+      if (chebyshev(p, slot.at) <= 1) { goInside(lv, id); return SECONDS(60); }
+      setStance(lv, id, 'walk');
+      const t = stepTo(g, lv, id, slot.at, 1);
+      if (t !== null) return t;
+      goInside(lv, id);
+      return SECONDS(60);
     }
+    if (brain.mode === 'inside') comeOutside(lv, id);
+    if (chebyshev(p, slot.at) > 2) {
+      setStance(lv, id, 'walk');
+      const t = stepTo(g, lv, id, slot.at, 1);
+      if (t !== null) return t;
+    }
+    brain.home = slot.at;
+  }
+  // Now and then, say something to a passing shinobi.
+  const pp = lv.c.pos.get(lv.playerId);
+  const talk = lv.c.talk.get(id);
+  if (pp && talk && chebyshev(p, pp) <= 3 && g.clock - talk.lastTick > SECONDS(90) && g.rng.chance(0.08)) {
+    talk.lastTick = g.clock;
+    face(lv, id, pp);
+    lv.emit({ t: 'bark', id, text: shortLine(g.rng.pick(talk.lines)) });
   }
   return idle(g, lv, id, brain);
+}
+
+function shortLine(s: string): string {
+  const cut = s.split(/(?<=[.!?])\s/)[0];
+  return cut.length > 42 ? cut.slice(0, 40) + '…' : cut;
 }

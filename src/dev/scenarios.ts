@@ -2,9 +2,11 @@
 import { Game } from '../sim/game.ts';
 import { newProfile, placePlayer, spawnArchetype } from '../sim/spawn.ts';
 import { generateMissionMap } from '../world/gen/mission.ts';
+import { generateVillage } from '../world/gen/village.ts';
 import { TICKS_PER_HOUR } from '../core/config.ts';
 
 export function devScenario(name: string): Game {
+  if (name === 'village') return devVillage();
   const q = new URLSearchParams(location.search);
   const hour = Number(q.get('hour') ?? 14);
   const seed = Number(q.get('seed') ?? 7);
@@ -26,5 +28,19 @@ export function devScenario(name: string): Game {
   for (const [, aw] of r.level.c.aware) if (aw.target === -1) aw.target = r.level.playerId;
   g.ext.objectives = [{ text: 'Find the bandit camp' }, { text: 'Capture the leader alive' }];
   g.say('You reach the edge of the woods. Somewhere ahead, smoke rises.', 'system');
+  return g;
+}
+
+function devVillage(): Game {
+  const q = new URLSearchParams(location.search);
+  const hour = Number(q.get('hour') ?? 10);
+  const g = new Game(3, newProfile('Hasuke', 'm'), hour * TICKS_PER_HOUR);
+  const v = generateVillage(11);
+  g.levels.set('village', v.level);
+  g.activeId = 'village';
+  const at = (q.get('at') ?? 'start') as keyof typeof v.spots;
+  const p = v.spots[at] as { x: number; y: number };
+  placePlayer(g, v.level, p.x, p.y, 'n');
+  g.say('Konohagakure. The gate guards nod as you pass.', 'system');
   return g;
 }

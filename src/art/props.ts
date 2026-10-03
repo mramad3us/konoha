@@ -451,6 +451,20 @@ const PROPS_ART: Record<string, PropFn> = {
     for (const [dx, dy] of [[-2, 0], [2, -2], [1, 1], [-1, -3]]) s.pix.line(s.ax, s.ay - 1, s.ax + dx, s.ay - 1 + dy, m);
     return s;
   },
+  item_pouch() {
+    const s = sprite(10, 8, 5, 6);
+    s.pix.ellipse(s.ax, s.ay - 2, 3, 2.5, (nx, ny) => rampAt(ramp('#8a5a3a'), 0.6 - nx * 0.3 - ny * 0.3, 0, 0));
+    s.pix.set(s.ax, s.ay - 5, hex('#d0b060'));
+    s.pix.outline(OUTLINE, 220);
+    return s;
+  },
+  item_scroll() {
+    const s = sprite(14, 10, 7, 7);
+    for (let k = -4; k <= 4; k++) for (let r = -1; r <= 1; r++) s.pix.set(s.ax + k, s.ay - 2 + r + Math.round(k * 0.4), r === -1 ? hex('#f0e6c8') : hex('#d8c8a0'));
+    s.pix.set(s.ax - 5, s.ay - 4, hex('#8a2a2a')); s.pix.set(s.ax + 5, s.ay, hex('#8a2a2a'));
+    s.pix.outline(OUTLINE, 220);
+    return s;
+  },
   item_bandage() {
     const s = sprite(8, 6, 4, 4);
     s.pix.ellipse(s.ax, s.ay - 1, 2.5, 1.5, () => hex('#e8e0d0'));

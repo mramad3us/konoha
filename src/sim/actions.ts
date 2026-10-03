@@ -137,6 +137,16 @@ function move(g: Game, lv: Level, id: EntityId, dx: number, dy: number): Result 
     }
   }
 
+  // Walking into a building's door enters it.
+  if (!lv.isPassable(nx, ny)) {
+    for (const e of lv.at(nx, ny)) {
+      if (lv.c.interact.has(e) && lv.structs[lv.idx(nx, ny)]) {
+        p.facing = dir;
+        return player ? interact(g, lv, id, e) : FAIL('blocked');
+      }
+    }
+  }
+
   const deep = lv.isSwimmable(nx, ny);
   const waterWalk = deep && canWaterWalk(lv, id);
   const swimming = deep && !waterWalk;
@@ -199,9 +209,10 @@ function move(g: Game, lv: Level, id: EntityId, dx: number, dy: number): Result 
   if (player) {
     pickupAt(g, lv, id, nx, ny);
     fire(g, lv, { type: 'stepped', id, x: nx, y: ny });
-    const ez = lv.meta.exitZone;
-    if (ez && nx >= ez.x0 && nx <= ez.x1 && ny >= ez.y0 && ny <= ez.y1 && !(from.x >= ez.x0 && from.x <= ez.x1 && from.y >= ez.y0 && from.y <= ez.y1)) {
-      g.request({ kind: 'leave_area' });
+    const inZone = (z: { x0: number; y0: number; x1: number; y1: number } | undefined, x: number, y: number) =>
+      !!z && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1;
+    for (const z of [lv.meta.exitZone, lv.meta.exitZone2 as typeof lv.meta.exitZone]) {
+      if (inZone(z, nx, ny) && !inZone(z, from.x, from.y)) { g.request({ kind: 'leave_area' }); break; }
     }
   }
   return OK(ticks);
@@ -312,6 +323,15 @@ function interact(g: Game, lv: Level, id: EntityId, target: EntityId): Result {
   }
   const it = lv.c.interact.get(target);
   if (!it) {
+    if (lv.c.talk.has(target) && isStanding(lv, target)) {
+      if (lv.c.brain.get(target)?.mode === 'inside') return FAIL('Nobody answers.');
+      const tp2 = lv.c.pos.get(target)!;
+      const d = dirFromDelta(p.x - tp2.x, p.y - tp2.y);
+      if (d) { tp2.facing = d; lv.emit({ t: 'face', id: target, dir: d }); }
+      fire(g, lv, { type: 'talked', id: target });
+      if (isPlayer(lv, id)) g.request({ kind: 'talk', entity: target });
+      return OK(SECONDS2);
+    }
     if (isPlayer(lv, id)) g.request({ kind: 'examine', entity: target });
     return { ok: true, ticks: 0 };
   }

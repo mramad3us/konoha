@@ -97,8 +97,11 @@ export function knockOut(g: Game, lv: Level, id: EntityId, by: EntityId | null):
   dropDownState(lv, id);
   lv.emit({ t: 'ko', id });
   if (id === lv.playerId) {
-    g.say('Your vision tunnels. The ground rushes up to meet you.', 'hurt');
-    g.request({ kind: 'defeat' });
+    if (lv.c.duel.has(id)) g.say('You hit the dirt. That\'s the match.', 'hurt');
+    else {
+      g.say('Your vision tunnels. The ground rushes up to meet you.', 'hurt');
+      g.request({ kind: 'defeat' });
+    }
   } else {
     g.say(`${displayName(lv, id)} collapses, out cold.`, by === lv.playerId ? 'good' : 'combat');
   }

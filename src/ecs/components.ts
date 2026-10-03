@@ -48,7 +48,7 @@ export interface Appearance {
 
 export interface Position { x: number; y: number; facing: Dir8 }
 export interface Name { name: string; title?: string; unique?: boolean }
-export interface Sprite { art: string }
+export interface Sprite { art: string; /** Only visible within this many tiles of the player (hidden items). */ reveal?: number }
 export interface Blocker { move: boolean; sight: boolean }
 export interface FactionC { id: Faction }
 
@@ -104,6 +104,8 @@ export interface Aware {
 
 export interface Brain {
   mode: string;
+  /** Mode to return to after a temporary one (e.g. coming back outside). */
+  baseMode?: string;
   home: Vec;
   patrol: Vec[];
   patrolIdx: number;

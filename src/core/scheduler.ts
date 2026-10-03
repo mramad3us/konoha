@@ -63,6 +63,13 @@ export class Scheduler {
     return top;
   }
 
+  /** Pull every entry earlier than `tick` up to `tick` (after a time skip), keeping order. */
+  rebase(tick: number): void {
+    for (const e of this.heap) if (e.tick < tick) e.tick = tick;
+    // A sorted array is a valid heap; raising ticks can break the parent/child order otherwise.
+    this.heap.sort((a, b) => (this.less(a, b) ? -1 : this.less(b, a) ? 1 : 0));
+  }
+
   serialize(): { seq: number; entries: ScheduleEntry[] } {
     const live = this.heap.filter(e => this.latest.get(e.id) === e.seq);
     return { seq: this.seq, entries: live.map(e => ({ ...e })) };

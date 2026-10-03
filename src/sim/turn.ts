@@ -11,6 +11,8 @@ import { npcTurn } from './ai.ts';
 import { perform, type Action, type Result } from './actions.ts';
 import { computePlayerFov } from '../world/fov.ts';
 import { viewRange, lightAt } from './stealth.ts';
+import { resettle } from './village.ts';
+import { HP_REGEN_PER_SEC, CHAKRA_REGEN_PER_SEC, TICK_SECONDS } from '../core/config.ts';
 
 export const PULSE_ID = -1;
 const MAX_STEPS = 200_000;
@@ -122,4 +124,38 @@ export function rest(g: Game, ticks: number, interruptible = true): { elapsed: n
     }
   }
   return { elapsed: g.clock - start, interrupted: null };
+}
+
+/**
+ * Jump the clock forward without simulating every turn (sleep, training, long waits in safety).
+ * Vitals recover analytically, timed statuses resolve, villagers resettle to their routine.
+ */
+export function skipTime(g: Game, ticks: number, opts: { restore?: number } = {}): void {
+  const lv = g.level;
+  g.clock += ticks;
+  lv.scheduler.rebase(g.clock);
+  const secs = ticks * TICK_SECONDS;
+  for (const [id, v] of lv.c.vitals) {
+    if (lv.c.dead.has(id) || lv.c.dummy.has(id)) continue;
+    const sheet = lv.c.sheet.get(id);
+    const ko = lv.c.ko.get(id);
+    if (ko && g.clock >= ko.wake && id !== lv.playerId) {
+      lv.remove(id, 'ko');
+      const b = lv.c.blocker.get(id);
+      if (b && !lv.c.restrained.has(id)) b.move = true;
+    }
+    v.sta = v.staMax;
+    v.chakra = Math.min(v.chakraMax, v.chakra + secs * CHAKRA_REGEN_PER_SEC * Math.max(5, sheet?.attrs.chakra ?? 5));
+    v.hp = Math.min(v.hpMax, v.hp + secs * HP_REGEN_PER_SEC * Math.max(5, sheet?.attrs.body ?? 5));
+    if (opts.restore) {
+      v.hp = Math.min(v.hpMax, v.hp + v.hpMax * opts.restore);
+      v.chakra = Math.min(v.chakraMax, v.chakra + v.chakraMax * opts.restore);
+    }
+  }
+  for (const [id, inv] of [...lv.c.invisible]) if (inv.until >= 0 && g.clock >= inv.until) lv.remove(id, 'invisible');
+  for (const [id] of [...lv.c.bleed]) if (!lv.c.ko.has(id)) lv.remove(id, 'bleed');
+  for (const [, c] of lv.c.combat) { c.intent = null; c.intentTarget = null; c.tempo = 0; c.staggered = false; }
+  if (lv.kind === 'village') resettle(g, lv);
+  lv.scheduler.schedule(lv.playerId, g.clock);
+  updatePlayerFov(g, lv);
 }

@@ -215,6 +215,12 @@ export class Renderer {
       const isPlayer = id === lv.playerId;
       if (!lv.visible[i] && !isPlayer) continue;
       if (lv.c.carried.has(id)) continue;
+      if (lv.c.brain.get(id)?.mode === 'inside') continue;
+      const rev = lv.c.sprite.get(id)?.reveal;
+      if (rev !== undefined) {
+        const pp = lv.c.pos.get(lv.playerId);
+        if (!pp || Math.max(Math.abs(pp.x - pos.x), Math.abs(pp.y - pos.y)) > rev) continue;
+      }
       const inv = lv.c.invisible.get(id);
       if (inv && !isPlayer) {
         const pn = g.player.sheet.skills.ninjutsu;

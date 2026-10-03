@@ -62,7 +62,7 @@ export function meleeDamage(g: Game, lv: Level, id: EntityId): number {
 }
 
 export function isLethal(g: Game, lv: Level, id: EntityId): boolean {
-  if (id === lv.playerId) return g.player.lethal;
+  if (id === lv.playerId || lv.c.squad.has(id)) return g.player.lethal;
   if (lv.c.duel.has(id)) return false;
   return lv.c.combat.get(id)?.lethal ?? false;
 }
