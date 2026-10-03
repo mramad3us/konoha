@@ -80,7 +80,7 @@ export function generateMissionMap(g: Game, spec: MissionMapSpec): MissionMapRes
   }
 
   // ── Site & start ──
-  const start: Vec = { x: Math.floor(N / 2) + rng.int(-4, 4), y: N - 3 };
+  const start: Vec = { x: Math.floor(N / 2) + rng.int(-4, 4), y: N - 6 };
   const siteCenter: Vec = { x: rng.int(Math.floor(N * 0.3), Math.floor(N * 0.7)), y: rng.int(8, Math.floor(N * 0.32)) };
 
   // Clear the exit zone (entry edge).
@@ -119,7 +119,7 @@ export function generateMissionMap(g: Game, spec: MissionMapSpec): MissionMapRes
       if (lv.prop(x, y)) lv.setProp(x, y, P.none);
     }
   }
-  for (let y = ez.y0 - 1; y < N; y++) for (let x = ez.x0; x <= ez.x1; x++) { lv.setProp(x, y, P.none); lv.setTile(x, y, T.dirt); }
+  for (let y = start.y; y < N; y++) for (let x = ez.x0; x <= ez.x1; x++) { lv.setProp(x, y, P.none); lv.setTile(x, y, T.dirt); }
 
   // ── Cover & scatter ──
   for (let y = border; y < N - border; y++) for (let x = border; x < N - border; x++) {

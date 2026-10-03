@@ -197,6 +197,8 @@ export function resolveExchange(g: Game, lv: Level, a: EntityId, moveA: Move, b:
   const ca = combatOf(lv, a), cb = combatOf(lv, b);
   if (!opts.freeA) payStamina(g, lv, a, moveA);
   payStamina(g, lv, b, moveB);
+  if (moveA === 'guard') ca.guardUntil = g.clock + EXCHANGE_TICKS + 2;
+  if (moveB === 'guard') cb.guardUntil = g.clock + EXCHANGE_TICKS + 2;
 
   let outcome: ExchangeOutcome;
   const staggerA = ca.staggered, staggerB = cb.staggered;

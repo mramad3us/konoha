@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.1
+
+- Fix: the screen froze after leaving an ambush or a mission map (input still worked).
+  Old maps now stay alive until the next one is shown, and a bad frame can no longer stop
+  the render loop.
+- Fix: you no longer arrive on a mission map standing next to the exit.
+- Fix: the log no longer overlaps the action bar; hints and the tile tooltip moved right.
+- Thrown weapons are real projectiles now. They take time to fly: step out of the line to
+  dodge, or press Guard with nobody adjacent to brace and maybe knock them out of the air.
+  Quick enemies sidestep yours.
+- Squad: health strip under your vitals; roster with status in the Character panel (P).
+  Squadmates cast Vanish with you when they know it.
+- Stocky character bodies; fields in the village have gates; dev mode (Settings) starts new
+  characters as elite jonin.
+
 ## 0.5.0 — The Remaster
 
 A rebuild from the ground up. Same heart (a Naruto-inspired shinobi life in an isometric pixel

@@ -50,6 +50,7 @@ export class GameView {
   private target: EntityId | null = null;
   private busy = false;
   private disposed = false;
+  private loggedFrameError = false;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
   private readonly onResize = () => this.fit();
   private resizeObs: ResizeObserver;
@@ -84,9 +85,14 @@ export class GameView {
     this.flush();
     const loop = (now: number) => {
       if (this.disposed) return;
-      this.tickWalk(now);
-      this.renderer.draw(this.game, now);
-      this.hud.frame(now);
+      // Never let one bad frame stop the loop (that froze the screen while input kept working).
+      try {
+        this.tickWalk(now);
+        this.renderer.draw(this.game, now);
+        this.hud.frame(now);
+      } catch (e) {
+        if (!this.loggedFrameError) { console.error('[render]', e); this.loggedFrameError = true; }
+      }
       this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
@@ -270,6 +276,8 @@ export class GameView {
   private melee(m: Move): void {
     this.ensureTarget();
     if (this.target === null) {
+      // Guard with nobody adjacent: brace against anything thrown at you.
+      if (m === 'guard') { this.act({ type: 'brace' }); return; }
       this.game.say('No one within reach.', 'info');
       this.hud.refresh();
       return;

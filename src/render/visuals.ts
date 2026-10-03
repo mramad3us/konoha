@@ -171,8 +171,7 @@ export class Visuals {
         case 'throw': {
           const d = Math.hypot(ev.to.x - ev.from.x, ev.to.y - ev.from.y);
           const dur = 60 + d * 45;
-          this.fx.projectiles.push({ fx: ev.from.x, fy: ev.from.y, tx: ev.to.x, ty: ev.to.y, t0: now, dur, weapon: ev.weapon, spin: 0 });
-          if (ev.target !== null) flightDelay.set(ev.target, dur);
+          void dur;
           const v = this.get(lv, ev.source);
           v.pose = 'throw'; v.poseUntil = now + 260;
           break;

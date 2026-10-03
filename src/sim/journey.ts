@@ -108,6 +108,7 @@ export function enterAmbush(g: Game): Level {
   const alerted = rng.chance(0.5);
   const enc = generateEncounter(g, ev.seed, foesFor(a.m, rng), dest.biome, 'The road', alerted);
   const lv = enc.level;
+  dropAwayLevels(g);
   g.levels.set(lv.id, lv);
   g.activeId = lv.id;
   placePlayer(g, lv, enc.start.x, enc.start.y, 'n');
@@ -117,6 +118,11 @@ export function enterAmbush(g: Game): Level {
   j.phase = 'ambush';
   g.say(alerted ? 'Ambush! Figures burst from the trees ahead!' : 'Something moves in the trees ahead. You haven\'t been seen — yet.', alerted ? 'bad' : 'stealth');
   return lv;
+}
+
+/** Forget every away map (they are never revisited). */
+function dropAwayLevels(g: Game): void {
+  for (const k of [...g.levels.keys()]) if (k !== 'village') g.levels.delete(k);
 }
 
 function spawnClient(g: Game, lv: Level, j: Journey, near: Vec): EntityId {
@@ -147,7 +153,7 @@ export function leaveAmbush(g: Game): void {
   }
   const ev = j.events.find(e => !e.done);
   if (ev) ev.done = true;
-  g.levels.delete(lv.id);
+  // The ambush map stays active (and rendered) until the next map replaces it.
   j.phase = 'road';
 }
 
@@ -172,6 +178,7 @@ export function arrive(g: Game): Level | null {
     site, hour: g.hour,
   });
   const lv = r.level;
+  dropAwayLevels(g);
   g.levels.set(lv.id, lv);
   g.activeId = lv.id;
   if (r.leader !== null) {
@@ -235,7 +242,6 @@ export function extract(g: Game): void {
   const lv = g.level;
   onLeaveArea(g);
   for (const n of syncSquad(g, lv)) g.say(n, 'bad');
-  if (lv.kind !== 'village') g.levels.delete(lv.id);
   startHome(g, j);
 }
 

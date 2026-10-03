@@ -90,6 +90,8 @@ export interface Combat {
   lethal: boolean;
   /** Move preference weights (NPCs). */
   style: Record<Move, number> | null;
+  /** Braced against projectiles until this tick (Guard). */
+  guardUntil?: number;
 }
 
 export interface Aware {
@@ -143,6 +145,16 @@ export interface Talk { lines: string[]; lastTick: number; /** Next line index f
 export interface Light { radius: number }
 export interface Structure { w: number; d: number; style: string; label?: string }
 export interface Duel { opponent: EntityId }
+export interface Projectile {
+  weapon: 'kunai' | 'shuriken';
+  source: EntityId;
+  /** Tiles still to fly through (next first). */
+  path: Array<{ x: number; y: number }>;
+  ticksPerTile: number;
+  /** Thrower's skill snapshot, so a KO'd thrower's kunai still flies true. */
+  buki: number;
+  lethal: boolean;
+}
 
 export interface Components {
   pos: Position;
@@ -175,6 +187,7 @@ export interface Components {
   light: Light;
   structure: Structure;
   duel: Duel;
+  projectile: Projectile;
   dummy: Record<string, never>;
 }
 
@@ -184,7 +197,7 @@ export const COMPONENT_KEYS = [
   'pos', 'name', 'sprite', 'appearance', 'blocker', 'faction', 'actor', 'vitals', 'sheet',
   'combat', 'aware', 'brain', 'ko', 'dead', 'bleed', 'invisible', 'restrained', 'carried',
   'carrying', 'signing', 'door', 'item', 'inventory', 'interact', 'squad', 'mission', 'talk',
-  'light', 'structure', 'duel', 'dummy',
+  'light', 'structure', 'duel', 'projectile', 'dummy',
 ] as const satisfies readonly ComponentKey[];
 
 // Compile-time guarantee that the registry lists every component.

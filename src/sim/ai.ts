@@ -6,10 +6,10 @@
 import type { Level } from '../ecs/level.ts';
 import type { EntityId, Brain } from '../ecs/components.ts';
 import type { Game } from './game.ts';
-import { chebyshev, euclid, dirFromDelta, DIRS, type Vec } from '../core/geometry.ts';
+import { chebyshev, euclid, dirFromDelta, DIRS, DIR_VEC as DIR_STEP, type Vec } from '../core/geometry.ts';
 import { findPath } from '../world/path.ts';
 import { hasLos } from '../world/fov.ts';
-import { perform, type Action } from './actions.ts';
+import { perform, projectileTurn, type Action } from './actions.ts';
 import { isStanding } from './vitals.ts';
 import { isHostile } from './factions.ts';
 import { commitIntent, openHit, combatOf, engagedWith } from './combat.ts';
@@ -32,6 +32,7 @@ export function squadOrders(g: Game): SquadOrders {
 export function npcTurn(g: Game, lv: Level, id: EntityId): number | null {
   if (lv.c.dead.has(id) || lv.c.ko.has(id)) return null;
   if (lv.c.restrained.has(id) || lv.c.carried.has(id)) return SECONDS(5);
+  if (lv.c.projectile.has(id)) return projectileTurn(g, lv, id);
   const actor = lv.c.actor.get(id);
   if (!actor) return null;
   switch (actor.ai) {
@@ -161,6 +162,12 @@ function fighterTurn(g: Game, lv: Level, id: EntityId): number {
     aw.state = 'alert'; aw.level = 100; aw.target = duel.opponent; aw.lastKnown = { ...tp }; aw.lastSeenTick = g.clock;
   }
 
+  // Quick fighters step out of the way of something flying at them.
+  if (aw?.state === 'alert') {
+    const dodge = dodgeProjectile(g, lv, id);
+    if (dodge !== null) return dodge;
+  }
+
   // Fleeing.
   if (aw?.state === 'alert' && !duel && brain.flee > 0 && v.hp / v.hpMax < brain.flee) {
     if (brain.mode !== 'flee') { brain.mode = 'flee'; bark(g, lv, id, BARKS.flee, 0); }
@@ -238,6 +245,23 @@ function fighterTurn(g: Game, lv: Level, id: EntityId): number {
     case 'idle':
       return idle(g, lv, id, brain);
   }
+}
+
+function dodgeProjectile(g: Game, lv: Level, id: EntityId): number | null {
+  const p = lv.c.pos.get(id)!;
+  const tai = lv.c.sheet.get(id)?.skills.taijutsu ?? 0;
+  for (const [, pr] of lv.c.projectile) {
+    if (pr.source === id || !isHostile(lv, id, pr.source)) continue;
+    const hitsMe = pr.path.some(q => q.x === p.x && q.y === p.y);
+    if (!hitsMe || !g.rng.chance(Math.min(0.8, tai / 70))) continue;
+    for (const d of g.rng.shuffle([...DIRS])) {
+      const v = { x: p.x + DIR_STEP[d].x, y: p.y + DIR_STEP[d].y };
+      if (!lv.isFree(v.x, v.y) || pr.path.some(q => q.x === v.x && q.y === v.y)) continue;
+      const r = perform(g, lv, id, { type: 'move', dx: v.x - p.x, dy: v.y - p.y });
+      if (r.ok) return r.ticks;
+    }
+  }
+  return null;
 }
 
 function lookAround(g: Game, lv: Level, id: EntityId): number {

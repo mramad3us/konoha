@@ -267,7 +267,8 @@ export class Renderer {
         const f = art === 'dummy' || art.startsWith('item_') || art === 'log_decoy'
           ? atlas.prop(art, 0, 0, 0, now < v.flashUntil ? 'flash' : 'normal')
           : atlas.prop(art, 0, 0, 0);
-        list.push({ depth: ex + ey, order: art.startsWith('item_') ? 0 : 2, draw: () => this.blit(f, wx + ox, wy + oy) });
+        const flying = lv.c.projectile.has(id);
+        list.push({ depth: ex + ey, order: flying ? 4 : art.startsWith('item_') ? 0 : 2, draw: () => this.blit(f, wx + ox, wy + oy - (flying ? 14 : 0)) });
       }
     }
     list.sort((a, c) => a.depth - c.depth || a.order - c.order);

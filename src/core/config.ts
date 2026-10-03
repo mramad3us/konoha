@@ -90,9 +90,10 @@ export function tempoSlots(taijutsu: number): number {
 
 // ── Ranged ──
 export const THROWN = {
-  kunai: { damage: [5, 9] as const, range: 8, accuracy: 0 },
-  shuriken: { damage: [3, 6] as const, range: 9, accuracy: 10 },
+  kunai: { damage: [5, 9] as const, range: 8, accuracy: 0, ticksPerTile: 2 },
+  shuriken: { damage: [3, 6] as const, range: 9, accuracy: 10, ticksPerTile: 3 },
 } as const;
+export const BRACE_TICKS = 20;                  // Guard with nobody adjacent: braced against projectiles
 export const THROW_HIT_BASE = 55;
 export const THROW_HIT_PER_BUKI = 0.8;
 export const THROW_HIT_PER_TILE = -3;

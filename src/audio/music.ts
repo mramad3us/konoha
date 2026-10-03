@@ -39,7 +39,8 @@ class Music {
   private pick(): Mode {
     const g = this.game;
     if (!g) return 'title';
-    const lv = g.level;
+    const lv = g.levels.get(g.activeId);
+    if (!lv) return this.mode;
     for (const [id, aw] of lv.c.aware) if (aw.state === 'alert' && isStanding(lv, id) && aw.target === lv.playerId) return 'combat';
     if (lv.kind !== 'village') return 'away';
     return g.hour >= 19 || g.hour < 6 ? 'night' : 'day';

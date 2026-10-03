@@ -22,6 +22,7 @@ import type { LogCat } from '../sim/game.ts';
 import { MOVE_LABEL } from '../content/flavor.ts';
 import { nextTip, markTip } from './tips.ts';
 import { objectives } from '../sim/missions.ts';
+import { roster } from '../sim/squad.ts';
 
 type Panel = 'profile' | 'journal' | 'inventory' | 'help';
 
@@ -51,6 +52,7 @@ export class Hud {
   private nameEl: HTMLDivElement;
   private bars: Record<'hp' | 'sta' | 'cha', { fill: HTMLDivElement; ghost: HTMLDivElement; text: HTMLSpanElement }>;
   private chips: HTMLDivElement;
+  private squadEl!: HTMLDivElement;
   private clock: HTMLDivElement;
   private objectives: HTMLDivElement;
   private target: HTMLDivElement;
@@ -95,6 +97,8 @@ export class Hud {
     id.appendChild(this.chips);
     this.vit.append(this.portrait, id);
     this.root.appendChild(this.vit);
+    this.squadEl = el('div', 'hud-squad');
+    this.root.appendChild(this.squadEl);
 
     // Clock & objectives (top-right)
     const tr = el('div', 'hud-tr');
@@ -208,11 +212,30 @@ export class Hud {
     this.objectives.hidden = lines.length === 0;
     for (const l of lines) this.objectives.appendChild(el('div', `obj${l.done ? ' obj--done' : ''}`, l.text));
 
+    this.renderSquad();
     this.updateTip();
     this.renderTarget();
     this.renderBar();
     this.renderLog();
     if (this.panelKind) this.renderPanel();
+  }
+
+  private renderSquad(): void {
+    const lv = this.view.game.level;
+    this.squadEl.innerHTML = '';
+    for (const [id, tag] of lv.c.squad) {
+      const v = lv.c.vitals.get(id);
+      const down = lv.c.ko.has(id), dead = lv.c.dead.has(id);
+      const row = el('div', `sq${down ? ' sq--down' : ''}${dead ? ' sq--gone' : ''}`);
+      const name = lv.c.name.get(id)?.name ?? tag.rosterId;
+      row.append(el('span', 'sq__name', dead ? `${name} (dead)` : down ? `${name} (down)` : lv.c.invisible.has(id) ? `${name} (vanished)` : name));
+      const bar = el('div', 'sq__bar');
+      const fill = el('div', 'sq__fill');
+      fill.style.width = `${v ? Math.max(0, (v.hp / v.hpMax) * 100) : 0}%`;
+      bar.append(fill);
+      row.append(bar);
+      this.squadEl.append(row);
+    }
   }
 
   private updateTip(): void {
@@ -455,6 +478,14 @@ export class Hud {
           r.append(el('div', 'tech__desc', t.description));
           p.appendChild(r);
         }
+        sec('Squad');
+        for (const m of roster(g)) {
+          const r = el('div', 'tech');
+          const state = m.status === 'dead' ? 'killed in action' : m.status === 'injured' ? `recovering until day ${Math.floor(m.until / TICKS_PER_DAY) + 1}` : 'ready';
+          r.append(el('span', 'tech__name', m.name), el('span', 'tech__desc', `${m.personality}, ${m.missions} mission${m.missions === 1 ? '' : 's'} with you, ${state}`));
+          p.appendChild(r);
+        }
+        p.appendChild(el('p', 'panel__p', 'Squadmates train alongside you: on a mission they fight at roughly your level, a little better or worse in each skill. They copy your stance and, if they know it, your Vanish.'));
         const rec = g.player.record;
         sec('Record');
         p.appendChild(el('div', 'panel__sub', `Missions D ${rec.missions.D} · C ${rec.missions.C} · B ${rec.missions.B} · A ${rec.missions.A} · Failed ${rec.failed} · Takedowns ${rec.takedowns}`));

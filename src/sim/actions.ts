@@ -15,9 +15,9 @@ import {
   WATER_WALK_CHAKRA_PER_STEP, WAIT_TICKS, EXCHANGE_TICKS, DOOR_TICKS, TAKEDOWN_TICKS, RESTRAIN_TICKS,
   SEARCH_TICKS, CARRY_TICKS, THROW_TICKS, BANDAGE_TICKS, STANCE_NOISE, NOISE_IMPACT, THROWN, THROW_HIT_BASE,
   THROW_HIT_PER_BUKI, THROW_HIT_PER_TILE, THROW_HIT_UNAWARE, THROW_HIT_ENGAGED, SNEAK_THROW_MULT, XP,
-  PICKUP_TICKS, challengeMult,
+  PICKUP_TICKS, BRACE_TICKS, challengeMult,
 } from '../core/config.ts';
-import { canAttack, isHostile } from './factions.ts';
+import { canAttack, isHostile, isAlly } from './factions.ts';
 import {
   isStanding, isDown, damage, kill, knockOut, spendStamina, spendChakra, applyBleed,
 } from './vitals.ts';
@@ -50,6 +50,7 @@ export type Action =
   | { type: 'drop' }
   | { type: 'search'; target: EntityId }
   | { type: 'finish'; target: EntityId }
+  | { type: 'brace' }
   | { type: 'face'; dir: Dir8 };
 
 export interface Result {
@@ -92,6 +93,10 @@ function dispatch(g: Game, lv: Level, id: EntityId, a: Action): Result {
     case 'drop': return drop(g, lv, id);
     case 'search': return search(g, lv, id, a.target);
     case 'finish': return finish(g, lv, id, a.target);
+    case 'brace': {
+      combatOf(lv, id).guardUntil = g.clock + BRACE_TICKS;
+      return OK(WAIT_TICKS);
+    }
     case 'face': {
       const p = lv.c.pos.get(id)!;
       p.facing = a.dir;
@@ -391,44 +396,124 @@ function throwWeapon(g: Game, lv: Level, id: EntityId, weapon: 'kunai' | 'shurik
   if (!isStanding(lv, id)) return OK(EXCHANGE_TICKS);
 
   inv.items[weapon]! -= 1;
-  const chance = throwHitChance(g, lv, id, weapon, target);
-  const hit = g.rng.next() * 100 < chance;
-  const unaware = !lv.c.aware.get(target) || lv.c.aware.get(target)!.state !== 'alert';
   const dir = dirFromDelta(tp.x - p.x, tp.y - p.y);
   if (dir) p.facing = dir;
-
-  // Where the weapon ends up.
-  let land: Vec = { x: tp.x, y: tp.y };
-  if (!hit) {
-    const over = { x: tp.x + Math.sign(tp.x - p.x) * g.rng.int(1, 2), y: tp.y + Math.sign(tp.y - p.y) * g.rng.int(0, 2) };
-    if (lv.isPassable(over.x, over.y)) land = over;
-  }
-  lv.emit({ t: 'throw', source: id, from: { x: p.x, y: p.y }, to: land, weapon, hit, target: hit ? target : null });
-  dropItem(lv, land.x, land.y, weapon, 1);
-
   const buki = lv.c.sheet.get(id)?.skills.bukijutsu ?? 0;
-  if (hit) {
-    const [lo, hi] = THROWN[weapon].damage;
-    let dmg = g.rng.range(lo, hi) * (1 + buki / 100);
-    if (unaware) dmg *= SNEAK_THROW_MULT;
-    const crit = unaware && g.rng.chance(0.25);
-    const knocked = damage(g, lv, target, dmg * (crit ? 1.5 : 1), id, 'thrown', crit);
-    if (weapon === 'kunai' && g.rng.chance(0.35)) applyBleed(g, lv, target, 0.5 + g.rng.next() * 0.5);
-    if (knocked && isLethal(g, lv, id) && weapon === 'kunai' && g.rng.chance(0.25) && target !== lv.playerId) kill(g, lv, target, id, 'kunai');
-    if (isPlayer(lv, id)) g.say(`Your ${weapon} ${unaware ? 'flies true from the shadows into' : 'strikes'} ${displayName(lv, target)}.`, 'hit');
-    else if (target === lv.playerId) g.say(`A ${weapon} from ${displayName(lv, id)} bites into you.`, 'hurt');
-  } else {
-    if (isPlayer(lv, id)) g.say(`Your ${weapon} misses ${displayName(lv, target)}.`, 'combat');
-    else if (target === lv.playerId) g.say(`A ${weapon} whistles past your ear.`, 'combat');
-  }
-  makeNoise(g, lv, land, NOISE_IMPACT, id);
-  if (lv.c.aware.has(target) && isStanding(lv, target)) alertTo(g, lv, target, id);
+
+  // The weapon flies: a real projectile that can be dodged or deflected.
+  const path = lineCells(p, tp).slice(1);
+  const e = lv.create();
+  lv.add(e, 'pos', { x: p.x, y: p.y, facing: dir ?? 's' });
+  lv.add(e, 'sprite', { art: `item_${weapon}` });
+  lv.add(e, 'projectile', { weapon, source: id, path, ticksPerTile: THROWN[weapon].ticksPerTile, buki, lethal: isLethal(g, lv, id) });
+  lv.emit({ t: 'throw', source: id, from: { x: p.x, y: p.y }, to: { ...tp }, weapon, hit: false, target: null });
+  lv.scheduler.schedule(e, g.clock + 1);
+  makeNoise(g, lv, p, 2, id);
   if (isPlayer(lv, id)) {
     const opp = lv.c.sheet.get(target)?.skills.taijutsu ?? 0;
-    train(g, lv, id, 'bukijutsu', hit ? XP.throwHit : XP.throwAny, lv.c.dummy.has(target) ? 0.5 : challengeMult(buki, opp));
+    train(g, lv, id, 'bukijutsu', XP.throwAny, lv.c.dummy.has(target) ? 0.5 : challengeMult(buki, opp));
+  } else if (target === lv.playerId) {
+    g.say(`${cap(displayName(lv, id))} throws a ${weapon} at you!`, 'hurt');
   }
   const ticks = Math.round(THROW_TICKS * (1 - Math.min(0.5, buki / 120)));
   return OK(ticks);
+}
+
+function lineCells(a: Vec, b: Vec): Vec[] {
+  const out: Vec[] = [];
+  let x = a.x, y = a.y;
+  const dx = Math.abs(b.x - a.x), dy = -Math.abs(b.y - a.y);
+  const sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    out.push({ x, y });
+    if (x === b.x && y === b.y) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x += sx; }
+    if (e2 <= dx) { err += dx; y += sy; }
+  }
+  return out;
+}
+
+/** Is this entity braced against a projectile right now? */
+function guarding(g: Game, lv: Level, id: EntityId): boolean {
+  const c = lv.c.combat.get(id);
+  if (!c) return false;
+  if ((c.guardUntil ?? -1) >= g.clock) return true;
+  return c.intent === 'guard' && lv.c.aware.get(id)?.state === 'alert';
+}
+
+/** A projectile's turn: fly one tile, or strike whatever stands there. Returns ticks or null when done. */
+export function projectileTurn(g: Game, lv: Level, e: EntityId): number | null {
+  const pr = lv.c.projectile.get(e);
+  const pos = lv.c.pos.get(e);
+  if (!pr || !pos) return null;
+  const next = pr.path.shift();
+  const land = () => {
+    lv.destroy(e);
+    dropItem(lv, pos.x, pos.y, pr.weapon, 1);
+    makeNoise(g, lv, pos, NOISE_IMPACT, pr.source);
+    return null;
+  };
+  if (!next || lv.isOpaque(next.x, next.y) || (!lv.isPassable(next.x, next.y) && !lv.isWater(next.x, next.y))) return land();
+  const from = { x: pos.x, y: pos.y };
+  lv.moveTo(e, next.x, next.y);
+  lv.emit({ t: 'move', id: e, from, to: { ...next }, ticks: pr.ticksPerTile });
+  // Anyone standing here takes it — or dodged it by not being here.
+  for (const o of lv.at(next.x, next.y)) {
+    if (o === e || o === pr.source || !lv.c.vitals.has(o) || lv.c.dead.has(o)) continue;
+    if (lv.c.item.has(o) || lv.c.projectile.has(o)) continue;
+    if (!isStanding(lv, o) && !lv.c.dummy.has(o)) continue;   // flies over the fallen
+    if (o !== lv.playerId && isAlly(lv, o, pr.source) && !lv.c.dummy.has(o)) continue; // trained throwers don't hit friends
+    resolveImpact(g, lv, e, pr, o);
+    return null;
+  }
+  if (!pr.path.length) return land();
+  return pr.ticksPerTile;
+}
+
+function resolveImpact(g: Game, lv: Level, e: EntityId, pr: NonNullable<ReturnType<Level['c']['projectile']['get']>>, target: EntityId): void {
+  const at = { ...lv.c.pos.get(e)! };
+  lv.destroy(e);
+  const src = pr.source;
+  const fromPlayer = src === lv.playerId, atPlayer = target === lv.playerId;
+  const aw = lv.c.aware.get(target);
+  // Only NPCs with a perception meter can be caught unaware; the player and squad always see it coming.
+  const unaware = !!aw && (aw.state !== 'alert' || !!lv.c.brain.get(target)?.sleeping);
+  const tTai = lv.c.sheet.get(target)?.skills.taijutsu ?? 0;
+  // Deflect: only if braced at the moment it arrives, never certain.
+  if (!unaware && guarding(g, lv, target) && g.rng.chance(Math.min(0.8, 0.3 + tTai / 150))) {
+    lv.emit({ t: 'parry', id: target });
+    dropItem(lv, at.x, at.y, pr.weapon, 1);
+    if (atPlayer) { g.say(`You knock the ${pr.weapon} out of the air.`, 'good'); train(g, lv, target, 'taijutsu', XP.exchangeWin); }
+    else if (fromPlayer) g.say(`${cap(displayName(lv, target))} deflects your ${pr.weapon}.`, 'combat');
+    if (lv.c.aware.has(target) && isStanding(lv, target) && src !== target) alertTo(g, lv, target, src);
+    return;
+  }
+  let chance = THROW_HIT_BASE + pr.buki * THROW_HIT_PER_BUKI + THROWN[pr.weapon].accuracy - tTai * 0.35;
+  if (unaware) chance += THROW_HIT_UNAWARE;
+  if (lv.c.dummy.has(target) || lv.c.ko.has(target) || lv.c.restrained.has(target)) chance = 100;
+  const hit = g.rng.next() * 100 < Math.max(10, Math.min(97, chance));
+  dropItem(lv, at.x, at.y, pr.weapon, 1);
+  makeNoise(g, lv, at, NOISE_IMPACT, src);
+  if (hit) {
+    const [lo, hi] = THROWN[pr.weapon].damage;
+    let dmg = g.rng.range(lo, hi) * (1 + pr.buki / 100);
+    if (unaware) dmg *= SNEAK_THROW_MULT;
+    const crit = unaware && g.rng.chance(0.25);
+    const knocked = damage(g, lv, target, dmg * (crit ? 1.5 : 1), src, 'thrown', crit);
+    if (pr.weapon === 'kunai' && g.rng.chance(0.35)) applyBleed(g, lv, target, 0.5 + g.rng.next() * 0.5);
+    if (knocked && pr.lethal && pr.weapon === 'kunai' && g.rng.chance(0.25) && !atPlayer) kill(g, lv, target, src, 'kunai');
+    if (fromPlayer) {
+      g.say(`Your ${pr.weapon} ${unaware ? 'flies true from the shadows into' : 'strikes'} ${displayName(lv, target)}.`, 'hit');
+      const opp = tTai;
+      train(g, lv, src, 'bukijutsu', XP.throwHit, lv.c.dummy.has(target) ? 0.5 : challengeMult(pr.buki, opp));
+    } else if (atPlayer) g.say(`A ${pr.weapon} bites into you.`, 'hurt');
+  } else {
+    if (fromPlayer) g.say(`${cap(displayName(lv, target))} twists aside; your ${pr.weapon} misses.`, 'combat');
+    else if (atPlayer) g.say(`You twist aside as the ${pr.weapon} whistles past.`, 'combat');
+  }
+  if (lv.c.aware.has(target) && isStanding(lv, target) && src !== target) alertTo(g, lv, target, src);
 }
 
 export function dropItem(lv: Level, x: number, y: number, kind: ItemKind, count: number): void {
@@ -481,7 +566,23 @@ function sign(g: Game, lv: Level, id: EntityId, s: number): Result {
   if (m.id === 'vanish') {
     lv.add(id, 'invisible', { until: g.clock + vanishDurationTicks(sheet.skills.ninjutsu), power: sheet.skills.ninjutsu });
     lv.emit({ t: 'smoke', at: { x: p.x, y: p.y } });
-    if (isPlayer(lv, id)) g.say('You fold the light around yourself and vanish.', 'good');
+    if (isPlayer(lv, id)) {
+      g.say('You fold the light around yourself and vanish.', 'good');
+      // Your squad follows you into the shadows if they can.
+      for (const [sq] of lv.c.squad) {
+        if (!isStanding(lv, sq)) continue;
+        const ss = lv.c.sheet.get(sq);
+        const scost = TECHNIQUES.vanish.cost(ss?.skills.ninjutsu ?? 0);
+        const sp = lv.c.pos.get(sq)!;
+        if (ss?.techniques.includes('vanish') && spendChakra(lv, sq, scost)) {
+          lv.add(sq, 'invisible', { until: g.clock + vanishDurationTicks(ss.skills.ninjutsu), power: ss.skills.ninjutsu });
+          lv.emit({ t: 'sign', id: sq, sign: TECHNIQUES.vanish.signs![3] });
+          lv.emit({ t: 'smoke', at: { x: sp.x, y: sp.y } });
+        } else {
+          g.say(`${displayName(lv, sq)} can't follow you into the shadows.`, 'info');
+        }
+      }
+    }
     for (const [o, aw] of lv.c.aware) {
       if (aw.target === id && aw.state === 'alert') { aw.lastSeenTick = g.clock - 60; aw.lastKnown = { x: p.x, y: p.y }; }
       void o;
