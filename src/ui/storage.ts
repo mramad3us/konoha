@@ -102,9 +102,11 @@ export interface Settings {
   sfx: number;
   zoom: number;
   cones: 'sneak' | 'always' | 'never';
+  /** New characters start as elite jonin (testing). */
+  dev: boolean;
 }
 
-const DEFAULTS: Settings = { master: 0.8, music: 0.5, sfx: 0.8, zoom: 3, cones: 'sneak' };
+const DEFAULTS: Settings = { master: 0.8, music: 0.5, sfx: 0.8, zoom: 3, cones: 'sneak', dev: false };
 
 export function loadSettings(): Settings {
   try {

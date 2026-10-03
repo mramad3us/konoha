@@ -335,6 +335,15 @@ export function settingsForm(s: Settings, onChange: (s: Settings) => void): HTML
     zoom.append(button(`${z}×`, () => { s = { ...s, zoom: z }; onChange(s); zoom.querySelectorAll('.btn').forEach((b, i) => b.classList.toggle('btn--on', [2, 3, 4][i] === z)); }, `btn btn--small${s.zoom === z ? ' btn--on' : ''}`));
   }
   form.append(zoom);
+  const dev = h('div', 'settings__row', h('span', 'settings__label', 'Dev mode'));
+  const devBtn = button(s.dev ? 'On: new characters start as elite jonin' : 'Off', () => {
+    s = { ...s, dev: !s.dev };
+    onChange(s);
+    devBtn.querySelector('.btn__label')!.textContent = s.dev ? 'On: new characters start as elite jonin' : 'Off';
+    devBtn.classList.toggle('btn--on', s.dev);
+  }, `btn btn--small${s.dev ? ' btn--on' : ''}`);
+  dev.append(devBtn);
+  form.append(dev);
   void displayName;
   return form;
 }

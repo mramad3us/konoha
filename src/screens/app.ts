@@ -14,6 +14,9 @@ import { engine } from '../audio/engine.ts';
 import { inkWipe, h, button } from '../ui/kit.ts';
 import { devScenario } from '../dev/scenarios.ts';
 import type { Game } from '../sim/game.ts';
+import { knownTechniques } from '../content/techniques.ts';
+import { refreshMaxima } from '../sim/vitals.ts';
+import { refreshBoard } from '../sim/missions.ts';
 
 export async function boot(root: HTMLElement): Promise<void> {
   const unlock = () => engine.unlock();
@@ -68,6 +71,7 @@ class App {
     this.cleanup = renderCreator(this.stage, r => {
       void this.go(async () => {
         const g = newGame(r.name, r.frame, r.appearance, (Math.random() * 2 ** 31) | 0);
+        if (loadSettings().dev) makeElite(g);
         const slot = newSlotId();
         await writeSave(slot, saveGame(g, 0));
         this.play(g, slot, 0);
@@ -107,4 +111,22 @@ class App {
     (window as unknown as { __view: unknown; __flow: unknown }).__view = this.flow.view;
     (window as unknown as { __flow: unknown }).__flow = this.flow;
   }
+}
+
+/** Dev mode: an elite jonin with everything unlocked, for testing. */
+function makeElite(g: Game): void {
+  const sh = g.player.sheet;
+  for (const k of Object.keys(sh.skills) as Array<keyof typeof sh.skills>) sh.skills[k] = 90;
+  for (const k of Object.keys(sh.attrs) as Array<keyof typeof sh.attrs>) sh.attrs[k] = 90;
+  sh.rank = 'jonin';
+  sh.techniques = knownTechniques(90);
+  g.player.name.title = 'Jonin';
+  g.player.appearance.vest = 'chunin';
+  refreshMaxima(g.player.vitals, sh);
+  Object.assign(g.player.vitals, { hp: g.player.vitals.hpMax, sta: g.player.vitals.staMax, chakra: g.player.vitals.chakraMax });
+  g.player.inventory.ryo = 10000;
+  Object.assign(g.player.inventory.items, { kunai: 20, shuriken: 20, bandage: 10, soldier_pill: 5 });
+  g.player.record.missions = { D: 5, C: 10, B: 10, A: 0 };
+  refreshBoard(g);
+  g.say('Dev mode: you start as an elite jonin.', 'system');
 }
