@@ -244,6 +244,12 @@ export function generateVillage(seed: number): VillageResult {
     }
   }
 
+  // Field gates (east and north), cut last so no scattered tree or bush can plug them.
+  for (const [x, y] of [[36, 82], [37, 82], [38, 82], [39, 82], [22, 73], [22, 74], [22, 75]] as const) {
+    lv.setProp(x, y, P.none);
+    if (lv.tile(x, y) !== T.road && lv.tile(x, y) !== T.field) lv.setTile(x, y, T.dirt);
+  }
+
   lv.meta.exitZone = { x0: 44, y0: N - 2, x1: 50, y1: N - 1 };
   const spots: Spots = {
     gate: { x: 47, y: 90 },
