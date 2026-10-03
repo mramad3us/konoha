@@ -64,20 +64,20 @@ interface Geo {
   farBehind?: boolean;
 }
 
-const BASE_HEAD: [number, number] = [7, 6];
-const BASE_TORSO: [number, number] = [7, 14];
+const BASE_HEAD: [number, number] = [7, 9];
+const BASE_TORSO: [number, number] = [6, 17];
 
 const GEO: Record<Exclude<Pose, 'prone'>, Geo> = {
-  idle:   { head: BASE_HEAD, torso: BASE_TORSO, legs: 'stand', near: [7, 15, 6, 19], far: [14, 15, 15, 19] },
-  walkA:  { head: [7, 5], torso: [7, 13], legs: 'walkA', near: [7, 14, 5, 18], far: [14, 14, 15, 19] },
-  walkB:  { head: [7, 5], torso: [7, 13], legs: 'walkB', near: [7, 14, 7, 19], far: [14, 14, 16, 18] },
-  strike: { head: [6, 6], torso: [6, 14], legs: 'wide', near: [6, 15, 1, 15], far: [13, 15, 12, 18] },
-  break:  { head: [5, 7], torso: [6, 15], legs: 'wide', near: [6, 16, 2, 18], far: [13, 16, 4, 19], farBehind: false },
-  guard:  { head: [7, 6], torso: [7, 14], legs: 'stand', near: [7, 15, 7, 11], far: [14, 15, 10, 11] },
-  sign:   { head: [7, 6], torso: [7, 14], legs: 'stand', near: [7, 15, 10, 16], far: [14, 15, 11, 16] },
-  sneak:  { head: [6, 10], torso: [7, 17], legs: 'crouch', near: [7, 18, 4, 22], far: [14, 18, 13, 22] },
-  hurt:   { head: [8, 6], torso: [8, 14], legs: 'stand', near: [8, 15, 6, 12], far: [15, 15, 17, 13] },
-  throw:  { head: [7, 6], torso: [7, 14], legs: 'wide', near: [7, 15, 3, 10], far: [14, 15, 15, 19] },
+  idle:   { head: BASE_HEAD, torso: BASE_TORSO, legs: 'stand', near: [6, 18, 5, 22], far: [15, 18, 16, 22] },
+  walkA:  { head: [7, 8], torso: [6, 16], legs: 'walkA', near: [6, 17, 4, 21], far: [15, 17, 16, 22] },
+  walkB:  { head: [7, 8], torso: [6, 16], legs: 'walkB', near: [6, 17, 6, 22], far: [15, 17, 17, 21] },
+  strike: { head: [6, 9], torso: [5, 17], legs: 'wide', near: [5, 18, 1, 18], far: [14, 18, 14, 21] },
+  break:  { head: [5, 10], torso: [5, 18], legs: 'wide', near: [5, 19, 1, 20], far: [14, 19, 3, 21], farBehind: false },
+  guard:  { head: [7, 9], torso: BASE_TORSO, legs: 'stand', near: [6, 18, 7, 14], far: [15, 18, 11, 14] },
+  sign:   { head: [7, 9], torso: BASE_TORSO, legs: 'stand', near: [6, 18, 10, 19], far: [15, 18, 11, 19] },
+  sneak:  { head: [6, 12], torso: [6, 19], legs: 'crouch', near: [6, 20, 3, 24], far: [15, 20, 15, 24] },
+  hurt:   { head: [8, 9], torso: [7, 17], legs: 'stand', near: [7, 18, 5, 15], far: [16, 18, 18, 16] },
+  throw:  { head: [7, 9], torso: BASE_TORSO, legs: 'wide', near: [6, 18, 2, 13], far: [15, 18, 16, 22] },
 };
 
 function put(s: ArtSprite, x: number, y: number, c: RGB): void {
@@ -188,41 +188,42 @@ function hairOverlay(s: ArtSprite, a: Appearance, p: Pal, hx: number, hy: number
 
 function torso(s: ArtSprite, a: Appearance, p: Pal, tx: number, ty: number, back: boolean): void {
   const vest = a.vest === 'chunin';
-  for (let j = 0; j < 6; j++) for (let i = 0; i < 8; i++) {
+  const W = 10;
+  for (let j = 0; j < 6; j++) for (let i = 0; i < W; i++) {
     let c: RGB;
-    if (j === 4) c = i > 5 ? p.accS : p.acc;                      // belt / sash
-    else if (j === 5) c = i > 5 ? p.botS : p.bot;                 // hips
-    else if (vest && (back || (i >= 1 && i <= 6))) {
-      c = i === 0 ? p.vestH : i >= 6 ? p.vestS : p.vest;
-      if (!back && j === 2 && (i === 2 || i === 5)) c = p.vestH;  // pockets
-      if (!back && j === 0 && (i === 3 || i === 4)) c = p.top;    // collar gap
+    if (j === 0 && (i === 0 || i === W - 1)) continue;                // rounded shoulders
+    if (j === 4) c = i > 6 ? p.accS : p.acc;                          // belt / sash
+    else if (j === 5) c = i > 6 ? p.botS : p.bot;                     // hips
+    else if (vest && (back || (i >= 1 && i <= 8))) {
+      c = i <= 1 ? p.vestH : i >= 8 ? p.vestS : p.vest;
+      if (!back && j === 2 && (i === 3 || i === 6)) c = p.vestH;      // pockets
+      if (!back && j === 0 && (i === 4 || i === 5)) c = p.top;        // collar gap
     } else {
-      c = i === 0 ? p.topH : i >= 6 ? p.topS : p.top;
-      if (!back && !vest && j === 0 && (i === 3 || i === 4)) c = p.skinS;  // neckline
+      c = i <= 1 ? p.topH : i >= 8 ? p.topS : p.top;
+      if (!back && !vest && j === 0 && (i === 4 || i === 5)) c = p.skinS;  // neckline
     }
     put(s, tx + i, ty + j, c);
   }
-  if (a.frame === 'f') { put(s, tx, ty + 3, p.o); put(s, tx + 7, ty + 3, p.o); }
+  if (a.frame === 'f') { put(s, tx + 1, ty + 3, p.o); put(s, tx + W - 2, ty + 3, p.o); }
 }
 
 function legs(s: ArtSprite, p: Pal, kind: Geo['legs'], baseY: number): void {
-  // Two legs, 3px wide, from the hips (baseY) to the feet (CHAR_AY).
-  const draw = (x: number, top: number, bottom: number, shadeSide: boolean) => {
-    for (let y = top; y <= bottom; y++) {
-      for (let i = 0; i < 3; i++) put(s, x + i, y, i === 2 || shadeSide ? p.botS : p.bot);
-    }
-    for (let i = 0; i < 3; i++) put(s, x + i, bottom + 1, p.feet);
-  };
+  // A short, stocky lower body: two 4px legs, no separate feet (seen from above).
   const foot = CHAR_AY - 1;
+  const leg = (x: number, w: number, bottom: number, inner: 'l' | 'r') => {
+    for (let y = baseY; y <= bottom; y++) {
+      for (let i = 0; i < w; i++) {
+        const shadeCol = (inner === 'r' && i === w - 1) || (inner === 'l' && i === 0) || y === bottom;
+        put(s, x + i, y, shadeCol ? p.botS : p.bot);
+      }
+    }
+  };
   switch (kind) {
-    case 'stand': draw(7, baseY, foot, false); draw(11, baseY, foot, true); break;
-    case 'walkA': draw(6, baseY, foot, false); draw(12, baseY, foot - 2, true); break;
-    case 'walkB': draw(8, baseY, foot - 2, false); draw(11, baseY, foot, true); break;
-    case 'wide': draw(6, baseY, foot, false); draw(12, baseY, foot, true); break;
-    case 'crouch':
-      draw(6, baseY, foot, false); draw(12, baseY, foot, true);
-      for (let x = 8; x <= 12; x++) put(s, x, baseY, p.botS);
-      break;
+    case 'stand': leg(7, 4, foot, 'r'); leg(11, 4, foot, 'l'); break;
+    case 'walkA': leg(6, 4, foot, 'r'); leg(11, 4, foot - 1, 'l'); break;
+    case 'walkB': leg(7, 4, foot - 1, 'r'); leg(12, 4, foot, 'l'); break;
+    case 'wide': leg(5, 4, foot, 'r'); leg(12, 4, foot, 'l'); break;
+    case 'crouch': leg(5, 5, foot, 'r'); leg(12, 5, foot, 'l'); break;
   }
 }
 
@@ -283,11 +284,10 @@ function drawProne(a: Appearance, p: Pal): ArtSprite {
   const fig = sprite(30, 14, 15, 9);
   const y = 4;
   // legs
-  for (let x = 17; x <= 25; x++) { put(fig, x, y + 2, p.bot); put(fig, x, y + 3, p.botS); put(fig, x, y + 4, p.bot); }
-  put(fig, 26, y + 2, p.feet); put(fig, 26, y + 4, p.feet);
+  for (let x = 17; x <= 21; x++) { put(fig, x, y + 1, p.bot); put(fig, x, y + 2, p.bot); put(fig, x, y + 3, p.botS); put(fig, x, y + 4, p.bot); put(fig, x, y + 5, p.botS); }
   // torso
-  for (let x = 10; x <= 16; x++) for (let k = 1; k <= 5; k++) {
-    let c = k === 1 ? p.topH : k === 5 ? p.topS : p.top;
+  for (let x = 10; x <= 16; x++) for (let k = 0; k <= 6; k++) {
+    let c = k <= 1 ? p.topH : k >= 5 ? p.topS : p.top;
     if (a.vest === 'chunin' && k >= 2 && k <= 4) c = k === 4 ? p.vestS : p.vest;
     if (x === 16) c = p.acc;
     put(fig, x, y + k, c);
