@@ -49,7 +49,7 @@ export const BANDAGE_TICKS = [SECONDS(20), SECONDS(12), SECONDS(8), SECONDS(5)];
 
 // ── Vitals ──
 export const HP_BASE = 40;
-export const HP_PER_BODY = 2;
+export const HP_PER_BODY = 1.5;
 export const STAMINA_BASE = 12;
 export const STAMINA_PER_BODY = 0.6;
 export const CHAKRA_BASE = 20;
@@ -64,7 +64,7 @@ export const KO_BLEED_DEATH_SECONDS = 45;       // bleeding while KO → death a
 
 // ── Melee ──
 export const EXCHANGE_STAMINA = { strike: 1, break: 2, guard: -1 } as const;
-export const DAMAGE_BASE = 3;
+export const DAMAGE_BASE = 6;
 export const DAMAGE_PER_TAIJUTSU = 0.12;
 export const DAMAGE_PER_BODY = 0.18;
 export const DAMAGE_VARIANCE = 0.2;

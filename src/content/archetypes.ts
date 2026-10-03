@@ -61,7 +61,7 @@ export const ARCHETYPES: Record<string, Archetype> = {
   },
   bandit_boss: {
     id: 'bandit_boss', label: 'Bandit Boss', ai: 'bandit', faction: 'bandit', rank: 'civilian',
-    attrs: A([15, 19], [2, 5], [8, 12]), skills: S([16, 22], [8, 14], [0, 2], [5, 9], [4, 8]),
+    attrs: A([13, 16], [2, 5], [7, 10]), skills: S([13, 17], [8, 14], [0, 2], [5, 9], [4, 8]),
     lethal: true, flee: 0.12, ammo: { kunai: [1, 3] }, style: { strike: 4, break: 4, guard: 4 }, look: banditLook,
     names: BANDIT_NAMES,
   },

@@ -73,7 +73,7 @@ function drawBase(): OffscreenCanvas {
     const r = pl.id === 'konoha' ? 3 : 2;
     p.ellipse(pl.x, pl.y, r + 0.5, r + 0.5, () => INK);
     p.ellipse(pl.x, pl.y, r - 0.5, r - 0.5, () => (pl.id === 'konoha' ? RED : PAPER));
-    const t = renderText(pl.name, INK, null);
+    const t = renderText(pl.name, INK, PAPER);
     const tx = Math.min(W - t.w - 3, Math.max(3, pl.x - t.w / 2));
     p.blit(t, Math.round(tx), pl.y + 4);
   }

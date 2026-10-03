@@ -20,6 +20,7 @@ import { PROPS, TILES } from '../world/tiles.ts';
 import { ambientLight } from '../sim/stealth.ts';
 import type { LogCat } from '../sim/game.ts';
 import { MOVE_LABEL } from '../content/flavor.ts';
+import { nextTip, markTip } from './tips.ts';
 
 type Panel = 'profile' | 'journal' | 'inventory' | 'help';
 
@@ -55,6 +56,9 @@ export class Hud {
   private bar: HTMLDivElement;
   private log: HTMLDivElement;
   private tip: HTMLDivElement;
+  private tipCard: HTMLDivElement;
+  private tipId: string | null = null;
+  private tipShownAt = 0;
   private panel: HTMLDivElement;
   private panelKind: Panel | null = null;
   private lastLog = 0;
@@ -107,6 +111,10 @@ export class Hud {
     this.tip = el('div', 'hud-tip');
     this.tip.hidden = true;
     this.root.appendChild(this.tip);
+    this.tipCard = el('div', 'hud-hint');
+    this.tipCard.hidden = true;
+    this.tipCard.addEventListener('click', () => this.dismissTip());
+    this.root.appendChild(this.tipCard);
     this.panel = el('div', 'hud-panel');
     this.panel.hidden = true;
     this.root.appendChild(this.panel);
@@ -168,7 +176,7 @@ export class Hud {
     this.chips.innerHTML = '';
     const chip = (t: string, cls: string) => this.chips.appendChild(el('span', `chip chip--${cls}`, t));
     const actor = lv.c.actor.get(pid);
-    const stanceName = { walk: 'Walking', run: 'Running', sneak: 'Sneaking', dash: 'Chakra Dash' }[actor?.stance ?? 'walk'];
+    const stanceName = { walk: 'Walking', run: 'Running', sneak: 'Sneaking', dash: 'Chakra dash' }[actor?.stance ?? 'walk'];
     chip(stanceName, actor?.stance ?? 'walk');
     if (g.player.lethal) chip('Kunai drawn', 'lethal');
     if (lv.c.bleed.has(pid)) chip('Bleeding', 'bleed');
@@ -176,7 +184,7 @@ export class Hud {
     if (lv.c.combat.get(pid)?.staggered) chip('Staggered', 'stagger');
     if (lv.c.carrying.has(pid)) chip('Carrying', 'carry');
     if (lv.c.signing.has(pid)) {
-      const s = lv.c.signing.get(pid)!.signs.map(i => HAND_SIGNS[i].jp).join(' · ');
+      const s = lv.c.signing.get(pid)!.signs.map(i => HAND_SIGNS[i].jp).join(', ');
       chip(`Signs: ${s}`, 'sign');
     }
 
@@ -189,7 +197,7 @@ export class Hud {
     this.clock.innerHTML = '';
     this.clock.append(
       el('span', 'hud-clock__loc', lv.meta.name),
-      el('span', 'hud-clock__time', `Day ${day} · ${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`),
+      el('span', 'hud-clock__time', `Day ${day}, ${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`),
       el('span', `hud-clock__phase hud-clock__phase--${phase.toLowerCase()}`, phase),
     );
 
@@ -199,10 +207,33 @@ export class Hud {
     this.objectives.hidden = lines.length === 0;
     for (const l of lines) this.objectives.appendChild(el('div', `obj${l.done ? ' obj--done' : ''}`, l.text));
 
+    this.updateTip();
     this.renderTarget();
     this.renderBar();
     this.renderLog();
     if (this.panelKind) this.renderPanel();
+  }
+
+  private updateTip(): void {
+    const g = this.view.game;
+    if (this.tipId) {
+      // A shown tip stays a while, then yields to the next one.
+      if (performance.now() - this.tipShownAt > 14000) this.dismissTip();
+      return;
+    }
+    const t = nextTip(g);
+    if (!t) return;
+    this.tipId = t.id;
+    this.tipShownAt = performance.now();
+    markTip(g, t.id);
+    this.tipCard.innerHTML = '';
+    this.tipCard.append(el('p', 'hud-hint__text', t.text), el('span', 'hud-hint__close', 'Click to dismiss'));
+    this.tipCard.hidden = false;
+  }
+
+  dismissTip(): void {
+    this.tipId = null;
+    this.tipCard.hidden = true;
   }
 
   private drawPortrait(): void {
@@ -281,7 +312,7 @@ export class Hud {
     this.bar.innerHTML = '';
     const group = (title: string) => {
       const gEl = el('div', 'hb-group');
-      gEl.appendChild(el('div', 'hb-title', title));
+      gEl.title = title;
       const row = el('div', 'hb-row');
       gEl.appendChild(row);
       this.bar.appendChild(gEl);

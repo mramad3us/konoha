@@ -15,7 +15,7 @@ import { generateMissionMap, nearestFree, type SiteSpec } from '../world/gen/mis
 import { generateEncounter } from '../world/gen/encounter.ts';
 import { placePlayer, spawnArchetype } from './spawn.ts';
 import { primeLevel, updatePlayerFov } from './turn.ts';
-import { assignSquad, spawnSquad, syncSquad, finishMissionForSquad, roster } from './squad.ts';
+import { assignSquad, spawnSquad, syncSquad, finishMissionForSquad, roster, SQUAD_LINES } from './squad.ts';
 import { resettle } from './village.ts';
 import { civilianLook } from '../content/looks.ts';
 import { revive } from './vitals.ts';
@@ -205,9 +205,14 @@ export function arrive(g: Game): Level | null {
     m.checkpoints = pts;
   }
   placePlayer(g, lv, r.start.x, r.start.y, 'n');
-  spawnSquad(g, lv, j.squad, r.start);
+  const squad = spawnSquad(g, lv, j.squad, r.start);
   primeLevel(g, lv);
   j.phase = 'site';
+  if (squad.length) {
+    const first = squad[0];
+    const tag = lv.c.squad.get(first)!;
+    lv.emit({ t: 'bark', id: first, text: rng.pick(SQUAD_LINES[tag.personality as keyof typeof SQUAD_LINES].start) });
+  }
   g.say(`You reach ${dest.name}.${g.hour >= 20 || g.hour < 5 ? ' Night hides you — and them.' : ''}`, 'system');
   return lv;
 }

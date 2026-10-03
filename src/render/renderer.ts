@@ -150,8 +150,11 @@ export class Renderer {
     b.globalAlpha = 1;
     b.globalCompositeOperation = 'source-over';
     b.imageSmoothingEnabled = false;
-    b.fillStyle = '#0b0b10';
-    b.fillRect(0, 0, this.bufW, this.bufH);
+    b.fillStyle = this.canopy(b);
+    b.save();
+    b.translate(ox % 64, oy % 64);
+    b.fillRect(-64, -64, this.bufW + 128, this.bufH + 128);
+    b.restore();
 
     // ── Terrain ──
     const vx0 = -ox - 40, vy0 = -oy - 80, vx1 = -ox + this.bufW + 40, vy1 = -oy + this.bufH + 40;
@@ -189,6 +192,7 @@ export class Renderer {
       b.drawImage(this.light, 0, 0);
       b.globalAlpha = 1;
     }
+    this.drawExits(lv, now);
     for (const d of V.fx.decals) {
       if (!lv.visible[lv.idx(Math.round(d.x), Math.round(d.y))]) continue;
       const [wx, wy] = Renderer.iso(d.x, d.y);
@@ -322,6 +326,26 @@ export class Renderer {
     };
   }
 
+  private canopyPat: CanvasPattern | null = null;
+  /** Dense dark treetops filling everything beyond the map's edge. */
+  private canopy(b: OffscreenCanvasRenderingContext2D): CanvasPattern {
+    if (this.canopyPat) return this.canopyPat;
+    const p = new Pix(64, 64);
+    p.rect(0, 0, 64, 64, [10, 14, 16]);
+    for (let k = 0; k < 46; k++) {
+      const h = hash2(k * 31, 7);
+      const cx = h % 64, cy = (h >> 7) % 64, r = 3 + (h >> 13) % 4;
+      for (const ox2 of [-64, 0, 64]) for (const oy2 of [-64, 0, 64]) {
+        p.ellipse(cx + ox2, cy + oy2, r, r * 0.8, (nx, ny) => {
+          const t = 0.5 - nx * 0.3 - ny * 0.4;
+          return t > 0.75 ? [26, 38, 30] : t > 0.45 ? [19, 29, 24] : [14, 21, 19];
+        });
+      }
+    }
+    this.canopyPat = b.createPattern(p.toCanvas(), 'repeat')!;
+    return this.canopyPat;
+  }
+
   private tintCache = new Map<string, OffscreenCanvas>();
   private tinted(color: string): OffscreenCanvas {
     let c = this.tintCache.get(color);
@@ -355,7 +379,7 @@ export class Renderer {
     const pos = lv.c.pos.get(id)!;
     let pose: Pose = 'idle';
     let facing = pos.facing;
-    if (lv.c.ko.has(id) || lv.c.dead.has(id) || lv.c.restrained.has(id)) pose = 'prone';
+    if (lv.c.ko.has(id) || lv.c.dead.has(id) || lv.c.restrained.has(id) || lv.c.brain.get(id)?.sleeping) pose = 'prone';
     else if (v.pose && now < v.poseUntil) pose = v.pose;
     else if (this.visuals.isMoving(v, now)) {
       pose = v.stepPhase ? 'walkA' : 'walkB';
@@ -414,6 +438,24 @@ export class Renderer {
         },
       });
     }
+  }
+
+  /** Gentle gold chevrons on the tiles where you can leave the map. */
+  private drawExits(lv: Level, now: number): void {
+    if (lv.kind === 'village') return;
+    const zones = [lv.meta.exitZone, lv.meta.exitZone2 as Level['meta']['exitZone']];
+    const pulse = 0.35 + 0.2 * Math.sin(now / 400);
+    const b = this.b;
+    for (const z of zones) {
+      if (!z) continue;
+      for (let y = z.y0; y <= z.y1; y++) for (let x = z.x0; x <= z.x1; x++) {
+        if (!lv.inBounds(x, y) || !lv.explored[lv.idx(x, y)] || !lv.isPassable(x, y)) continue;
+        const [wx, wy] = Renderer.iso(x, y);
+        b.globalAlpha = pulse;
+        b.drawImage(this.tinted('#f0c860'), wx + this.ox - HW, wy + this.oy - HH);
+      }
+    }
+    b.globalAlpha = 1;
   }
 
   private decal(x: number, y: number, kind: string, seed: number): void {
@@ -554,6 +596,14 @@ export class Renderer {
       const v = this.visuals.get(lv, id);
       const [wx, wy] = Renderer.iso(v.x, v.y);
       const x = Math.round(wx + this.ox), y = Math.round(wy + this.oy) - 34;
+      if (lv.c.brain.get(id)?.sleeping && aw.state === 'idle') {
+        const phase = (now / 900 + id * 0.37) % 1;
+        const z = atlas.text('z', hex('#c8d0ff'));
+        b.globalAlpha = 1 - phase;
+        b.drawImage(z.cv, x + 4 + Math.round(phase * 4), y + 18 - Math.round(phase * 10));
+        b.globalAlpha = 1;
+        continue;
+      }
       const pop = Math.max(0, 1 - (now - v.awarePop) / 250);
       const c = lv.c.combat.get(id);
       // Committed intent against the player.
