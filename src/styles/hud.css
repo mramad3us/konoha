@@ -97,7 +97,7 @@
 .tempo__pip--on { background: var(--gold); border-color: #fff0b0; box-shadow: 0 0 6px rgba(214, 178, 94, 0.6); }
 
 /* ── Log ── */
-.hud-log { position: absolute; left: 14px; bottom: 14px; width: min(440px, 32vw); display: flex; flex-direction: column; gap: 2px; pointer-events: none; text-shadow: 0 2px 0 #000, 0 0 4px #000; }
+.hud-log { position: absolute; left: 14px; bottom: 14px; width: min(440px, calc(50vw - 330px)); display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; pointer-events: none; background: linear-gradient(180deg, rgba(12, 11, 18, 0), rgba(12, 11, 18, 0.72) 22%, rgba(12, 11, 18, 0.8)); text-shadow: 0 2px 0 #000; }
 .log { font-size: 16px; color: var(--paper-dim); line-height: 1.25; }
 .log--good { color: #9ee28a; }
 .log--bad, .log--hurt { color: #ff8a7a; }

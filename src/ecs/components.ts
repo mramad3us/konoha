@@ -139,7 +139,7 @@ export interface Interact { kind: InteractKind; label: string; facility?: string
 
 export interface SquadTag { rosterId: string; personality: string }
 export interface MissionTag { role: 'leader' | 'enemy' | 'client' | 'objective' | 'recipient' }
-export interface Talk { lines: string[]; lastTick: number }
+export interface Talk { lines: string[]; lastTick: number; /** Next line index for conversations. */ next?: number }
 export interface Light { radius: number }
 export interface Structure { w: number; d: number; style: string; label?: string }
 export interface Duel { opponent: EntityId }

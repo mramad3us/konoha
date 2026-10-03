@@ -60,6 +60,10 @@ export class Renderer {
   readonly terrain = new TerrainCache();
   readonly visuals = new Visuals();
   overlay: Overlay = { hover: null, aimTarget: null, shadowStep: null, path: null, cones: false };
+  /** Camera override (title screen fly-through); null follows the player. */
+  focus: { x: number; y: number } | null = null;
+  /** Hide HUD-like overlays (title screen). */
+  bare = false;
   private diamond: OffscreenCanvas;
   private coneCache: { key: string; cells: Map<number, number> } = { key: '', cells: new Map() };
   private screenW = 1;
@@ -130,7 +134,7 @@ export class Renderer {
 
     // ── Camera ──
     const pv = V.get(lv, lv.playerId);
-    const [tx, ty] = Renderer.iso(pv.x, pv.y);
+    const [tx, ty] = this.focus ? Renderer.iso(this.focus.x, this.focus.y) : Renderer.iso(pv.x, pv.y);
     const targetX = tx, targetY = ty - 14;
     if (!this.snapped) { this.camX = targetX; this.camY = targetY; this.snapped = true; }
     const k = 1 - Math.exp(-dt * 10);
@@ -156,30 +160,34 @@ export class Renderer {
     // Visible tile range.
     const range = this.tileRange(lv, vx0, vy0, vx1, vy1 + 60);
 
-    // ── Water shimmer, fog, decals ──
+    // ── Water shimmer; fog drawn into its own layer so diamond overlaps never double up ──
     const t = now / 1000;
+    const fog = this.l;
+    fog.setTransform(1, 0, 0, 1, 0, 0);
+    fog.globalCompositeOperation = 'source-over';
+    fog.globalAlpha = 1;
+    fog.clearRect(0, 0, this.bufW, this.bufH);
+    let anyFog = false;
     for (let y = range.y0; y <= range.y1; y++) for (let x = range.x0; x <= range.x1; x++) {
       const i = lv.idx(x, y);
       const sx = (x - y) * HW + ox, sy = (x + y) * HH + oy;
       if (sx < -HW || sx > this.bufW + HW || sy < -HH || sy > this.bufH + HH * 4) continue;
-      if (!lv.explored[i]) {
-        if (lv.tiles[i] !== T.void) { b.globalAlpha = 1; b.drawImage(this.tinted('#0b0b10'), sx - HW, sy - HH); }
-        continue;
-      }
+      if (lv.tiles[i] === T.void) continue;
+      if (!lv.explored[i]) { b.drawImage(this.tinted('#0b0b10'), sx - HW, sy - HH); continue; }
       if (lv.visible[i] && lv.isWater(x, y)) {
         const h = hash2(x, y);
         const phase = (t * 0.8 + (h % 100) / 100) % 1;
         if (phase < 0.35) {
           b.fillStyle = 'rgba(220,240,255,0.55)';
-          const px = sx - 6 + (h % 12), py = sy - 3 + ((h >> 4) % 6);
-          b.fillRect(px, py, 3, 1);
+          b.fillRect(sx - 6 + (h % 12), sy - 3 + ((h >> 4) % 6), 3, 1);
         }
       }
-      if (!lv.visible[i]) {
-        b.globalAlpha = 0.5;
-        b.drawImage(this.tinted('#141626'), sx - HW, sy - HH);
-        b.globalAlpha = 1;
-      }
+      if (!lv.visible[i]) { fog.drawImage(this.tinted('#141626'), sx - HW, sy - HH); anyFog = true; }
+    }
+    if (anyFog) {
+      b.globalAlpha = 0.45;
+      b.drawImage(this.light, 0, 0);
+      b.globalAlpha = 1;
     }
     for (const d of V.fx.decals) {
       if (!lv.visible[lv.idx(Math.round(d.x), Math.round(d.y))]) continue;
@@ -282,13 +290,15 @@ export class Renderer {
     this.drawLighting(g, lv, now);
 
     // ── Overlays ──
-    if (this.overlay.cones) this.drawCones(g, lv);
-    this.drawRings(now);
-    this.drawPath();
-    this.drawIcons(g, lv, now);
-    this.drawFloats(now);
-    this.drawBubbles(lv, now);
-    this.drawCursor(lv);
+    if (!this.bare) {
+      if (this.overlay.cones) this.drawCones(g, lv);
+      this.drawRings(now);
+      this.drawPath();
+      this.drawIcons(g, lv, now);
+      this.drawFloats(now);
+      this.drawBubbles(lv, now);
+      this.drawCursor(lv);
+    }
 
     // ── Present ──
     const ctx = this.ctx;

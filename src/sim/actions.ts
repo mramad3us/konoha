@@ -137,12 +137,14 @@ function move(g: Game, lv: Level, id: EntityId, dx: number, dy: number): Result 
     }
   }
 
-  // Walking into a building's door enters it.
-  if (!lv.isPassable(nx, ny)) {
-    for (const e of lv.at(nx, ny)) {
-      if (lv.c.interact.has(e) && lv.structs[lv.idx(nx, ny)]) {
-        p.facing = dir;
-        return player ? interact(g, lv, id, e) : FAIL('blocked');
+  // Walking into a building's door (or the wall right beside it) enters it.
+  if (player && lv.inBounds(nx, ny) && lv.structs[lv.idx(nx, ny)]) {
+    for (let ddy = -1; ddy <= 1; ddy++) for (let ddx = -1; ddx <= 1; ddx++) {
+      for (const e of lv.at(nx + ddx, ny + ddy)) {
+        if (lv.c.interact.has(e) && lv.structs[lv.idx(nx + ddx, ny + ddy)] && chebyshev(p, lv.c.pos.get(e)!) <= 1) {
+          p.facing = dir;
+          return interact(g, lv, id, e);
+        }
       }
     }
   }

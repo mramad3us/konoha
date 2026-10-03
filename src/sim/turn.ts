@@ -78,7 +78,8 @@ function pulse(g: Game, lv: Level): void {
 export function updatePlayerFov(g: Game, lv: Level): void {
   const p = lv.c.pos.get(lv.playerId);
   if (!p) return;
-  const r = Math.round(Math.max(viewRange(lightAt(g, lv, p.x, p.y)), 6) + 3);
+  // Daylight: you see far. Night: your own sight shrinks with the light.
+  const r = Math.round(Math.max(viewRange(lightAt(g, lv, p.x, p.y)) * 2, 7));
   computePlayerFov(lv, p.x, p.y, r);
 }
 

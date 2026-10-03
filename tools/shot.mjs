@@ -25,7 +25,7 @@ const page = await browser.newPage();
 await page.setViewport({ width: script.width ?? 1600, height: script.height ?? 900, deviceScaleFactor: 1 });
 const logs = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning' || m.text().startsWith('[qa]')) logs.push(`${m.type()}: ${m.text()}`); });
-page.on('pageerror', e => logs.push(`pageerror: ${e.message}`));
+page.on("pageerror", e => logs.push(`pageerror: ${e.stack ?? e.message}`));
 
 await page.goto(base + (script.url ?? ''), { waitUntil: 'networkidle0' });
 let n = 0;

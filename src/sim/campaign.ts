@@ -23,6 +23,7 @@ export function newGame(name: string, frame: 'm' | 'f', appearance: Appearance |
   g.activeId = 'village';
   g.ext.spots = v.spots;
   populateVillage(g, v.level, v.spots);
+  v.level.explored.fill(1); // you grew up here
   const start = nearestFree(v.level, v.spots.homeDoor) ?? v.spots.homeDoor;
   placePlayer(g, v.level, start.x, start.y, 's');
   roster(g);
