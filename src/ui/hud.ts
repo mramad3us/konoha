@@ -21,6 +21,7 @@ import { ambientLight } from '../sim/stealth.ts';
 import type { LogCat } from '../sim/game.ts';
 import { MOVE_LABEL } from '../content/flavor.ts';
 import { nextTip, markTip } from './tips.ts';
+import { objectives } from '../sim/missions.ts';
 
 type Panel = 'profile' | 'journal' | 'inventory' | 'help';
 
@@ -202,7 +203,7 @@ export class Hud {
     );
 
     // Objectives
-    const lines = (g.ext.objectives as Array<{ text: string; done?: boolean }> | undefined) ?? [];
+    const lines = objectives(g);
     this.objectives.innerHTML = '';
     this.objectives.hidden = lines.length === 0;
     for (const l of lines) this.objectives.appendChild(el('div', `obj${l.done ? ' obj--done' : ''}`, l.text));
@@ -473,7 +474,7 @@ export class Hud {
       case 'journal': {
         p.appendChild(el('h2', 'panel__title', 'Journal'));
         const lines = (g.ext.journal as string[] | undefined) ?? [];
-        const obj = (g.ext.objectives as Array<{ text: string; done?: boolean }> | undefined) ?? [];
+        const obj = objectives(g);
         if (obj.length) { p.appendChild(el('h3', 'panel__h', 'Current')); for (const o of obj) p.appendChild(el('div', `obj${o.done ? ' obj--done' : ''}`, o.text)); }
         if (lines.length) { p.appendChild(el('h3', 'panel__h', 'Notes')); for (const l of lines) p.appendChild(el('p', 'panel__p', l)); }
         p.appendChild(el('h3', 'panel__h', 'Recent'));

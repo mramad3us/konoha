@@ -198,6 +198,51 @@ describe('C-rank away mission', () => {
   });
 });
 
+describe('more away missions', () => {
+  it('escort: the client travels with you through ambushes; arriving completes it', () => {
+    const g = mk(51);
+    g.player.record.missions.D = 3;
+    const m = forceMission(g, 'C', 'escort');
+    accept(g, m.id);
+    depart(g);
+    let ambushes = 0;
+    for (let guard = 0; guard < 10; guard++) {
+      const s = travel(g);
+      if (s.kind === 'ambush') {
+        ambushes++;
+        const lv = enterAmbush(g);
+        const client = active(g)!.refs.client!;
+        expect(lv.c.mission.get(client)?.role).toBe('client');
+        leaveAmbush(g);
+        continue;
+      }
+      expect(s.kind).toBe('arrive');
+      expect(arrive(g)).toBeNull();
+      break;
+    }
+    expect(ambushes).toBeGreaterThanOrEqual(1);
+    expect(active(g)!.status).toBe('complete');
+  });
+
+  it('infiltration notices when you are seen', async () => {
+    const { noteAlarm } = await import('../src/sim/missions.ts');
+    const g = mk(61);
+    g.player.sheet.rank = 'chunin';
+    const m = forceMission(g, 'B', 'infiltrate');
+    accept(g, m.id);
+    depart(g);
+    let s = travel(g);
+    while (s.kind === 'ambush') { enterAmbush(g); leaveAmbush(g); s = travel(g); }
+    const lv = arrive(g)!;
+    expect(active(g)!.refs.item).toBeDefined();
+    const [foe, aw] = [...lv.c.aware][0];
+    Object.assign(aw, { state: 'alert', target: lv.playerId });
+    void foe;
+    noteAlarm(g, lv);
+    expect(active(g)!.flags.alarm).toBe(true);
+  });
+});
+
 describe('village life', () => {
   it('sleep jumps to the next morning and restores you', () => {
     const g = mk();

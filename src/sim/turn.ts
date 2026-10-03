@@ -12,6 +12,7 @@ import { perform, type Action, type Result } from './actions.ts';
 import { computePlayerFov } from '../world/fov.ts';
 import { viewRange, lightAt } from './stealth.ts';
 import { resettle } from './village.ts';
+import { noteAlarm } from './missions.ts';
 import { HP_REGEN_PER_SEC, CHAKRA_REGEN_PER_SEC, TICK_SECONDS } from '../core/config.ts';
 
 export const PULSE_ID = -1;
@@ -65,6 +66,7 @@ export function advance(g: Game): AdvanceResult {
 function pulse(g: Game, lv: Level): void {
   pulseVitals(g, lv);
   pulseAwareness(g, lv);
+  if (lv.kind === 'mission') noteAlarm(g, lv);
   for (const [id, inv] of lv.c.invisible) {
     if (inv.until >= 0 && g.clock >= inv.until) {
       lv.remove(id, 'invisible');
