@@ -49,6 +49,7 @@ export type Action =
   | { type: 'carry'; target: EntityId }
   | { type: 'drop' }
   | { type: 'search'; target: EntityId }
+  | { type: 'finish'; target: EntityId }
   | { type: 'face'; dir: Dir8 };
 
 export interface Result {
@@ -90,6 +91,7 @@ function dispatch(g: Game, lv: Level, id: EntityId, a: Action): Result {
     case 'carry': return carry(g, lv, id, a.target);
     case 'drop': return drop(g, lv, id);
     case 'search': return search(g, lv, id, a.target);
+    case 'finish': return finish(g, lv, id, a.target);
     case 'face': {
       const p = lv.c.pos.get(id)!;
       p.facing = a.dir;
@@ -643,6 +645,15 @@ function search(g: Game, lv: Level, id: EntityId, target: EntityId): Result {
     g.say('Nothing more to find.', 'info');
   }
   return OK(SEARCH_TICKS);
+}
+
+function finish(g: Game, lv: Level, id: EntityId, target: EntityId): Result {
+  const p = lv.c.pos.get(id)!, tp = lv.c.pos.get(target);
+  if (!tp || chebyshev(p, tp) > 1) return FAIL('Too far.');
+  if (!lv.c.ko.has(target) || lv.c.dead.has(target)) return FAIL('Only an unconscious foe.');
+  if (isPlayer(lv, id)) g.player.record.kills++;
+  kill(g, lv, target, id, 'execution');
+  return OK(SECONDS2);
 }
 
 /** Direction vector helper for AI. */

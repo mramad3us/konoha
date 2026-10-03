@@ -1,0 +1,75 @@
+@font-face {
+  font-family: 'DotGothic16';
+  src: url('../assets/fonts/dotgothic16-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+@font-face {
+  font-family: 'DotGothic16';
+  src: url('../assets/fonts/dotgothic16-latin-ext-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('../assets/fonts/silkscreen-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('../assets/fonts/silkscreen-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Serif JP';
+  src: url('../assets/fonts/NotoSerifJP-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+:root {
+  --ink-0: #07070a;
+  --ink-1: #0e0e14;
+  --ink-2: #16161f;
+  --ink-3: #22222e;
+  --ink-4: #2e2e3c;
+  --line: #3a3446;
+  --line-hi: #5a4e5e;
+  --paper: #e9e2d0;
+  --paper-dim: #b8b0a0;
+  --paper-mute: #847c70;
+  --gold: #d6b25e;
+  --gold-dim: #8f7640;
+  --blood: #c0303a;
+  --blood-deep: #7a1a22;
+  --hp: #d0453c;
+  --sta: #c8b04a;
+  --cha: #4f9ae0;
+  --strike: #ff6a4a;
+  --break: #f0b040;
+  --guard: #6ab0ff;
+  --good: #8fe08a;
+  --font-ui: 'DotGothic16', ui-monospace, monospace;
+  --font-px: 'Silkscreen', 'DotGothic16', monospace;
+  --font-title: 'Noto Serif JP', 'DotGothic16', serif;
+  --px: 2px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink-0); color: var(--paper); overflow: hidden; }
+body { font-family: var(--font-ui); font-size: 16px; line-height: 1.35; -webkit-font-smoothing: none; font-smooth: never; }
+#app { position: fixed; inset: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+[hidden] { display: none !important; }
+
+/* A pixel-bordered ink panel used across the UI. */
+.ink {
+  background: linear-gradient(180deg, rgba(22, 22, 31, 0.94), rgba(14, 14, 20, 0.94));
+  border: var(--px) solid var(--line);
+  box-shadow: 0 0 0 var(--px) var(--ink-0), inset 0 var(--px) 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.45);
+}

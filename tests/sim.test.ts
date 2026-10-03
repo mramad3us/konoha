@@ -143,7 +143,7 @@ describe('stealth', () => {
   });
 
   it('walking openly in front of a guard in daylight gets you spotted', () => {
-    const { g, lv, player } = testGame({ seed: 2, x: 10, y: 16 });
+    const { g, lv } = testGame({ seed: 2, x: 10, y: 16 });
     const b = spawn(g, lv, 'bandit_thug', 10, 10, 's'); // facing the player
     freeze(lv, b);
     for (let i = 0; i < 4; i++) playerAct(g, { type: 'move', dx: 0, dy: -1 });
